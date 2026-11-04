@@ -1,5 +1,6 @@
 #pragma once
 #include "backend/engine_bridge.hpp"
+#include "ui/workspace.hpp"
 #include <cstdint>
 #include <map>
 #include <mutex>
@@ -19,10 +20,17 @@ struct Document {
     std::map<EntityId, std::string> entities;
     EntityId next_id = 1;
     RuntimeState runtime;
+    Workspace workspace;
     bool operator==(const Document&) const = default;
 };
+struct ReplaceWorkspace { Workspace workspace; };
+struct ConfigureWorkspace { std::uint64_t scale_percent; std::string theme; bool reduced_motion; };
+struct SetPanelDock { std::string panel; std::string dock; };
+struct ResizeDock { std::string dock; std::uint64_t percent; };
+struct BindShortcut { std::string command; std::string shortcut; };
+struct SelectEntity { EntityId id; }; // Zero clears selection.
 struct ReplaceScene { Document document; };
-using Mutation = std::variant<CreateEntity, RenameEntity, Play, Stop, SendInput, ReplaceScene>;
+using Mutation = std::variant<CreateEntity, RenameEntity, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace>;
 struct Error { std::string code; std::string field; std::string message; };
 struct Result {
     std::uint64_t revision;

@@ -6,7 +6,7 @@ The desktop shell and actual game runtime are not implemented.
 
 ## Build and test
 
-Requires C++20, CMake 3.25+, Ninja and Python 3. From `editor/`:
+Requires C++20, CMake 3.25+, Ninja and Python 3.11+. From `editor/`:
 
 ```
 cmake --preset dev
@@ -24,7 +24,7 @@ From the repository root, the verified fallback is:
 
 ```
 mkdir -p /tmp/lyko-build
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/tests/command_bus_tests.cpp -o /tmp/lyko-build/tests
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -Ieditor/src editor/tests/json_tests.cpp -o /tmp/lyko-build/json-tests
 /tmp/lyko-build/tests
@@ -33,6 +33,7 @@ python3 editor/tests/cli_tests.py /tmp/lyko-build/lyko
 python3 editor/tests/persistence_tests.py /tmp/lyko-build/lyko
 python3 editor/tests/mcp_tests.py /tmp/lyko-build/lyko
 python3 editor/tests/feedback_tests.py /tmp/lyko-build/lyko
+python3 editor/tests/workspace_tests.py /tmp/lyko-build/lyko
 ```
 
 Use the existing isolated checkout; do not create a worktree unless requested.
@@ -69,3 +70,23 @@ has not been optimized for large projects. The mock records at most 1024 input
 messages per session and retains the latest 256 log messages. A scene load resets
 runtime state. Mock screenshots are deterministic 64x36 PPM images representing
 state, not rendered gameplay. GUI frame-rate and handheld usability are untested.
+
+## Desktop shell model
+
+The toolkit-independent workspace supports selection/inspector data, five panel
+positions, split sizing, rebindable shortcuts and palette search through the same
+command service. These are implemented behaviors, not a visible desktop window.
+
+```json
+{"instance":"demo","command":"workspace.configure","arguments":{"scale_percent":150,"theme":"high_contrast","reduced_motion":true}}
+{"instance":"demo","command":"panel.dock","arguments":{"panel":"inspector","dock":"bottom"}}
+{"instance":"demo","command":"selection.set","arguments":{"id":1}}
+{"instance":"demo","command":"selection.query"}
+{"instance":"demo","command":"palette.search","arguments":{"query":"undo"}}
+{"instance":"demo","command":"workspace.save","arguments":{"path":"my-workspace.toml"}}
+```
+
+Selection requires an existing entity; ID zero clears it. Workspace saves require
+a new path, just like scene exports. `workspace.load` restores TOML settings and
+layout as one undoable transaction without replacing the scene. Scene loads
+preserve preferences/layout and clear selection. See ADR 0003 for scope and limits.

@@ -63,12 +63,22 @@
 - Strict GCC, JSON contract, core, CLI, persistence, MCP and feedback checks pass.
   Core tests include concurrent stale writes and bounded mock history/logs.
 
-## Shared text-file handling slice
+## Toolkit-independent workspace slice
 
-- Extracted bounded file reads and atomic no-overwrite publication from scene I/O
-  for reuse by workspace configuration. Added explicit UTF-8 path conversion and
-  embedded-null rejection. Existing scene round-trip/rollback tests still pass.
-- The desktop window and GUI dependency acquisition remain blocked by the proxy.
+- Added undoable selection, starter panel docking slots/splits, UI scaling,
+  dark/high-contrast themes, reduced motion and conflict-checked key bindings.
+- Added palette search across every registered command with current shortcuts and
+  schemas, inspector selection queries and centralized toolkit-independent tokens.
+- Added TOML workspace save/load with validated atomic replacement of in-memory
+  settings and no-overwrite file exports. Scene and config loads preserve their
+  respective boundaries; selection is excluded from config files.
+- Shared bounded UTF-8 file handling between scene and workspace persistence.
+- Strict GCC builds and workspace tests pass, including independent Python TOML
+  parsing, contrast thresholds, transaction/undo/redo behavior, bad-config rollback,
+  Unicode paths and CLI/MCP parity. ADR 0003 records scope and parser limitations.
+- All seven test groups passed under ASan/UBSan with leak detection disabled
+  because LeakSanitizer is incompatible with this environment tracing.
+- The shell model is implemented; no actual GUI window or docking adapter exists.
 
 ## Current limitations
 
@@ -80,7 +90,7 @@
 - CMake presets, Windows builds and clang-tidy remain unrun because the required
   tools/platform are unavailable. CI is configured but unexecuted; approved
   self-hosted runners are required. No dependencies have been vendored.
-- GUI/docking, prefab/asset schemas, TOML config and glTF import are outstanding.
+- GUI window/docking adapter, prefab/asset schemas and glTF import are outstanding.
   CLI JSON requests and registry input schemas are implemented; transport and
   persistence contracts will be extended in subsequent slices.
 - ADR remains proposed for review; it describes the target architecture.
@@ -90,6 +100,7 @@
 Restore environment proxy connectivity, fetch this repository's main, reconcile
 local commits with remote changes, then validate CMake presets and add the
 desktop shell using reviewed, pinned permissive dependencies. Validate external
-MCP client compatibility and complete prefab/asset/config schemas. Use the
+MCP client compatibility and complete prefab/asset schemas. Python 3.11+ is
+required for the independent TOML test parser. Use the
 existing isolated checkout; do not create a worktree unless explicitly requested.
 Do not access the engine repository. Record progress here after each task.

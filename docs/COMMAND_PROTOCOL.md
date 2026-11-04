@@ -20,6 +20,17 @@ Names and mock input values accept 1–128 UTF-8 bytes. Unknown fields fail.
 
 | Command | Arguments | Result data / effect |
 | --- | --- | --- |
+| `workspace.configure` | `scale_percent`: uint64, `theme`: string, `reduced_motion`: bool | Set scale (75–250), dark/high_contrast theme and reduced motion |
+| `workspace.query` | none | Settings, panel positions, splits, keymap and selection |
+| `workspace.save` | `path`: string | Export workspace TOML to a new file |
+| `workspace.load` | `path`: string | Load settings/layout/keymap undoably; preserve scene and selection |
+| `panel.dock` | `panel`: string, `dock`: string | Assign a registered panel to a dock slot or hidden |
+| `layout.resize` | `dock`: string, `percent`: uint64 | Resize left/right/bottom split (10–50); retain 30% center width |
+| `keymap.bind` | `command`: string, `shortcut`: string | Bind a canonical shortcut; empty string unbinds |
+| `selection.set` | `id`: uint64 | Select an entity; zero clears selection |
+| `selection.query` | none | Selected `entity` with id/name, or null |
+| `design.tokens` | none | Central theme/scale/spacing/type/motion/geometry tokens |
+| `palette.search` | `query`: string | All matching command descriptors, schemas and current shortcuts |
 | `commands.list` | none | Array of command registrations and schemas |
 | `entity.create` | `name`: string | Create stable entity ID; query scene for IDs |
 | `entity.rename` | `id`: uint64, `name`: string | Rename existing entity |
@@ -39,7 +50,9 @@ Mutation successes without query data return `{}`. Errors return stable codes:
 `instance_mismatch`, `stale_revision`, `invalid_request`, `invalid_name`,
 `not_found`, `not_playing`, `invalid_input`, `input_limit`, `id_exhausted`,
 `empty_transaction`, `invalid_scene`, `history_empty`, `backend_failure`,
-`operation_failed`, or transport `parse_error`. Messages describe the failure.
+`operation_failed`, `invalid_workspace`, `invalid_scale`, `invalid_theme`,
+`unknown_panel`, `invalid_dock`, `invalid_split`, `invalid_shortcut`,
+`shortcut_conflict`, or transport `parse_error`. Messages describe the failure.
 
 Example atomic batch:
 
@@ -66,7 +79,8 @@ publishes it with a hard link that fails if the destination exists. It does not
 overwrite existing files. Hard-link support is required; failure does not fall
 back to a partial copy. Save is an explicit external export: undo cannot retract
 a published file. This provides atomic publication, not power-loss durability.
-Prefabs/assets, configuration TOML and glTF import are future schema work.
+Workspace configuration is TOML schema v1 (ADR 0003). Prefab/asset schemas and
+glTF import remain future work.
 
 ## MCP over stdio
 
@@ -88,3 +102,26 @@ malformed JSON-RPC/lifecycle/method failures use JSON-RPC errors. Notifications
 never execute tools. Different instances use different processes and histories;
 there is no global router or shared scene persistence. External MCP-client
 interoperability testing is still required.
+
+## Workspace, palette and shortcuts
+
+Panel IDs are `scene`, `inspector`, `viewport`, `console`, `history`. Dock slots
+are `left`, `right`, `center`, `bottom`, `hidden`; only left/right/bottom have
+resizable percentages. This starter model does not yet represent arbitrary nested
+docking. UI state and scene edits share atomic transactions and undo history.
+
+Shortcut syntax is case-sensitive and canonical: modifiers Ctrl, Alt, Shift, Super
+in that order, then A–Z, 0–9, F1–F24, Enter, Escape, Space, Tab, Backspace, Delete,
+Home, End, PageUp, PageDown, Up, Down, Left or Right. Each shortcut has one command;
+conflicts fail without changes. The default palette binding is Ctrl+K. Rebinding
+updates palette results immediately; actual OS keyboard dispatch awaits the GUI.
+Palette queries support empty strings and at most 128 UTF-8 bytes. Matching uses
+ASCII case folding, with prefix/name/description ranking and stable name ordering.
+
+Workspace TOML includes schema_version, scale_percent, theme, reduced_motion and
+panels/splits/keymap tables. Only the generated v1 subset plus comments/whitespace
+is supported; unknown tables, keys, bindings, conflicting shortcuts and unsupported
+versions fail before changing state. A workspace load preserves selection and the
+scene; a scene load clears selection and preserves layout/preferences. Config
+exports exclude selection and runtime data. File paths use explicit UTF-8 encoding;
+embedded nulls are rejected. Actual Windows filesystem behavior remains untested.

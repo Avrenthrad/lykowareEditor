@@ -1,6 +1,9 @@
 #include "command_service.hpp"
 #include "scene_io.hpp"
+#include "text_file.hpp"
 #include "software_preview.hpp"
+#include "ui/design_tokens.hpp"
+#include "ui/workspace_io.hpp"
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
@@ -10,21 +13,38 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
     std::function<Mutation(const Json&)> decode;
     Action action = Action::mutation;
 };
+const Entry& lookup(const std::string& name);
 const std::vector<Entry>& registry() {
     static const std::vector<Entry> entries = {
+        {"workspace.load", "Validate TOML UI settings, layout and keymap and replace them undoably.", {{"path", "string"}}, [](const Json& a) -> Mutation {
+            auto workspace = load_workspace(path_from_utf8(a.at("path").as<std::string>()));
+            for (const auto& [command, shortcut] : workspace.keymap) { (void)shortcut; (void)lookup(command); }
+            return ReplaceWorkspace{workspace}; }},
+        {"workspace.save", "Publish TOML UI settings, layout and keymap to a new path; export cannot be undone.", {{"path", "string"}}, {}, Action::workspace_save},
+        {"workspace.configure", "Set UI scaling (75..250%), dark/high_contrast theme and reduced motion atomically.", {{"scale_percent", "integer"}, {"theme", "string"}, {"reduced_motion", "boolean"}}, [](const Json& a) -> Mutation { return ConfigureWorkspace{a.at("scale_percent").as<std::uint64_t>(), a.at("theme").as<std::string>(), a.at("reduced_motion").as<bool>()}; }},
+        {"panel.dock", "Move a registered panel to left/right/center/bottom/hidden.", {{"panel", "string"}, {"dock", "string"}}, [](const Json& a) -> Mutation { return SetPanelDock{a.at("panel").as<std::string>(), a.at("dock").as<std::string>()}; }},
+        {"layout.resize", "Resize a dock split while preserving a usable center area.", {{"dock", "string"}, {"percent", "integer"}}, [](const Json& a) -> Mutation { return ResizeDock{a.at("dock").as<std::string>(), a.at("percent").as<std::uint64_t>()}; }},
+        {"keymap.bind", "Bind a canonical shortcut to a registered command; empty shortcut unbinds.", {{"command", "string"}, {"shortcut", "string"}}, [](const Json& a) -> Mutation {
+            auto command = a.at("command").as<std::string>(); (void)lookup(command);
+            return BindShortcut{command, a.at("shortcut").as<std::string>()}; }},
+        {"selection.set", "Select an existing entity; ID zero clears selection.", {{"id", "integer"}}, [](const Json& a) -> Mutation { return SelectEntity{a.at("id").as<std::uint64_t>()}; }},
+        {"workspace.query", "Read UI settings, panel positions, split sizes, selection and keymap.", {}, {}, Action::workspace},
+        {"design.tokens", "Read toolkit-independent accessible colour, scale, typography and motion tokens.", {}, {}, Action::tokens},
+        {"palette.search", "Search every registered command and show its current shortcut; empty query lists all.", {{"query", "string"}}, {}, Action::palette},
+        {"selection.query", "Read the selected entity for the inspector, or null when unselected.", {}, {}, Action::selection},
         {"entity.create", "Create a named entity with a stable ID.", {{"name", "string"}}, [](const Json& a) -> Mutation { return CreateEntity{a.at("name").as<std::string>()}; }},
         {"entity.rename", "Rename an existing entity.", {{"id", "integer"}, {"name", "string"}}, [](const Json& a) -> Mutation { return RenameEntity{a.at("id").as<std::uint64_t>(), a.at("name").as<std::string>()}; }},
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
-        {"scene.load", "Validate and load a scene as one undoable transaction.", {{"path", "string"}}, [](const Json& a) -> Mutation { return ReplaceScene{load_scene(a.at("path").as<std::string>())}; }},
+        {"scene.load", "Validate and load a scene as one undoable transaction.", {{"path", "string"}}, [](const Json& a) -> Mutation { return ReplaceScene{load_scene(path_from_utf8(a.at("path").as<std::string>()))}; }},
         {"scene.save", "Atomically save authoring JSON to a NEW path; export cannot be undone.", {{"path", "string"}}, {}, Action::save},
         {"history.undo", "Undo one complete transaction.", {}, {}, Action::undo},
         {"history.redo", "Redo one complete transaction.", {}, {}, Action::redo},
@@ -55,6 +75,7 @@ void validate(const Entry& entry, const Json& args) {
         const auto& value = args.at(field.name);
         if (field.type == "string") { (void)value.as<std::string>(); }
         else if (field.type == "integer") { (void)value.as<std::uint64_t>(); }
+        else if (field.type == "boolean") { (void)value.as<bool>(); }
         else if (field.type == "array") { (void)value.as<A>(); }
     }
     keys(args, names);
@@ -64,7 +85,7 @@ Json schema(const Entry& entry) {
     for (const auto& field : entry.fields) {
         O spec{{"type", field.type}};
         if (field.type == "string") {
-            spec.emplace("minLength", std::uint64_t{1});
+            spec.emplace("minLength", std::uint64_t{field.name == "query" || field.name == "shortcut" ? 0U : 1U});
             if (field.name == "name" || field.name == "value") { spec.emplace("maxLength", std::uint64_t{128}); }
         }
         if (field.type == "integer") { spec.emplace("minimum", std::uint64_t{0}); }
@@ -95,7 +116,7 @@ Json CommandService::descriptors() const {
     for (const auto& entry : registry()) {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
-                            {"effect", entry.action == Action::save ? "filesystem_export" :
+                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save) ? "filesystem_export" :
                                 (entry.decode || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
                             {"undoable", static_cast<bool>(entry.decode) || entry.action == Action::transaction},
                             {"mutation", static_cast<bool>(entry.decode) || entry.action == Action::transaction}});
@@ -131,7 +152,8 @@ Json CommandService::call(const Json& request) {
             result = bus_.execute(instance_, expected, mutations);
         } else if (entry.action == Action::undo) { result = bus_.undo(instance_, expected); }
         else if (entry.action == Action::redo) { result = bus_.redo(instance_, expected); }
-        else if (entry.action == Action::save) { save_scene(args.at("path").as<std::string>(), bus_.snapshot().first); data = O{{"saved", true}}; }
+        else if (entry.action == Action::save) { save_scene(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first); data = O{{"saved", true}}; }
+        else if (entry.action == Action::workspace_save) { save_workspace(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first.workspace); data = O{{"saved", true}}; }
         else if (entry.action == Action::discovery) { data = descriptors(); }
         else if (entry.action == Action::logs) {
             const auto state = bus_.snapshot().first;
@@ -139,6 +161,54 @@ Json CommandService::call(const Json& request) {
             data = O{{"mock", true}, {"messages", std::move(logs)}};
         }
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
+        else if (entry.action == Action::workspace) {
+            const auto workspace = bus_.snapshot().first.workspace;
+            O panels, splits, keymap;
+            for (const auto& [name, dock] : workspace.panels) { panels.emplace(name, dock); }
+            for (const auto& [name, percent] : workspace.splits) { splits.emplace(name, percent); }
+            for (const auto& [name, shortcut] : workspace.keymap) { keymap.emplace(name, shortcut); }
+            data = O{{"scale_percent", workspace.scale_percent}, {"theme", workspace.theme},
+                     {"reduced_motion", workspace.reduced_motion}, {"panels", std::move(panels)},
+                     {"splits", std::move(splits)}, {"keymap", std::move(keymap)},
+                     {"selection", workspace.selection ? Json(*workspace.selection) : Json(nullptr)}};
+        }
+        else if (entry.action == Action::tokens) { data = design_tokens(bus_.snapshot().first.workspace); }
+        else if (entry.action == Action::selection) {
+            const auto document = bus_.snapshot().first;
+            data = O{{"entity", document.workspace.selection ?
+                Json(O{{"id", *document.workspace.selection}, {"name", document.entities.at(*document.workspace.selection)}}) : Json(nullptr)}};
+        }
+        else if (entry.action == Action::palette) {
+            auto query = args.at("query").as<std::string>();
+            if (query.size() > 128) { throw std::invalid_argument("Palette query must not exceed 128 bytes"); }
+            const auto lower = [](std::string text) {
+                for (char& c : text) { if (c >= 'A' && c <= 'Z') { c = static_cast<char>(c - 'A' + 'a'); } }
+                return text;
+            };
+            query = lower(std::move(query));
+            const auto workspace = bus_.snapshot().first.workspace;
+            struct Match { unsigned rank; std::string name; Json descriptor; };
+            std::vector<Match> matches;
+            const auto all = descriptors();
+            for (auto descriptor : all.as<A>()) {
+                const auto name = descriptor.at("name").as<std::string>();
+                const auto description = lower(descriptor.at("description").as<std::string>());
+                unsigned rank = 0;
+                if (!query.empty() && !name.starts_with(query)) {
+                    if (name.find(query) != std::string::npos) { rank = 1; }
+                    else if (description.find(query) != std::string::npos) { rank = 2; }
+                    else { continue; }
+                }
+                const auto shortcut = workspace.keymap.find(name);
+                auto object = descriptor.as<O>();
+                object.emplace("shortcut", shortcut == workspace.keymap.end() ? "" : shortcut->second);
+                descriptor = Json(std::move(object));
+                matches.push_back({rank, name, std::move(descriptor)});
+            }
+            std::sort(matches.begin(), matches.end(), [](const auto& a, const auto& b) { return a.rank != b.rank ? a.rank < b.rank : a.name < b.name; });
+            A output; for (auto& match : matches) { output.push_back(std::move(match.descriptor)); }
+            data = std::move(output);
+        }
         else if (entry.action == Action::scene) { data = document_json(bus_.snapshot().first); }
         return response(result, std::move(data));
     } catch (const std::invalid_argument& e) {

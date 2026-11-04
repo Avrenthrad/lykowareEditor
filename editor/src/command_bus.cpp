@@ -50,7 +50,56 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 if (command.document.runtime.playing || !command.document.runtime.inputs.empty() || !command.document.runtime.logs.empty()) {
                     return Error{"invalid_scene", "runtime", "Loaded scenes must not contain runtime state."};
                 }
-                candidate = command.document;
+                candidate.entities = command.document.entities;
+                candidate.next_id = command.document.next_id;
+                candidate.runtime = command.document.runtime;
+                candidate.workspace.selection.reset();
+            } else if constexpr (std::is_same_v<T, ReplaceWorkspace>) {
+                if (auto message = workspace_error(command.workspace)) { return Error{"invalid_workspace", "workspace", *message}; }
+                const auto selection = candidate.workspace.selection;
+                candidate.workspace = command.workspace;
+                candidate.workspace.selection = selection;
+            } else if constexpr (std::is_same_v<T, ConfigureWorkspace>) {
+                if (command.scale_percent < 75 || command.scale_percent > 250) {
+                    return Error{"invalid_scale", "scale_percent", "UI scale must be between 75 and 250 percent."};
+                }
+                if (command.theme != "dark" && command.theme != "high_contrast") {
+                    return Error{"invalid_theme", "theme", "Choose dark or high_contrast."};
+                }
+                candidate.workspace.scale_percent = command.scale_percent;
+                candidate.workspace.theme = command.theme;
+                candidate.workspace.reduced_motion = command.reduced_motion;
+            } else if constexpr (std::is_same_v<T, SetPanelDock>) {
+                auto panel = candidate.workspace.panels.find(command.panel);
+                if (panel == candidate.workspace.panels.end()) { return Error{"unknown_panel", "panel", "Panel is not registered."}; }
+                if (command.dock != "left" && command.dock != "right" && command.dock != "center" && command.dock != "bottom" && command.dock != "hidden") {
+                    return Error{"invalid_dock", "dock", "Choose left, right, center, bottom or hidden."};
+                }
+                panel->second = command.dock;
+            } else if constexpr (std::is_same_v<T, ResizeDock>) {
+                if (!candidate.workspace.splits.contains(command.dock)) { return Error{"invalid_dock", "dock", "Only left, right and bottom splits can be resized."}; }
+                if (command.percent < 10 || command.percent > 50) { return Error{"invalid_split", "percent", "Dock size must be 10 to 50 percent."}; }
+                auto splits = candidate.workspace.splits;
+                splits.at(command.dock) = command.percent;
+                if (splits.at("left") + splits.at("right") > 70) { return Error{"invalid_split", "percent", "Keep at least 30 percent of the width for the center."}; }
+                candidate.workspace.splits = std::move(splits);
+            } else if constexpr (std::is_same_v<T, BindShortcut>) {
+                if (command.command.empty() || command.command.size() > 128 || !valid_shortcut(command.shortcut)) {
+                    return Error{"invalid_shortcut", "shortcut", "Use canonical Ctrl+Alt+Shift+Super modifiers followed by a supported key; empty unbinds."};
+                }
+                for (const auto& [name, shortcut] : candidate.workspace.keymap) {
+                    if (name != command.command && !command.shortcut.empty() && shortcut == command.shortcut) {
+                        return Error{"shortcut_conflict", "shortcut", "Shortcut is already bound; unbind it first."};
+                    }
+                }
+                if (command.shortcut.empty()) { candidate.workspace.keymap.erase(command.command); }
+                else { candidate.workspace.keymap[command.command] = command.shortcut; }
+            } else if constexpr (std::is_same_v<T, SelectEntity>) {
+                if (command.id == 0) { candidate.workspace.selection.reset(); }
+                else {
+                    if (!candidate.entities.contains(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
+                    candidate.workspace.selection = command.id;
+                }
             } else if constexpr (std::is_same_v<T, Play>) {
                 candidate.runtime = bridge_.play(candidate.runtime);
             } else if constexpr (std::is_same_v<T, Stop>) {
