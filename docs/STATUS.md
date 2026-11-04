@@ -63,6 +63,13 @@
 - Strict GCC, JSON contract, core, CLI, persistence, MCP and feedback checks pass.
   Core tests include concurrent stale writes and bounded mock history/logs.
 
+## Shared text-file handling slice
+
+- Extracted bounded file reads and atomic no-overwrite publication from scene I/O
+  for reuse by workspace configuration. Added explicit UTF-8 path conversion and
+  embedded-null rejection. Existing scene round-trip/rollback tests still pass.
+- The desktop window and GUI dependency acquisition remain blocked by the proxy.
+
 ## Current limitations
 
 - Git access to this repository fails because the environment proxy on port 8080
