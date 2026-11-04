@@ -15,13 +15,14 @@ struct RenameEntity { EntityId id; std::string name; };
 struct Play {};
 struct Stop {};
 struct SendInput { std::string value; };
-using Mutation = std::variant<CreateEntity, RenameEntity, Play, Stop, SendInput>;
 struct Document {
     std::map<EntityId, std::string> entities;
     EntityId next_id = 1;
     RuntimeState runtime;
     bool operator==(const Document&) const = default;
 };
+struct ReplaceScene { Document document; };
+using Mutation = std::variant<CreateEntity, RenameEntity, Play, Stop, SendInput, ReplaceScene>;
 struct Error { std::string code; std::string field; std::string message; };
 struct Result {
     std::uint64_t revision;

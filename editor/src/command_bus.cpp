@@ -40,6 +40,17 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                     if (entity == candidate.entities.end()) { return Error{"not_found", "id", "Entity does not exist."}; }
                     entity->second = command.name;
                 }
+            } else if constexpr (std::is_same_v<T, ReplaceScene>) {
+                if (command.document.next_id == 0) { return Error{"invalid_scene", "next_id", "Next ID must be positive."}; }
+                for (const auto& [id, name] : command.document.entities) {
+                    if (id == 0 || id >= command.document.next_id || name.empty() || name.size() > 128) {
+                        return Error{"invalid_scene", "entities", "Invalid entity identifier or name."};
+                    }
+                }
+                if (command.document.runtime.playing || !command.document.runtime.inputs.empty()) {
+                    return Error{"invalid_scene", "runtime", "Loaded scenes must not contain runtime state."};
+                }
+                candidate = command.document;
             } else if constexpr (std::is_same_v<T, Play>) {
                 candidate.runtime = bridge_.play(candidate.runtime);
             } else if constexpr (std::is_same_v<T, Stop>) {

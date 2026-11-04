@@ -1,6 +1,7 @@
 #pragma once
 #include <charconv>
 #include <cstdint>
+#include <cmath>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -9,18 +10,20 @@
 #include <vector>
 
 namespace lyko {
-// Protocol JSON subset: numbers are unsigned 64-bit integers. Negative and
-// fractional values are rejected, never rounded. Depth and message size bounded.
+// Bounded JSON parser. Signed/fractional values remain distinct and cannot
+// silently coerce to unsigned entity IDs or revisions.
 class Json {
 public:
     using Object = std::map<std::string, Json>;
     using Array = std::vector<Json>;
-    using Value = std::variant<std::nullptr_t, bool, std::uint64_t, std::string, Object, Array>;
+    using Value = std::variant<std::nullptr_t, bool, std::uint64_t, std::int64_t, double, std::string, Object, Array>;
     Value value = nullptr;
     Json() = default;
     Json(std::nullptr_t) : value(nullptr) {}
     Json(bool v) : value(v) {}
     Json(std::uint64_t v) : value(v) {}
+    Json(std::int64_t v) : value(v) {}
+    Json(double v) : value(v) {}
     Json(std::string v) : value(std::move(v)) {}
     Json(const char* v) : value(std::string(v)) {}
     Json(Object v) : value(std::move(v)) {}
@@ -143,13 +146,38 @@ class Parser {
                 pos_ += token.size(); if (token == "null") { return nullptr; } return token == "true";
             }
         }
-        if (c >= '0' && c <= '9') {
-            auto start = pos_++;
-            if (c != '0') { while (pos_ < text_.size() && text_[pos_] >= '0' && text_[pos_] <= '9') { ++pos_; } }
-            std::uint64_t n{};
-            auto [end, ec] = std::from_chars(text_.data() + start, text_.data() + pos_, n);
-            if (ec != std::errc{} || end != text_.data() + pos_) { fail(); }
-            return n;
+        if (c == '-' || (c >= '0' && c <= '9')) {
+            const auto start = pos_;
+            if (c == '-') { ++pos_; }
+            if (pos_ == text_.size() || text_[pos_] < '0' || text_[pos_] > '9') { fail(); }
+            if (text_[pos_++] != '0') {
+                while (pos_ < text_.size() && text_[pos_] >= '0' && text_[pos_] <= '9') { ++pos_; }
+            }
+            bool floating = false;
+            if (pos_ < text_.size() && text_[pos_] == '.') {
+                floating = true; ++pos_; const auto digits = pos_;
+                while (pos_ < text_.size() && text_[pos_] >= '0' && text_[pos_] <= '9') { ++pos_; }
+                if (digits == pos_) { fail(); }
+            }
+            if (pos_ < text_.size() && (text_[pos_] == 'e' || text_[pos_] == 'E')) {
+                floating = true; ++pos_;
+                if (pos_ < text_.size() && (text_[pos_] == '+' || text_[pos_] == '-')) { ++pos_; }
+                const auto digits = pos_;
+                while (pos_ < text_.size() && text_[pos_] >= '0' && text_[pos_] <= '9') { ++pos_; }
+                if (digits == pos_) { fail(); }
+            }
+            const auto first = text_.data() + start; const auto last = text_.data() + pos_;
+            if (floating) {
+                double number{}; auto [end, ec] = std::from_chars(first, last, number);
+                if (ec != std::errc{} || end != last || !std::isfinite(number)) { fail(); }
+                return number;
+            }
+            if (c == '-') {
+                std::int64_t number{}; auto [end, ec] = std::from_chars(first, last, number);
+                if (ec != std::errc{} || end != last) { fail(); } return number;
+            }
+            std::uint64_t number{}; auto [end, ec] = std::from_chars(first, last, number);
+            if (ec != std::errc{} || end != last) { fail(); } return number;
         }
         fail();
     }
@@ -178,7 +206,15 @@ inline std::string Json::dump() const {
         using T = std::decay_t<decltype(v)>;
         if constexpr (std::is_same_v<T, std::nullptr_t>) { return "null"; }
         else if constexpr (std::is_same_v<T, bool>) { return v ? "true" : "false"; }
-        else if constexpr (std::is_same_v<T, std::uint64_t>) { return std::to_string(v); }
+        else if constexpr (std::is_same_v<T, std::uint64_t> || std::is_same_v<T, std::int64_t>) { return std::to_string(v); }
+        else if constexpr (std::is_same_v<T, double>) {
+            if (!std::isfinite(v)) { throw std::invalid_argument("Nonfinite JSON number"); }
+            char buffer[64]; auto [end, error] = std::to_chars(buffer, buffer + sizeof(buffer), v);
+            if (error != std::errc{}) { throw std::invalid_argument("Cannot encode number"); }
+            std::string out(buffer, end);
+            if (out.find_first_of(".eE") == std::string::npos) { out += ".0"; }
+            return out;
+        }
         else if constexpr (std::is_same_v<T, std::string>) { return json_detail::quote(v); }
         else {
             std::string out;

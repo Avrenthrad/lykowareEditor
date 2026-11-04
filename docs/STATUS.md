@@ -24,9 +24,22 @@
 - Centralized command names, schema discovery and typed decoding in CommandService;
   the service serializes target/revision validation, execution and queries.
 - Added atomic transaction requests, strict unknown-field rejection and Unicode
-  handling. JSON numeric inputs currently support unsigned 64-bit integers only.
+  handling. Entity IDs/revisions require exact unsigned 64-bit integers; signed
+  and fractional JSON numbers parse without being coerced into IDs.
 - Strict GCC builds and the core suite passed. The CLI suite passed discovery,
   Unicode, feedback/undo/redo and 15 malformed/invalid-request rollback cases.
+
+## Scene persistence slice
+
+- Added versioned authoring JSON with one entity per line, stable IDs and next-ID
+  metadata; runtime state is deliberately excluded.
+- `scene.load` validates the entire document before an undoable replacement.
+- `scene.save` publishes a complete file atomically to a new path using a hard
+  link. Existing files are preserved. Filesystems without hard links fail safely;
+  overwrite support and power-loss durability are not implemented.
+- Filesystem tests passed round trips, load undo/redo, existing-file preservation,
+  malformed-scene rollback and staging cleanup. Input/output files are capped at
+  1 MiB for this initial implementation.
 
 ## Current limitations
 
@@ -38,7 +51,7 @@
 - CMake presets, Windows builds and clang-tidy remain unrun because the required
   tools/platform are unavailable. CI has not been configured or executed; paid
   runners/services have not been invoked. No dependencies have been vendored.
-- GUI/docking, MCP, persistence, logs and screenshots are outstanding.
+- GUI/docking, MCP, logs and screenshots are outstanding.
   CLI JSON requests and registry input schemas are implemented; transport and
   persistence contracts will be extended in subsequent slices.
 - ADR remains proposed for review; it describes the target architecture.

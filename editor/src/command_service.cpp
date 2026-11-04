@@ -1,4 +1,5 @@
 #include "command_service.hpp"
+#include "scene_io.hpp"
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
@@ -20,6 +21,8 @@ const std::vector<Entry>& registry() {
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
+        {"scene.load", "Validate and load a scene as one undoable transaction.", {{"path", "string"}}, [](const Json& a) -> Mutation { return ReplaceScene{load_scene(a.at("path").as<std::string>())}; }},
+        {"scene.save", "Atomically save authoring JSON to a NEW path; export cannot be undone.", {{"path", "string"}}, {}},
         {"history.undo", "Undo one complete transaction.", {}, {}},
         {"history.redo", "Redo one complete transaction.", {}, {}},
         {"scene.query", "Read the simulated scene and runtime state.", {}, {}},
@@ -116,11 +119,14 @@ Json CommandService::call(const Json& request) {
             result = bus_.execute(instance_, expected, mutations);
         } else if (entry.name == "history.undo") { result = bus_.undo(instance_, expected); }
         else if (entry.name == "history.redo") { result = bus_.redo(instance_, expected); }
+        else if (entry.name == "scene.save") { save_scene(args.at("path").as<std::string>(), bus_.snapshot().first); data = O{{"saved", true}}; }
         else if (entry.name == "commands.list") { data = descriptors(); }
         else if (entry.name == "scene.query") { data = document_json(bus_.snapshot().first); }
         return response(result, std::move(data));
     } catch (const std::invalid_argument& e) {
         return error_json(revision, "invalid_request", "request", e.what());
+    } catch (const std::exception& e) {
+        return error_json(revision, "operation_failed", "command", e.what());
     }
 }
 }
