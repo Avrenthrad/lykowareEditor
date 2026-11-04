@@ -18,6 +18,16 @@
   under the environment's process tracing. Leak checking remains unverified.
 - No external libraries or engine dependencies were introduced.
 
+## JSON command contract slice
+
+- Replaced the prototype text CLI with bounded JSON-lines requests/results.
+- Centralized command names, schema discovery and typed decoding in CommandService;
+  the service serializes target/revision validation, execution and queries.
+- Added atomic transaction requests, strict unknown-field rejection and Unicode
+  handling. JSON numeric inputs currently support unsigned 64-bit integers only.
+- Strict GCC builds and the core suite passed. The CLI suite passed discovery,
+  Unicode, feedback/undo/redo and 15 malformed/invalid-request rollback cases.
+
 ## Current limitations
 
 - Git access to this repository fails because the environment proxy on port 8080
@@ -28,8 +38,9 @@
 - CMake presets, Windows builds and clang-tidy remain unrun because the required
   tools/platform are unavailable. CI has not been configured or executed; paid
   runners/services have not been invoked. No dependencies have been vendored.
-- GUI/docking, JSON CLI, MCP, persistence, logs and screenshots are outstanding.
-  CLI is an initial text protocol. Registry metadata is not yet a machine schema.
+- GUI/docking, MCP, persistence, logs and screenshots are outstanding.
+  CLI JSON requests and registry input schemas are implemented; transport and
+  persistence contracts will be extended in subsequent slices.
 - ADR remains proposed for review; it describes the target architecture.
 
 ## Next handover

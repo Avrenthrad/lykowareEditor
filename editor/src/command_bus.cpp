@@ -5,20 +5,6 @@
 #include <utility>
 
 namespace lyko {
-const std::vector<CommandInfo>& commands() {
-    static const std::vector<CommandInfo> registry = {
-        {"entity.create", "name:string[1..128]", "Create an entity with a stable identifier."},
-        {"entity.rename", "id:uint64,name:string[1..128]", "Rename an existing entity."},
-        {"play.start", "", "Start the simulated runtime."},
-        {"play.stop", "", "Stop the simulated runtime."},
-        {"play.input", "value:string[1..128]", "Send input while the simulated runtime is playing."},
-        {"history.undo", "", "Undo one atomic transaction."},
-        {"history.redo", "", "Redo one atomic transaction."},
-        {"scene.query", "", "Read a consistent document snapshot and revision."},
-        {"commands.list", "", "List command names, argument types and documentation."}
-    };
-    return registry;
-}
 CommandBus::CommandBus(std::string instance, const EngineBridge& bridge)
     : instance_(std::move(instance)), bridge_(bridge) {
     if (instance_.empty()) { throw std::invalid_argument("instance must not be empty"); }

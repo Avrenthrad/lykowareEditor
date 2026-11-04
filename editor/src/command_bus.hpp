@@ -28,8 +28,6 @@ struct Result {
     std::optional<Error> error;
     explicit operator bool() const { return !error; }
 };
-struct CommandInfo { std::string name; std::string input; std::string description; };
-const std::vector<CommandInfo>& commands();
 class CommandBus {
 public:
     explicit CommandBus(std::string instance, const EngineBridge& bridge);

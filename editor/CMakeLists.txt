@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(LykowareEditor VERSION 0.1.0 LANGUAGES CXX)
 option(LYKO_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
-add_library(lyko_core src/command_bus.cpp)
+add_library(lyko_core src/command_bus.cpp src/command_service.cpp)
 target_include_directories(lyko_core PUBLIC src)
 target_compile_features(lyko_core PUBLIC cxx_std_20)
 if(MSVC)
