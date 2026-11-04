@@ -14,7 +14,8 @@ cmake --build --preset dev --parallel 2
 ctest --preset dev
 ```
 
-Use the `sanitizers` preset for ASan/UBSan. Configure with
+Use the `sanitizers` preset for ASan/UBSan, or the separate
+`thread-sanitizer` preset for TSan. Do not enable both in one build directory. Configure with
 `-DLYKO_CLANG_TIDY=ON` to run installed clang-tidy while compiling. On Windows use
 a Visual Studio developer shell with Ninja and Python available. CMake, Windows
 and clang-tidy checks have not run in the current cloud environment because the
@@ -24,7 +25,7 @@ From the repository root, the verified fallback is:
 
 ```
 mkdir -p /tmp/lyko-build
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/tests/command_bus_tests.cpp -o /tmp/lyko-build/tests
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -Ieditor/src editor/tests/json_tests.cpp -o /tmp/lyko-build/json-tests
 /tmp/lyko-build/tests
@@ -34,6 +35,7 @@ python3 editor/tests/persistence_tests.py /tmp/lyko-build/lyko
 python3 editor/tests/mcp_tests.py /tmp/lyko-build/lyko
 python3 editor/tests/feedback_tests.py /tmp/lyko-build/lyko
 python3 editor/tests/workspace_tests.py /tmp/lyko-build/lyko
+python3 editor/tests/snapshot_tests.py /tmp/lyko-build/lyko
 ```
 
 Use the existing isolated checkout; do not create a worktree unless requested.
@@ -90,3 +92,27 @@ Selection requires an existing entity; ID zero clears it. Workspace saves requir
 a new path, just like scene exports. `workspace.load` restores TOML settings and
 layout as one undoable transaction without replacing the scene. Scene loads
 preserve preferences/layout and clear selection. See ADR 0003 for scope and limits.
+
+## Desktop adapter execution
+
+`ui/command_queue.hpp` provides a single-worker asynchronous adapter for a future
+window. Keep CommandService and its backend alive until the queue is destroyed.
+Submit requests with `try_submit`, correlate accepted tickets with `try_pop`, and
+render cached responses. The default 64-request limit includes unpolled results.
+A full/busy queue accepts nothing; do not retry accepted requests automatically.
+Close cancels queued work, lets running work finish and joins on destruction.
+
+`editor.snapshot` supplies a consistent revision of all panel models, including
+history entries with transaction command names and undo/redo state. It excludes
+software capture and file I/O. Fetch preview images separately using the same
+expected_revision. These facilities have no GUI dependency and do not yet create
+a window or demonstrate a measured frame rate. See ADR 0004 for lifecycle rules.
+
+The deterministic queue test can also be built directly from the repository root:
+
+```
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
+/tmp/lyko-build/queue-tests
+```
+
+`CommandQueue::try_status` provides non-waiting queued/running/ready counts for busy indicators.

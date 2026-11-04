@@ -4,6 +4,7 @@
 #include "software_preview.hpp"
 #include "ui/design_tokens.hpp"
 #include "ui/workspace_io.hpp"
+#include "ui/shell_snapshot.hpp"
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
@@ -13,7 +14,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -46,6 +47,8 @@ const std::vector<Entry>& registry() {
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
         {"scene.load", "Validate and load a scene as one undoable transaction.", {{"path", "string"}}, [](const Json& a) -> Mutation { return ReplaceScene{load_scene(path_from_utf8(a.at("path").as<std::string>()))}; }},
         {"scene.save", "Atomically save authoring JSON to a NEW path; export cannot be undone.", {{"path", "string"}}, {}, Action::save},
+        {"history.query", "Read transaction names, applied/redo entries and undo/redo availability.", {}, {}, Action::history},
+        {"editor.snapshot", "Read a coherent revision of all desktop panel models without rendering or file I/O.", {}, {}, Action::snapshot},
         {"history.undo", "Undo one complete transaction.", {}, {}, Action::undo},
         {"history.redo", "Redo one complete transaction.", {}, {}, Action::redo},
         {"logs.query", "Read the last 256 simulated runtime log messages.", {}, {}, Action::logs},
@@ -125,7 +128,7 @@ Json CommandService::descriptors() const {
 }
 Json CommandService::call(const Json& request) {
     std::lock_guard lock(mutex_);
-    const auto revision = bus_.snapshot().second;
+    const auto revision = bus_.revision();
     try {
         keys(request, {"instance", "command", "arguments", "expected_revision"});
         if (request.at("instance").as<std::string>() != instance_) {
@@ -139,45 +142,37 @@ Json CommandService::call(const Json& request) {
         validate(entry, args);
         Result result{revision, {}};
         Json data = O{};
-        if (entry.decode) { result = bus_.execute(instance_, expected, {entry.decode(args)}); }
+        if (entry.decode) { result = bus_.execute(instance_, expected, {entry.decode(args)}, {entry.name}); }
         else if (entry.action == Action::transaction) {
             std::vector<Mutation> mutations;
+            std::vector<std::string> command_names;
             for (const auto& item : args.at("commands").as<A>()) {
                 keys(item, {"command", "arguments"});
                 const auto& mutation = lookup(item.at("command").as<std::string>());
                 if (!mutation.decode) { throw std::invalid_argument("Only mutations are allowed in transactions"); }
                 const Json a = item.contains("arguments") ? item.at("arguments") : Json(O{});
-                validate(mutation, a); mutations.push_back(mutation.decode(a));
+                validate(mutation, a); mutations.push_back(mutation.decode(a)); command_names.push_back(mutation.name);
             }
-            result = bus_.execute(instance_, expected, mutations);
+            result = bus_.execute(instance_, expected, mutations, std::move(command_names));
         } else if (entry.action == Action::undo) { result = bus_.undo(instance_, expected); }
         else if (entry.action == Action::redo) { result = bus_.redo(instance_, expected); }
         else if (entry.action == Action::save) { save_scene(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first); data = O{{"saved", true}}; }
         else if (entry.action == Action::workspace_save) { save_workspace(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first.workspace); data = O{{"saved", true}}; }
         else if (entry.action == Action::discovery) { data = descriptors(); }
-        else if (entry.action == Action::logs) {
-            const auto state = bus_.snapshot().first;
-            A logs; for (const auto& message : state.runtime.logs) { logs.emplace_back(message); }
-            data = O{{"mock", true}, {"messages", std::move(logs)}};
-        }
+        else if (entry.action == Action::logs) { data = logs_json(bus_.snapshot().first.runtime); }
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
-        else if (entry.action == Action::workspace) {
-            const auto workspace = bus_.snapshot().first.workspace;
-            O panels, splits, keymap;
-            for (const auto& [name, dock] : workspace.panels) { panels.emplace(name, dock); }
-            for (const auto& [name, percent] : workspace.splits) { splits.emplace(name, percent); }
-            for (const auto& [name, shortcut] : workspace.keymap) { keymap.emplace(name, shortcut); }
-            data = O{{"scale_percent", workspace.scale_percent}, {"theme", workspace.theme},
-                     {"reduced_motion", workspace.reduced_motion}, {"panels", std::move(panels)},
-                     {"splits", std::move(splits)}, {"keymap", std::move(keymap)},
-                     {"selection", workspace.selection ? Json(*workspace.selection) : Json(nullptr)}};
+        else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
+        else if (entry.action == Action::history) { data = history_json(bus_.history_snapshot()); }
+        else if (entry.action == Action::snapshot) {
+            const auto state = bus_.editor_snapshot();
+            data = O{{"schema_version", std::uint64_t{1}}, {"mock", true}, {"scene", document_json(state.document)},
+                     {"workspace", workspace_json(state.document.workspace)}, {"selection", selection_json(state.document)},
+                     {"tokens", design_tokens(state.document.workspace)}, {"logs", logs_json(state.document.runtime)},
+                     {"history", history_json(state.history)}};
+            result.revision = state.revision;
         }
         else if (entry.action == Action::tokens) { data = design_tokens(bus_.snapshot().first.workspace); }
-        else if (entry.action == Action::selection) {
-            const auto document = bus_.snapshot().first;
-            data = O{{"entity", document.workspace.selection ?
-                Json(O{{"id", *document.workspace.selection}, {"name", document.entities.at(*document.workspace.selection)}}) : Json(nullptr)}};
-        }
+        else if (entry.action == Action::selection) { data = selection_json(bus_.snapshot().first); }
         else if (entry.action == Action::palette) {
             auto query = args.at("query").as<std::string>();
             if (query.size() > 128) { throw std::invalid_argument("Palette query must not exceed 128 bytes"); }

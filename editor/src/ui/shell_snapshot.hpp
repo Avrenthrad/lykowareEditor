@@ -1,0 +1,38 @@
+#pragma once
+#include "command_bus.hpp"
+#include "json.hpp"
+#include "ui/design_tokens.hpp"
+
+namespace lyko {
+inline Json workspace_json(const Workspace& workspace) {
+    using O = Json::Object;
+    O panels, splits, keymap;
+    for (const auto& [name, dock] : workspace.panels) { panels.emplace(name, dock); }
+    for (const auto& [name, percent] : workspace.splits) { splits.emplace(name, percent); }
+    for (const auto& [name, shortcut] : workspace.keymap) { keymap.emplace(name, shortcut); }
+    return O{{"scale_percent", workspace.scale_percent}, {"theme", workspace.theme},
+             {"reduced_motion", workspace.reduced_motion}, {"panels", std::move(panels)},
+             {"splits", std::move(splits)}, {"keymap", std::move(keymap)},
+             {"selection", workspace.selection ? Json(*workspace.selection) : Json(nullptr)}};
+}
+inline Json selection_json(const Document& document) {
+    return Json::Object{{"entity", document.workspace.selection ?
+        Json(Json::Object{{"id", *document.workspace.selection}, {"name", document.entities.at(*document.workspace.selection)}}) : Json(nullptr)}};
+}
+inline Json logs_json(const RuntimeState& runtime) {
+    Json::Array logs;
+    for (const auto& message : runtime.logs) { logs.emplace_back(message); }
+    return Json::Object{{"mock", true}, {"messages", std::move(logs)}};
+}
+inline Json history_json(const HistorySnapshot& history) {
+    Json::Array entries;
+    for (const auto& entry : history.entries) {
+        Json::Array names;
+        for (const auto& name : entry.commands) { names.emplace_back(name); }
+        entries.emplace_back(Json::Object{{"revision", entry.revision}, {"commands", std::move(names)},
+                                         {"mutation_count", static_cast<std::uint64_t>(entry.commands.size())}, {"applied", entry.applied}});
+    }
+    return Json::Object{{"cursor", static_cast<std::uint64_t>(history.cursor)}, {"can_undo", history.cursor != 0},
+                        {"can_redo", history.cursor < history.entries.size()}, {"entries", std::move(entries)}};
+}
+}

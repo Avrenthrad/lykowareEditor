@@ -37,6 +37,8 @@ Names and mock input values accept 1–128 UTF-8 bytes. Unknown fields fail.
 | `play.start` | none | Start simulated play |
 | `play.stop` | none | Stop simulated play |
 | `play.input` | `value`: string | Record input while playing |
+| `editor.snapshot` | none | Coherent scene/workspace/selection/tokens/logs/history at the response revision |
+| `history.query` | none | History cursor, undo/redo availability and named transaction entries |
 | `history.undo` | none | Undo one complete transaction |
 | `history.redo` | none | Redo one complete transaction |
 | `transaction.execute` | `commands`: array | Apply mutations as one transaction |
@@ -125,3 +127,33 @@ versions fail before changing state. A workspace load preserves selection and th
 scene; a scene load clears selection and preserves layout/preferences. Config
 exports exclude selection and runtime data. File paths use explicit UTF-8 encoding;
 embedded nulls are rejected. Actual Windows filesystem behavior remains untested.
+
+## Desktop execution and panel snapshots
+
+The C++ `CommandQueue` is an asynchronous adapter over the same service. Desktop
+render/input code submits small requests, retains them until a ticket is accepted,
+and polls completions without waiting for command execution. `queue_busy` and
+`queue_full` mean nothing was accepted; retry only on a later frame. `queue_closed`,
+`request_too_large`, `invalid_request` and `ticket_exhausted` are local submission
+errors. Every accepted ticket receives one response while the queue remains alive.
+Never replay an accepted mutation merely because its result has not arrived.
+
+Capacity includes queued, running and completed-but-unpolled requests. Close
+cancels undequeued requests with code `cancelled`; running requests finish. Shutdown
+may therefore wait for a backend/file operation. Cancellation/unexpected queue
+errors report revision zero as unknown; update cached revision from successful
+snapshots, not error envelopes. There is no per-command interrupt yet.
+
+`editor.snapshot` returns schema_version, mock, scene, workspace, selection,
+tokens, logs and history together. All sections describe the response revision.
+It excludes preview images and performs no file I/O. Request `preview.capture`
+separately with expected_revision set to that snapshot revision. On stale_revision,
+refresh the snapshot and present/re-evaluate the user's intent; do not blindly
+retry edits. Cache panel data on the desktop thread and apply newer snapshots
+as a unit rather than mixing individual panel replies from different revisions.
+
+History contains cursor, can_undo, can_redo and entries. Entries retain original
+commit revision, commands, mutation_count and applied status. Undo/redo changes
+the cursor and current revision; it does not rewrite original commit revisions.
+A failed edit preserves the redo branch; a changed edit after undo discards it.
+No-op edits and queries create no entries. History stays in memory only.

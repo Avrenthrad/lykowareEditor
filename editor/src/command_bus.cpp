@@ -16,10 +16,15 @@ std::optional<Error> CommandBus::validate_target(const std::string& instance,
     return {};
 }
 Result CommandBus::execute(const std::string& instance, std::optional<std::uint64_t> expected,
-                           const std::vector<Mutation>& mutations) {
+                           const std::vector<Mutation>& mutations, std::vector<std::string> command_names) {
     std::lock_guard lock(mutex_);
     if (auto error = validate_target(instance, expected)) { return {revision_, error}; }
     if (mutations.empty()) { return {revision_, Error{"empty_transaction", "commands", "Supply at least one mutation."}}; }
+    if (command_names.empty()) { command_names.assign(mutations.size(), "mutation"); }
+    if (command_names.size() != mutations.size()) { return {revision_, Error{"invalid_history_metadata", "commands", "History metadata must match transaction size."}}; }
+    for (const auto& name : command_names) {
+        if (name.empty() || name.size() > 128) { return {revision_, Error{"invalid_history_metadata", "commands", "Invalid history command name."}}; }
+    }
     auto candidate = document_;
     for (const auto& mutation : mutations) {
         std::optional<Error> error;
@@ -121,7 +126,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
     // Prepare every potentially allocating operation before the commit swaps.
     auto next_history = history_;
     next_history.erase(next_history.begin() + static_cast<std::ptrdiff_t>(cursor_), next_history.end());
-    next_history.push_back({document_, candidate});
+    next_history.push_back({document_, candidate, revision_ + 1, std::move(command_names)});
     using std::swap;
     swap(document_, candidate);
     history_.swap(next_history);
@@ -147,4 +152,22 @@ std::pair<Document, std::uint64_t> CommandBus::snapshot() const {
     std::lock_guard lock(mutex_);
     return {document_, revision_};
 }
+std::uint64_t CommandBus::revision() const {
+    std::lock_guard lock(mutex_); return revision_;
+}
+HistorySnapshot CommandBus::history_unlocked() const {
+    HistorySnapshot result{cursor_, {}};
+    result.entries.reserve(history_.size());
+    for (std::size_t i = 0; i < history_.size(); ++i) {
+        result.entries.push_back({history_[i].revision, history_[i].commands, i < cursor_});
+    }
+    return result;
+}
+HistorySnapshot CommandBus::history_snapshot() const {
+    std::lock_guard lock(mutex_); return history_unlocked();
+}
+EditorSnapshot CommandBus::editor_snapshot() const {
+    std::lock_guard lock(mutex_); return {document_, revision_, history_unlocked()};
+}
+
 }

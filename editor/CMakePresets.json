@@ -1,9 +1,68 @@
 {
   "version": 6,
   "configurePresets": [
-    {"name":"dev","generator":"Ninja","binaryDir":"${sourceDir}/build/dev","cacheVariables":{"CMAKE_BUILD_TYPE":"Debug","CMAKE_EXPORT_COMPILE_COMMANDS":"ON","BUILD_TESTING":"ON"}},
-    {"name":"sanitizers","inherits":"dev","binaryDir":"${sourceDir}/build/sanitizers","cacheVariables":{"LYKO_SANITIZERS":"ON"}}
+    {
+      "name": "dev",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "sanitizers",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/sanitizers",
+      "cacheVariables": {
+        "LYKO_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "thread-sanitizer",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/thread-sanitizer",
+      "cacheVariables": {
+        "LYKO_THREAD_SANITIZER": "ON"
+      }
+    }
   ],
-  "buildPresets": [{"name":"dev","configurePreset":"dev"},{"name":"sanitizers","configurePreset":"sanitizers"}],
-  "testPresets": [{"name":"dev","configurePreset":"dev","output":{"outputOnFailure":true}},{"name":"sanitizers","configurePreset":"sanitizers","output":{"outputOnFailure":true}}]
+  "buildPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev"
+    },
+    {
+      "name": "sanitizers",
+      "configurePreset": "sanitizers"
+    },
+    {
+      "name": "thread-sanitizer",
+      "configurePreset": "thread-sanitizer"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "sanitizers",
+      "configurePreset": "sanitizers",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "thread-sanitizer",
+      "configurePreset": "thread-sanitizer",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
 }

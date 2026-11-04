@@ -30,3 +30,6 @@ jobs:
       - run: cmake --preset sanitizers -DLYKO_CLANG_TIDY=ON
       - run: cmake --build --preset sanitizers --parallel 2
       - run: ctest --preset sanitizers
+      - run: cmake --preset thread-sanitizer
+      - run: cmake --build --preset thread-sanitizer --target lyko_queue_tests lyko_tests --parallel 2
+      - run: ctest --preset thread-sanitizer -R "desktop_command_queue|command_bus"

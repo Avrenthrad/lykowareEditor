@@ -37,16 +37,34 @@ struct Result {
     std::optional<Error> error;
     explicit operator bool() const { return !error; }
 };
+struct HistoryEntry {
+    std::uint64_t revision;
+    std::vector<std::string> commands;
+    bool applied;
+};
+struct HistorySnapshot {
+    std::size_t cursor;
+    std::vector<HistoryEntry> entries;
+};
+struct EditorSnapshot {
+    Document document;
+    std::uint64_t revision;
+    HistorySnapshot history;
+};
 class CommandBus {
 public:
     explicit CommandBus(std::string instance, const EngineBridge& bridge);
     Result execute(const std::string& instance, std::optional<std::uint64_t> expected,
-                   const std::vector<Mutation>& mutations);
+                   const std::vector<Mutation>& mutations, std::vector<std::string> command_names = {});
     Result undo(const std::string& instance, std::optional<std::uint64_t> expected = {});
     Result redo(const std::string& instance, std::optional<std::uint64_t> expected = {});
     std::pair<Document, std::uint64_t> snapshot() const;
+    std::uint64_t revision() const;
+    HistorySnapshot history_snapshot() const;
+    EditorSnapshot editor_snapshot() const;
 private:
-    struct Change { Document before; Document after; };
+    struct Change { Document before; Document after; std::uint64_t revision; std::vector<std::string> commands; };
+    HistorySnapshot history_unlocked() const;
     std::optional<Error> validate_target(const std::string&, std::optional<std::uint64_t>) const;
     Result history(const std::string&, std::optional<std::uint64_t>, bool forward);
     const std::string instance_;

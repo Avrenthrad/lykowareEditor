@@ -80,10 +80,31 @@
   because LeakSanitizer is incompatible with this environment tracing.
 - The shell model is implemented; no actual GUI window or docking adapter exists.
 
+## Desktop execution and panel snapshot slice
+
+- Added CommandQueue worker execution over the existing service, FIFO tickets,
+  non-waiting submission/polling, count backpressure including unpolled replies,
+  and explicit shutdown cancellation of work not started.
+- Added editor.snapshot with coherent scene/workspace/selection/token/log/history
+  data, separate from preview capture and file I/O. Added history.query with named
+  transaction records, original revisions and applied/redo status.
+- Removed full-document copies from the service's initial revision check.
+- Strict GCC builds and deterministic tests pass for blocked-backend submission,
+  FIFO/bounds/errors/shutdown and snapshot/history/undo/redo/branch behavior.
+- ADR 0004 and the command protocol document adapter lifetime and retry rules.
+- Queue tests pass under ThreadSanitizer; queue/snapshot/workspace tests pass
+  under ASan/UBSan with the previously documented leak-check limitation.
+- Added a separate TSan preset and manual self-hosted CI step; CMake execution
+  remains pending until newly installed tools are activated.
+- Read-only Git access succeeds outside the default network sandbox. Earlier
+  proxy failures were a sandbox restriction, not a broken environment proxy.
+  Remote main remains at the original starting commit; GUI dependencies are now
+  being acquired through the approved network path.
+
 ## Current limitations
 
-- Git access to this repository fails because the environment proxy on port 8080
-  is unreachable. Latest remote main cannot be verified and no PR can be opened.
+- Default sandbox network requests fail; approved network-enabled commands work.
+  Remote main has been checked and has no new commits beyond the starting point.
 - Local starting commit: `8308edf` (Initial commit), branch `work`.
 - GCC 14.2 and Make are present; CMake and Ninja are absent. Installation and
   dependency acquisition remain blocked by network access.
