@@ -1,12 +1,15 @@
 #include "command_service.hpp"
+#include "mcp_server.hpp"
 #include <iostream>
 
 int main(int argc, char** argv) {
-    if (argc != 3 || std::string(argv[1]) != "--instance" || std::string(argv[2]).empty()) {
-        std::cerr << "Usage: lyko --instance NAME < requests.jsonl\n"; return 2;
+    if ((argc != 3 && argc != 4) || std::string(argv[1]) != "--instance" || std::string(argv[2]).empty() || (argc == 4 && std::string(argv[3]) != "--mcp")) {
+        std::cerr << "Usage: lyko --instance NAME < requests.jsonl (optional --mcp)\n"; return 2;
     }
     lyko::MockEngineBridge backend;
     lyko::CommandService service(argv[2], backend);
+    const bool mcp = argc == 4;
+    lyko::McpServer server(service);
     bool failed = false;
     // Bound memory while reading, including rejected oversized messages.
     for (;;) {
@@ -18,11 +21,13 @@ int main(int argc, char** argv) {
         lyko::Json result;
         try {
             if (oversized) { throw std::invalid_argument("Request exceeds 1 MiB"); }
-            result = service.call(lyko::Json::parse(line));
+            auto message = lyko::Json::parse(line);
+            if (mcp) { auto reply = server.receive(message); if (!reply) { continue; } result = *reply; }
+            else { result = service.call(message); }
         } catch (const std::invalid_argument& error) {
-            result = lyko::error_json(0, "parse_error", "request", error.what());
+            result = mcp ? lyko::rpc_error(nullptr, -32700, error.what()) : lyko::error_json(0, "parse_error", "request", error.what());
         }
-        failed = !result.at("ok").as<bool>() || failed;
+        if (!mcp) { failed = !result.at("ok").as<bool>() || failed; }
         std::cout << result.dump() << '\n' << std::flush;
         if (!std::cin) { break; }
     }

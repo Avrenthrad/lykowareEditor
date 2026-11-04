@@ -41,6 +41,16 @@
   malformed-scene rollback and staging cleanup. Input/output files are capped at
   1 MiB for this initial implementation.
 
+## MCP transport slice
+
+- Added opt-in stdio MCP mode: `lyko --instance NAME --mcp`.
+- Implements initialization, tool discovery from command schemas, tool calls,
+  structured command results and explicit instance targeting. No network listener.
+- Black-box tests passed lifecycle, discovery, signed request IDs, target/revision
+  rejection, notification safety and equivalent CLI/MCP results.
+- Advertises protocol versions 2024-11-05 and 2025-06-18; external MCP-client
+  compatibility testing remains outstanding.
+
 ## Current limitations
 
 - Git access to this repository fails because the environment proxy on port 8080
@@ -51,7 +61,7 @@
 - CMake presets, Windows builds and clang-tidy remain unrun because the required
   tools/platform are unavailable. CI has not been configured or executed; paid
   runners/services have not been invoked. No dependencies have been vendored.
-- GUI/docking, MCP, logs and screenshots are outstanding.
+- GUI/docking, logs and screenshots are outstanding.
   CLI JSON requests and registry input schemas are implemented; transport and
   persistence contracts will be extended in subsequent slices.
 - ADR remains proposed for review; it describes the target architecture.
