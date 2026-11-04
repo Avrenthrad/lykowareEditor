@@ -47,7 +47,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                         return Error{"invalid_scene", "entities", "Invalid entity identifier or name."};
                     }
                 }
-                if (command.document.runtime.playing || !command.document.runtime.inputs.empty()) {
+                if (command.document.runtime.playing || !command.document.runtime.inputs.empty() || !command.document.runtime.logs.empty()) {
                     return Error{"invalid_scene", "runtime", "Loaded scenes must not contain runtime state."};
                 }
                 candidate = command.document;
@@ -58,6 +58,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
             } else if constexpr (std::is_same_v<T, SendInput>) {
                 if (!candidate.runtime.playing) { return Error{"not_playing", "value", "Start play mode before sending input."}; }
                 if (command.value.empty() || command.value.size() > 128) { return Error{"invalid_input", "value", "Input must contain 1 to 128 bytes."}; }
+                if (candidate.runtime.inputs.size() >= 1024) { return Error{"input_limit", "value", "Mock session accepts at most 1024 inputs; undo or load a scene to reset."}; }
                 candidate.runtime = bridge_.input(candidate.runtime, command.value);
             }
             return {};

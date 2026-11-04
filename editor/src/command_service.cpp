@@ -1,5 +1,6 @@
 #include "command_service.hpp"
 #include "scene_io.hpp"
+#include "software_preview.hpp"
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
@@ -9,10 +10,12 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
     std::function<Mutation(const Json&)> decode;
+    Action action = Action::mutation;
 };
 const std::vector<Entry>& registry() {
     static const std::vector<Entry> entries = {
@@ -22,12 +25,14 @@ const std::vector<Entry>& registry() {
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
         {"scene.load", "Validate and load a scene as one undoable transaction.", {{"path", "string"}}, [](const Json& a) -> Mutation { return ReplaceScene{load_scene(a.at("path").as<std::string>())}; }},
-        {"scene.save", "Atomically save authoring JSON to a NEW path; export cannot be undone.", {{"path", "string"}}, {}},
-        {"history.undo", "Undo one complete transaction.", {}, {}},
-        {"history.redo", "Redo one complete transaction.", {}, {}},
-        {"scene.query", "Read the simulated scene and runtime state.", {}, {}},
-        {"commands.list", "Discover versioned command schemas.", {}, {}},
-        {"transaction.execute", "Commit a nonempty array of mutations atomically.", {{"commands", "array"}}, {}}
+        {"scene.save", "Atomically save authoring JSON to a NEW path; export cannot be undone.", {{"path", "string"}}, {}, Action::save},
+        {"history.undo", "Undo one complete transaction.", {}, {}, Action::undo},
+        {"history.redo", "Redo one complete transaction.", {}, {}, Action::redo},
+        {"logs.query", "Read the last 256 simulated runtime log messages.", {}, {}, Action::logs},
+        {"preview.capture", "Capture a deterministic 64x36 software mock preview as PPM text.", {}, {}, Action::preview},
+        {"scene.query", "Read the simulated scene and runtime state.", {}, {}, Action::scene},
+        {"commands.list", "Discover versioned command schemas.", {}, {}, Action::discovery},
+        {"transaction.execute", "Commit a nonempty array of mutations atomically.", {{"commands", "array"}}, {}, Action::transaction}
     };
     return entries;
 }
@@ -58,6 +63,10 @@ Json schema(const Entry& entry) {
     O properties; A required;
     for (const auto& field : entry.fields) {
         O spec{{"type", field.type}};
+        if (field.type == "string") {
+            spec.emplace("minLength", std::uint64_t{1});
+            if (field.name == "name" || field.name == "value") { spec.emplace("maxLength", std::uint64_t{128}); }
+        }
         if (field.type == "integer") { spec.emplace("minimum", std::uint64_t{0}); }
         properties.emplace(field.name, std::move(spec)); required.emplace_back(field.name);
     }
@@ -86,7 +95,10 @@ Json CommandService::descriptors() const {
     for (const auto& entry : registry()) {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
-                            {"mutation", static_cast<bool>(entry.decode) || entry.name == "transaction.execute"}});
+                            {"effect", entry.action == Action::save ? "filesystem_export" :
+                                (entry.decode || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
+                            {"undoable", static_cast<bool>(entry.decode) || entry.action == Action::transaction},
+                            {"mutation", static_cast<bool>(entry.decode) || entry.action == Action::transaction}});
     }
     return list;
 }
@@ -107,7 +119,7 @@ Json CommandService::call(const Json& request) {
         Result result{revision, {}};
         Json data = O{};
         if (entry.decode) { result = bus_.execute(instance_, expected, {entry.decode(args)}); }
-        else if (entry.name == "transaction.execute") {
+        else if (entry.action == Action::transaction) {
             std::vector<Mutation> mutations;
             for (const auto& item : args.at("commands").as<A>()) {
                 keys(item, {"command", "arguments"});
@@ -117,11 +129,17 @@ Json CommandService::call(const Json& request) {
                 validate(mutation, a); mutations.push_back(mutation.decode(a));
             }
             result = bus_.execute(instance_, expected, mutations);
-        } else if (entry.name == "history.undo") { result = bus_.undo(instance_, expected); }
-        else if (entry.name == "history.redo") { result = bus_.redo(instance_, expected); }
-        else if (entry.name == "scene.save") { save_scene(args.at("path").as<std::string>(), bus_.snapshot().first); data = O{{"saved", true}}; }
-        else if (entry.name == "commands.list") { data = descriptors(); }
-        else if (entry.name == "scene.query") { data = document_json(bus_.snapshot().first); }
+        } else if (entry.action == Action::undo) { result = bus_.undo(instance_, expected); }
+        else if (entry.action == Action::redo) { result = bus_.redo(instance_, expected); }
+        else if (entry.action == Action::save) { save_scene(args.at("path").as<std::string>(), bus_.snapshot().first); data = O{{"saved", true}}; }
+        else if (entry.action == Action::discovery) { data = descriptors(); }
+        else if (entry.action == Action::logs) {
+            const auto state = bus_.snapshot().first;
+            A logs; for (const auto& message : state.runtime.logs) { logs.emplace_back(message); }
+            data = O{{"mock", true}, {"messages", std::move(logs)}};
+        }
+        else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
+        else if (entry.action == Action::scene) { data = document_json(bus_.snapshot().first); }
         return response(result, std::move(data));
     } catch (const std::invalid_argument& e) {
         return error_json(revision, "invalid_request", "request", e.what());

@@ -53,9 +53,11 @@ std::optional<Json> McpServer::receive(const Json& message) {
                 O properties{{"instance", O{{"type", "string"}, {"minLength", std::uint64_t{1}}}},
                              {"expected_revision", O{{"type", "integer"}, {"minimum", std::uint64_t{0}}}},
                              {"arguments", descriptor.at("inputSchema")}};
+                A required{"instance"};
+                if (!descriptor.at("inputSchema").at("required").as<A>().empty()) { required.emplace_back("arguments"); }
                 tools.emplace_back(O{{"name", descriptor.at("name")}, {"description", descriptor.at("description")},
                                      {"inputSchema", O{{"type", "object"}, {"properties", std::move(properties)},
-                                                        {"required", A{"instance"}}, {"additionalProperties", false}}}});
+                                                        {"required", std::move(required)}, {"additionalProperties", false}}}});
             }
             return success(id, O{{"tools", std::move(tools)}});
         }

@@ -2,6 +2,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
+#include <atomic>
+#include <thread>
 
 void check(bool condition, const char* message) {
     if (!condition) { std::cerr << "FAIL: " << message << '\n'; std::exit(1); }
@@ -36,6 +38,27 @@ int main() {
     auto before = bus.snapshot();
     check(static_cast<bool>(bus.execute("test", {}, {lyko::Stop{}})), "no-op succeeds");
     check(bus.snapshot() == before, "no-op keeps revision");
+    lyko::CommandBus bounded("bounded", backend);
+    std::vector<lyko::Mutation> batch{lyko::Play{}};
+    for (unsigned i = 0; i < 1024; ++i) { batch.emplace_back(lyko::SendInput{"right"}); }
+    check(static_cast<bool>(bounded.execute("bounded", {}, batch)), "bounded mock batch");
+    check(bounded.snapshot().first.runtime.logs.size() == 256, "logs bounded to 256");
+    check(!bounded.execute("bounded", {}, {lyko::SendInput{"overflow"}}), "input limit enforced");
+    check(bounded.snapshot().second == 1, "input limit keeps revision");
+    check(static_cast<bool>(bounded.undo("bounded")), "undo bounded batch");
+    check(!bounded.execute("bounded", {}, {lyko::RenameEntity{99, "missing"}}), "failed edit after undo");
+    check(static_cast<bool>(bounded.redo("bounded")), "failed edit preserves redo");
+    lyko::CommandBus concurrent("concurrent", backend);
+    std::atomic<unsigned> winners{0};
+    {
+        std::vector<std::jthread> workers;
+        for (unsigned i = 0; i < 4; ++i) {
+            workers.emplace_back([&] {
+                if (concurrent.execute("concurrent", 0, {lyko::CreateEntity{"Winner"}})) { ++winners; }
+            });
+        }
+    }
+    check(winners == 1 && concurrent.snapshot().first.entities.size() == 1, "concurrent stale writes serialize");
     FailingBridge failing;
     lyko::CommandBus broken("test", failing);
     auto failure = broken.execute("test", {}, {lyko::CreateEntity{"A"}, lyko::Play{}});

@@ -51,6 +51,18 @@
 - Advertises protocol versions 2024-11-05 and 2025-06-18; external MCP-client
   compatibility testing remains outstanding.
 
+## Mock feedback and build-check slice
+
+- Added bounded mock logs and deterministic 64x36 PPM software capture commands.
+  Tests verify play/input/log/query/capture plus visual and log undo/redo.
+- Added JSON number/Unicode/structure contract tests and a clang-tidy build option.
+- Added manual-only self-hosted Linux/Windows CI configuration with sanitizer and
+  clang-tidy checks. No workflow was dispatched and no artifact uploads exist.
+- Updated run instructions and documented the actual JSON/MCP/persistence protocol.
+- Added ADR 0002 covering protocol bounds, scene publication and manual CI.
+- Strict GCC, JSON contract, core, CLI, persistence, MCP and feedback checks pass.
+  Core tests include concurrent stale writes and bounded mock history/logs.
+
 ## Current limitations
 
 - Git access to this repository fails because the environment proxy on port 8080
@@ -59,9 +71,9 @@
 - GCC 14.2 and Make are present; CMake and Ninja are absent. Installation and
   dependency acquisition remain blocked by network access.
 - CMake presets, Windows builds and clang-tidy remain unrun because the required
-  tools/platform are unavailable. CI has not been configured or executed; paid
-  runners/services have not been invoked. No dependencies have been vendored.
-- GUI/docking, logs and screenshots are outstanding.
+  tools/platform are unavailable. CI is configured but unexecuted; approved
+  self-hosted runners are required. No dependencies have been vendored.
+- GUI/docking, prefab/asset schemas, TOML config and glTF import are outstanding.
   CLI JSON requests and registry input schemas are implemented; transport and
   persistence contracts will be extended in subsequent slices.
 - ADR remains proposed for review; it describes the target architecture.
@@ -69,6 +81,8 @@
 ## Next handover
 
 Restore environment proxy connectivity, fetch this repository's main, reconcile
-these documents with remote changes, then validate CMake presets and add the remaining shell and transport work. Use the
+local commits with remote changes, then validate CMake presets and add the
+desktop shell using reviewed, pinned permissive dependencies. Validate external
+MCP client compatibility and complete prefab/asset/config schemas. Use the
 existing isolated checkout; do not create a worktree unless explicitly requested.
 Do not access the engine repository. Record progress here after each task.

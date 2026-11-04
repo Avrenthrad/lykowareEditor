@@ -13,3 +13,13 @@
 Keep changes small and reviewable. Joshua merges; no engine integration is
 scheduled or authorized. CI must cover Windows, Linux, sanitizers and clang-tidy
 without mandatory artifact uploads or paid services.
+
+## Current checkpoint
+
+ADR 0001 is drafted; ADR 0002 records headless protocol/publication choices.
+The command core, JSON CLI, scene JSON persistence, stdio MCP and deterministic
+mock feedback loop are implemented and tested locally. Desktop shell, prefab and
+asset schemas, TOML configuration and glTF import remain outstanding. CMake,
+Windows and clang-tidy validation require missing tooling/platform support;
+manual self-hosted CI is configured but has not run. Restore the cloud proxy
+before acquiring reviewed GUI dependencies or reconciling with remote main.
