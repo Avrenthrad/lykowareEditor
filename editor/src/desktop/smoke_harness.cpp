@@ -157,6 +157,90 @@ void DesktopSmokeHarness::step(unsigned frames, const SmokeContext &context) {
       throw std::runtime_error("Interaction smoke: batch redo was not atomic");
     }
   }
+  if (smoke_input) {
+    auto *browser = context.shortcuts;
+    if (frames == 378) {
+      platform.test_key('k', true);
+    }
+    if (frames == 382 || frames == 383) {
+      platform.test_pointer(context.shortcuts_center, frames == 382);
+    }
+    if (frames == 388 && !browser->open) {
+      throw std::runtime_error(
+          "Interaction smoke: shortcut browser did not open");
+    }
+    if (frames == 390 || frames == 391) {
+      platform.test_pointer(browser->test_search_center(), frames == 390);
+    }
+    if (frames == 394) {
+      platform.test_text("history.undo");
+    }
+    if (frames == 404 || frames == 405) {
+      platform.test_pointer(browser->test_edit_center("history.undo"),
+                            frames == 404);
+    }
+    if (frames == 416) {
+      if (!command_form || !command_form->draft_arguments() ||
+          command_form->draft_arguments()->at("command").as<std::string>() !=
+              "history.undo" ||
+          command_form->draft_arguments()->at("shortcut").as<std::string>() !=
+              "Ctrl+Z") {
+        throw std::runtime_error(
+            "Interaction smoke: binding form was not prefilled");
+      }
+    }
+    if (frames == 420 || frames == 421) {
+      platform.test_pointer(command_form->test_center("shortcut"),
+                            frames == 420);
+    }
+    if (frames == 424) {
+      platform.test_key('a', true);
+    }
+    if (frames == 426) {
+      platform.test_text("Ctrl+U");
+    }
+    if (frames == 435 || frames == 436) {
+      platform.test_pointer(command_form->test_execute_center(), frames == 435);
+    }
+    if (frames == 450 && frame.at("workspace")
+                                 .at("keymap")
+                                 .at("history.undo")
+                                 .as<std::string>() != "Ctrl+U") {
+      throw std::runtime_error(
+          "Interaction smoke: shortcut edit did not commit: " + status);
+    }
+    if (frames == 455) {
+      platform.test_key('z', true);
+    }
+    if (frames == 459 && frame.at("workspace")
+                                 .at("keymap")
+                                 .at("history.undo")
+                                 .as<std::string>() != "Ctrl+U") {
+      throw std::runtime_error(
+          "Interaction smoke: old shortcut still dispatched");
+    }
+    if (frames == 465 || frames == 510) {
+      platform.test_key('u', true);
+    }
+    if (frames == 480 || frames == 525) {
+      if (frame.at("workspace")
+              .at("keymap")
+              .at("history.undo")
+              .as<std::string>() != "Ctrl+Z") {
+        throw std::runtime_error(
+            "Interaction smoke: rebound undo did not restore old binding");
+      }
+    }
+    if (frames == 485) {
+      platform.test_key('z', true, true);
+    }
+    if (frames == 500 && frame.at("workspace")
+                                 .at("keymap")
+                                 .at("history.undo")
+                                 .as<std::string>() != "Ctrl+U") {
+      throw std::runtime_error("Interaction smoke: binding redo failed");
+    }
+  }
   if (smoke_docking && ready) {
     const auto merged = [&]() {
       for (const auto &[id, node] :

@@ -192,3 +192,14 @@ undo/redo and unsupported floating-drop rollback through synthetic SDL input.
 The --smoke-input scenario also opens the batch builder through palette search,
 adds two entity.create rows and checks atomic submission, undo and redo. Drafts
 are transient; Back or a new search discards them without a command.
+
+Open **Shortcuts** from the top bar to browse all commands and current bindings,
+including unbound actions. Search by command, description or shortcut. **Edit**
+opens the existing keymap.bind form with current values; execute to apply or leave
+Shortcut empty to unbind. Conflicting keys are rejected without changing state.
+Undo/redo restores bindings. Tooltips and the inspector undo hint follow the
+confirmed keymap. Parameterized shortcuts open argument forms. Entity right-click
+menus offer Inspect, Rename, Undo and Redo with current shortcut labels.
+
+The input smoke test additionally edits Undo to Ctrl+U through the shortcut
+browser, verifies the old key stops dispatching, and checks binding undo/redo.

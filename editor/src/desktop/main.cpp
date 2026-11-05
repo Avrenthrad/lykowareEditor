@@ -1,6 +1,7 @@
 #include "command_form.hpp"
 #include "docking.hpp"
 #include "platform.hpp"
+#include "shortcut_browser.hpp"
 #include "smoke_harness.hpp"
 #include "transaction_form.hpp"
 #include "transport/mcp_stream.hpp"
@@ -96,6 +97,8 @@ int main(int argc, char **argv) {
     lyko::CommandQueue queue(service);
     lyko::DesktopPlatform platform;
     lyko::DockingAdapter docking;
+    lyko::ShortcutBrowser shortcuts;
+    bool focus_palette = false;
     lyko::DesktopSmokeHarness harness(smoke_input, smoke_docking);
     std::jthread protocol;
     if (mcp) {
@@ -127,7 +130,7 @@ int main(int argc, char **argv) {
       outgoing.emplace_back(std::move(object));
       return true;
     };
-    const auto choose_command = [&](const J &item) {
+    const auto choose_command = [&](const J &item, const O &prefill = O{}) {
       const auto name = item.at("name").as<std::string>();
       active = name;
       O current;
@@ -146,6 +149,9 @@ int main(int argc, char **argv) {
       }
       if (ready && name == "layout.replace") {
         current.emplace("layout", frame.at("workspace").at("layout"));
+      }
+      for (const auto &[key, value] : prefill) {
+        current.insert_or_assign(key, value);
       }
       transaction_form.reset();
       command_form.reset();
@@ -172,7 +178,8 @@ int main(int argc, char **argv) {
               false);
     }
     unsigned frames = 0;
-    ImVec2 create_center{}, name_center{}, search_center{}, settings_center{};
+    ImVec2 create_center{}, name_center{}, search_center{}, settings_center{},
+        shortcuts_center{};
     while (platform.begin_frame()) {
       while (auto done = queue.try_pop()) {
         docking.completed(done->ticket);
@@ -249,14 +256,23 @@ int main(int argc, char **argv) {
           }
         }
       }
+      const lyko::CommandHints hints(
+          catalog, ready ? frame.at("workspace").at("keymap") : J(O{}));
       const auto key_for = [&](const std::string &name) {
-        if (!ready) {
-          return std::string{};
+        return hints.shortcut(name);
+      };
+      const auto open_form = [&](const std::string &name, const O &values) {
+        for (const auto &descriptor : catalog.as<A>()) {
+          if (descriptor.at("name").as<std::string>() == name) {
+            choose_command(descriptor, values);
+            std::snprintf(search.data(), search.size(), "%s", name.c_str());
+            request("palette.search", O{{"query", name}}, false);
+            palette_open = true;
+            focus_search = false;
+            focus_palette = true;
+            break;
+          }
         }
-        const auto &keymap = frame.at("workspace").at("keymap").as<O>();
-        auto it = keymap.find(name);
-        return it == keymap.end() ? std::string{}
-                                  : it->second.as<std::string>();
       };
       if (ImGui::BeginMainMenuBar()) {
         ImGui::TextUnformatted("LYKOWARE");
@@ -298,6 +314,14 @@ int main(int argc, char **argv) {
           request("palette.search", O{{"query", std::string(search.data())}},
                   false);
         }
+        if (ready) {
+          if (ImGui::MenuItem("Shortcuts")) {
+            shortcuts.open = true;
+          }
+          shortcuts_center = ImVec2(
+              (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * 0.5f,
+              (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * 0.5f);
+        }
         ImGui::SameLine();
         ImGui::TextDisabled(" | rev %llu | %s",
                             static_cast<unsigned long long>(revision),
@@ -322,6 +346,7 @@ int main(int argc, char **argv) {
           create_center = ImVec2(
               (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * 0.5f,
               (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * 0.5f);
+          lyko::command_tooltip(hints, "entity.create");
           ImGui::Separator();
           for (const auto &entity : frame.at("scene").at("entities").as<A>()) {
             auto id = entity.at("id").as<std::uint64_t>();
@@ -339,13 +364,22 @@ int main(int argc, char **argv) {
                                   key_for("selection.set").c_str())) {
                 request("selection.set", O{{"id", id}});
               }
+              lyko::command_tooltip(hints, "selection.set");
+              if (ImGui::MenuItem("Rename...",
+                                  key_for("entity.rename").c_str())) {
+                open_form("entity.rename",
+                          O{{"id", id}, {"name", entity.at("name")}});
+              }
+              lyko::command_tooltip(hints, "entity.rename");
               ImGui::Separator();
               if (ImGui::MenuItem("Undo", key_for("history.undo").c_str())) {
                 request("history.undo");
               }
+              lyko::command_tooltip(hints, "history.undo");
               if (ImGui::MenuItem("Redo", key_for("history.redo").c_str())) {
                 request("history.redo");
               }
+              lyko::command_tooltip(hints, "history.redo");
               ImGui::EndPopup();
             }
             ImGui::PopID();
@@ -382,7 +416,11 @@ int main(int argc, char **argv) {
               request("entity.rename",
                       O{{"id", id}, {"name", std::string(rename.data())}});
             }
-            ImGui::TextDisabled("Enter to apply / Ctrl+Z to undo");
+            lyko::command_tooltip(hints, "entity.rename");
+            const auto undo_key = key_for("history.undo");
+            ImGui::TextDisabled("Enter to apply / Undo: %s",
+                                undo_key.empty() ? "Unbound"
+                                                 : undo_key.c_str());
           }
           ImGui::End();
         }
@@ -393,6 +431,7 @@ int main(int argc, char **argv) {
           if (ImGui::Button(playing ? "Stop" : "Play")) {
             request(playing ? "play.stop" : "play.start");
           }
+          lyko::command_tooltip(hints, playing ? "play.stop" : "play.start");
           ImGui::SameLine();
           ImGui::TextDisabled("MOCK / SOFTWARE PREVIEW");
           ImGui::Separator();
@@ -419,13 +458,19 @@ int main(int argc, char **argv) {
         }
         if (visible("history")) {
           ImGui::Begin("History");
+          ImGui::BeginDisabled(!frame.at("history").at("can_undo").as<bool>());
           if (ImGui::Button("Undo")) {
             request("history.undo");
           }
+          ImGui::EndDisabled();
+          lyko::command_tooltip(hints, "history.undo");
           ImGui::SameLine();
+          ImGui::BeginDisabled(!frame.at("history").at("can_redo").as<bool>());
           if (ImGui::Button("Redo")) {
             request("history.redo");
           }
+          ImGui::EndDisabled();
+          lyko::command_tooltip(hints, "history.redo");
           ImGui::Separator();
           for (const auto &entry : frame.at("history").at("entries").as<A>()) {
             ImGui::Text("%s / revision %llu",
@@ -437,6 +482,12 @@ int main(int argc, char **argv) {
             }
           }
           ImGui::End();
+        }
+      }
+      if (ready) {
+        if (auto command = shortcuts.draw(hints)) {
+          open_form("keymap.bind",
+                    O{{"command", *command}, {"shortcut", key_for(*command)}});
         }
       }
       if (palette_open && ImGui::IsKeyPressed(ImGuiKey_Escape)) {
@@ -452,6 +503,10 @@ int main(int argc, char **argv) {
         ImGui::SetNextWindowSize(ImVec2(660, 520), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(),
                                 ImGuiCond_Appearing, ImVec2(0.5f, 0.35f));
+        if (focus_palette) {
+          ImGui::SetNextWindowFocus();
+          focus_palette = false;
+        }
         ImGui::Begin("Command palette", &palette_open,
                      ImGuiWindowFlags_NoDocking);
         if (focus_search) {
@@ -473,9 +528,7 @@ int main(int argc, char **argv) {
         if (active.empty()) {
           for (const auto &item : palette.as<A>()) {
             auto name = item.at("name").as<std::string>();
-            if (ImGui::Selectable(
-                    (name + "    " + item.at("shortcut").as<std::string>())
-                        .c_str())) {
+            if (ImGui::Selectable((name + "    " + key_for(name)).c_str())) {
               choose_command(item);
             }
             if (name == "workspace.configure" ||
@@ -486,10 +539,7 @@ int main(int argc, char **argv) {
                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) *
                       0.5f);
             }
-            if (ImGui::IsItemHovered()) {
-              ImGui::SetTooltip(
-                  "%s", item.at("description").as<std::string>().c_str());
-            }
+            lyko::command_tooltip(hints, name);
           }
         } else {
           ImGui::TextUnformatted(active.c_str());
@@ -548,11 +598,12 @@ int main(int argc, char **argv) {
         outgoing.pop_front();
       }
       if (smoke && ready) {
-        harness.step(frames, {platform, root, frame, revision, create_center,
-                              name_center, search_center, settings_center,
-                              command_form ? &*command_form : nullptr,
-                              transaction_form ? &*transaction_form : nullptr,
-                              palette_open, status});
+        harness.step(frames,
+                     {platform, root, frame, revision, create_center,
+                      name_center, search_center, settings_center,
+                      command_form ? &*command_form : nullptr,
+                      transaction_form ? &*transaction_form : nullptr,
+                      &shortcuts, shortcuts_center, palette_open, status});
       }
       ++frames;
       if (mcp && frames % 30 == 0) {

@@ -31,7 +31,10 @@ a future extension.
 Typed transaction rows with add/remove/reorder and atomic submission are now
 implemented and covered by model and native SDL interaction tests.
 
-Next: more shortcut discoverability, richer nested object widgets,
+A searchable shortcut browser, binding edit links, live action hints and contextual
+Rename now improve command discoverability. Bindings still use the shared bus.
+
+Next: richer nested object widgets,
 icons/fonts/visual polish, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

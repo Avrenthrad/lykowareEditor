@@ -1,5 +1,6 @@
 #include "command_service.hpp"
 #include "ui/command_form.hpp"
+#include "ui/command_hints.hpp"
 #include "ui/transaction_form.hpp"
 #include <cstdlib>
 #include <iostream>
@@ -194,6 +195,55 @@ int main() {
         "domain errors remain authoritative on bus");
   check(service.call(request("editor.snapshot")) == before_failure,
         "failed assembled batch preserves state and history");
+  auto workspace = service.call(request("workspace.query")).at("data");
+  lyko::CommandHints hints(all, workspace.at("keymap"));
+  check(hints.at("history.undo").shortcut == "Ctrl+Z",
+        "hints use confirmed bindings");
+  check(hints.at("entity.rename").shortcut.empty() &&
+            hints.at("entity.rename").needs_arguments,
+        "unbound parameterized commands discoverable");
+  check(hints.at("entity.rename")
+                .tooltip()
+                .find(descriptor("entity.rename")
+                          .at("description")
+                          .as<std::string>()) != std::string::npos,
+        "tooltips reuse registry documentation");
+  check(hints.search("cTrL+z").size() == 1 &&
+            hints.search("cTrL+z")[0].name == "history.undo",
+        "search matches shortcuts ignoring ASCII case");
+  check(hints.search("").size() == all.as<J::Array>().size(),
+        "browser includes entire registry");
+  check(service
+            .call(request("keymap.bind", O{{"command", "history.undo"},
+                                           {"shortcut", "Ctrl+U"}}))
+            .at("ok")
+            .as<bool>(),
+        "rebind through command service");
+  workspace = service.call(request("workspace.query")).at("data");
+  lyko::CommandHints rebound(all, workspace.at("keymap"));
+  check(rebound.at("history.undo").tooltip().find("Ctrl+U") !=
+                std::string::npos &&
+            rebound.at("history.undo").tooltip().find("Ctrl+Z") ==
+                std::string::npos,
+        "updated hints do not retain old binding");
+  check(service.call(request("keymap.bind", O{{"command", "history.redo"},
+                                              {"shortcut", "Ctrl+U"}}))
+                .at("ok")
+                .as<bool>() == false,
+        "conflicting binding rejected");
+  check(service
+            .call(request("keymap.bind",
+                          O{{"command", "history.undo"}, {"shortcut", ""}}))
+            .at("ok")
+            .as<bool>(),
+        "unbind through bus");
+  workspace = service.call(request("workspace.query")).at("data");
+  lyko::CommandHints unbound(all, workspace.at("keymap"));
+  check(unbound.at("history.undo").tooltip().find("Unbound") !=
+            std::string::npos,
+        "unbound hint is explicit");
+  check(hints.shortcut("unknown.command").empty(),
+        "unknown names have no phantom bindings");
   std::cout << "Passed schema defaults, typed limits/enums, UTF-8 bounds, "
                "exact IDs and authoritative dispatch\n";
 }

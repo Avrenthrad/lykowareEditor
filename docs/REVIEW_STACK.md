@@ -11,10 +11,9 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-vendor | codex/standalone-editor-async | Pinned licensed ImGui/SDL source and offline wrapper |
 | codex/standalone-editor-desktop | codex/standalone-editor-vendor | Window/panels, shared MCP, input tests and rootless setup |
 | codex/standalone-editor-forms | codex/standalone-editor-desktop | Registry metadata, typed palette forms, contextual defaults and form interaction tests |
-
 | codex/standalone-editor-docking | codex/standalone-editor-forms | Validated layout trees, TOML v2 migration and undoable native docking |
-
 | codex/standalone-editor-transactions | codex/standalone-editor-docking | Typed atomic batch builder, row validation and desktop interaction tests |
+| codex/standalone-editor-shortcuts | codex/standalone-editor-transactions | Searchable shortcut browser, binding edit links, live action hints and rebinding interaction tests |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.

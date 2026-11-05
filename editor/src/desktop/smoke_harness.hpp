@@ -1,5 +1,6 @@
 #pragma once
 #include "command_form.hpp"
+#include "shortcut_browser.hpp"
 #include "transaction_form.hpp"
 namespace lyko {
 struct SmokeContext {
@@ -10,6 +11,8 @@ struct SmokeContext {
   ImVec2 create_center, name_center, search_center, settings_center;
   DesktopCommandForm *command_form;
   DesktopTransactionForm *transaction_form;
+  ShortcutBrowser *shortcuts;
+  ImVec2 shortcuts_center;
   bool palette_open;
   const std::string &status;
 };
@@ -20,7 +23,7 @@ public:
   void step(unsigned frames, const SmokeContext &context);
   void validate(const Json &frame) const;
   unsigned target_frames() const {
-    return docking_ ? 370U : (input_ ? 380U : 90U);
+    return docking_ ? 370U : (input_ ? 530U : 90U);
   }
 
 private:

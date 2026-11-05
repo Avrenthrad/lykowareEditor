@@ -196,3 +196,17 @@ protocol limit. Queries, history operations, exports and recursive transactions
 are excluded. Primitive validation is advisory; cross-row/domain validation and
 atomic rollback belong to the shared service. Nested layout objects still use
 advanced JSON. A stale revision returns the existing structured service error.
+
+## Shortcut discovery in the desktop
+
+The modeless Shortcuts browser combines commands.list documentation with the
+confirmed workspace keymap. It lists unbound commands and searches names,
+descriptions and bindings with ASCII case folding. Edit prefills keymap.bind;
+only explicit submission changes the workspace. Rebinding, unbinding, conflict
+validation, revision checks and undo/redo use the existing shared service.
+
+Action tooltips, context-menu shortcut labels, palette rows and the inspector
+Undo hint use confirmed bindings, so undo/redo and externally edited keymaps
+update them after snapshot refresh. Parameterized shortcuts open forms; contextual
+Rename prefills the clicked entity, even when another entity is selected. Browser
+search/navigation is transient UI state, with no separate document mutation path.

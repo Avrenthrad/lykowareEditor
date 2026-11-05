@@ -187,6 +187,28 @@
 - ADR 0008 records the scope. Layout objects retain advanced JSON controls;
   recursive transactions remain disallowed by the shared service.
 
+## Shortcut discoverability
+
+- Added a modeless, searchable Shortcuts browser over every registered command,
+  including unbound actions. Search matches command names, registry descriptions
+  and current bindings, with ASCII case folding and deterministic name ordering.
+- Edit opens the existing keymap.bind form with command/current shortcut prefilled.
+  Drafts do not bind keys; explicit execution uses the same revision-guarded queue
+  and service. Empty shortcuts unbind; existing conflict checks remain authoritative.
+- Buttons and entity context actions now show registry documentation and current
+  bindings in tooltips. The inspector undo hint and palette rows read the confirmed
+  keymap instead of hard-coded or cached binding labels. Added contextual Rename.
+- History buttons reflect confirmed undo/redo availability. No service commands,
+  persistence format, dependency or engine integration changed.
+- Model tests cover registry documentation, all/unbound commands, case-insensitive
+  binding search, rebinding/unbinding and conflict rejection. SDL input searches
+  the browser, edits Undo to Ctrl+U, confirms Ctrl+Z stops dispatching, then checks
+  undo/redo restores each binding. ADR 0009 records the presentation contract.
+- All 15 desktop-preset tests pass. The model/form tests pass under ASan/UBSan
+  with the documented local leak-check limitation; clang-tidy reports no project
+  findings. The same browser/rebinding sequence passes in X11/Xvfb and its
+  resulting frame was inspected.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -209,5 +231,5 @@ Use only this repository and the existing isolated checkout; no worktree unless
 explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Continue with
-shortcut discoverability, richer object widgets, visual polish and
+richer object widgets, icons/fonts/visual polish and
 Windows verification. Keep docs/STATUS.md current. Joshua merges.
