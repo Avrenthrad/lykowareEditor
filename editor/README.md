@@ -147,7 +147,8 @@ transport, not the window. Different process instances still have separate state
 
 The first shell supports entity creation/selection/rename, play/stop, preview,
 history, theme and command-driven panel placement. Ctrl+K browses all commands;
-arguments currently use an editable JSON template. Native arbitrary docking is
+primitive arguments use generated fields, dropdowns and checkboxes with inline
+validation. Transaction arrays retain an advanced JSON editor. Native arbitrary docking is
 intentionally disabled pending an undoable layout representation. No font/icon
 polish, hardware frame-rate or full accessibility claim is made yet.
 
@@ -162,3 +163,18 @@ build/desktop/lykoware_editor --smoke-input --capture /tmp/new-desktop.bmp
 The capture path must be new; X11 capture requires an active display. The input
 harness injects SDL events for Create, Ctrl+Z, redo, Ctrl+K and inspector rename,
 then verifies scene state. BMP output is a local test artifact; nothing uploads it.
+
+## Generated command forms
+
+The registry now publishes defaults, choices, titles, ranges and UTF-8 byte limits
+alongside argument types. Palette controls use those schemas; settings and rename
+forms prefill values from the current snapshot. Invalid fields disable execution.
+Shortcuts bound to commands with parameters open a form instead of sending empty
+arguments. Ctrl+K focuses search; Escape goes back or closes it.
+
+The draft model is independent of ImGui and never edits scene/history until an
+explicit command submission. Domain errors such as stale revisions, shortcut
+conflicts and nonexistent entities still come from the authoritative service.
+Batch arrays use an advanced JSON field; richer nested editors remain future work.
+The --smoke-input harness additionally opens workspace.configure, edits reduced
+motion with SDL mouse events and checks that submission updates the workspace.

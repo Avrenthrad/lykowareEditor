@@ -15,7 +15,9 @@ queries and saves preserve the revision. Error results do not alter history.
 Malformed JSON errors have revision 0 because parsing precedes session dispatch;
 query `scene.query` for the current revision rather than treating it as a reset.
 
-Command registrations are version 1. `commands.list` discovers input schemas.
+Command registrations are version 1. `commands.list` discovers input schemas,
+including enum choices, defaults, labels and numeric bounds. x-maxBytes states
+the UTF-8 byte limit where the backend uses bytes rather than Unicode length.
 Names and mock input values accept 1–128 UTF-8 bytes. Unknown fields fail.
 
 | Command | Arguments | Result data / effect |

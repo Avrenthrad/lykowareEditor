@@ -1,3 +1,4 @@
+#include "command_form.hpp"
 #include "imgui_internal.h"
 #include "platform.hpp"
 #include "transport/mcp_stream.hpp"
@@ -118,15 +119,15 @@ int main(int argc, char **argv) {
       protocol = std::jthread(
           [&](std::stop_token stop) { lyko::run_mcp_stream(service, stop); });
     }
-    J frame, palette = A{};
+    J frame, palette = A{}, catalog = A{};
     bool ready = false, refresh = true, snapshot_pending = false,
-         palette_open = false;
+         palette_open = false, focus_search = false;
     std::uint64_t revision = 0, editing = 0;
     std::string status = "Ready", layout, style, active, editing_name;
     std::deque<J> outgoing;
     std::map<std::uint64_t, std::string> pending;
     std::array<char, 256> search{}, rename{};
-    std::array<char, 4096> arguments{'{', '}'};
+    std::optional<lyko::DesktopCommandForm> command_form;
     auto request = [&](const std::string &name, J args = O{},
                        bool mutation = true) {
       if (outgoing.size() >= 64) {
@@ -141,6 +142,26 @@ int main(int argc, char **argv) {
       }
       outgoing.emplace_back(std::move(object));
     };
+    const auto choose_command = [&](const J &item) {
+      const auto name = item.at("name").as<std::string>();
+      active = name;
+      O current;
+      if (ready && name == "workspace.configure") {
+        const auto &w = frame.at("workspace");
+        for (auto key : {"scale_percent", "theme", "reduced_motion"}) {
+          current.emplace(key, w.at(key));
+        }
+      }
+      if (ready && name == "entity.rename") {
+        const auto &entity = frame.at("selection").at("entity");
+        if (std::holds_alternative<O>(entity.value)) {
+          current.emplace("id", entity.at("id"));
+          current.emplace("name", entity.at("name"));
+        }
+      }
+      command_form.emplace(item, current);
+    };
+    request("commands.list", O{}, false);
     if (smoke) {
       request("transaction.execute",
               O{{"commands", A{O{{"command", "entity.create"},
@@ -157,7 +178,7 @@ int main(int argc, char **argv) {
               false);
     }
     unsigned frames = 0;
-    ImVec2 create_center{}, name_center{};
+    ImVec2 create_center{}, name_center{}, search_center{}, settings_center{};
     while (platform.begin_frame()) {
       while (auto done = queue.try_pop()) {
         auto name = pending.at(done->ticket);
@@ -178,6 +199,8 @@ int main(int argc, char **argv) {
           request("preview.capture", O{}, false);
         } else if (name == "preview.capture") {
           platform.set_preview(response.at("data").at("ppm").as<std::string>());
+        } else if (name == "commands.list") {
+          catalog = response.at("data");
         } else if (name == "palette.search") {
           palette = response.at("data");
         } else {
@@ -204,12 +227,27 @@ int main(int argc, char **argv) {
             }
             if (name == "palette.search") {
               palette_open = !palette_open;
+              focus_search = palette_open;
               if (palette_open) {
                 request("palette.search",
                         O{{"query", std::string(search.data())}}, false);
               }
             } else if (!ImGui::GetIO().WantTextInput) {
-              request(name);
+              for (const auto &descriptor : catalog.as<A>()) {
+                if (descriptor.at("name").as<std::string>() != name) {
+                  continue;
+                }
+                if (descriptor.at("inputSchema")
+                        .at("required")
+                        .as<A>()
+                        .empty()) {
+                  request(name);
+                } else {
+                  choose_command(descriptor);
+                  palette_open = true;
+                }
+                break;
+              }
             }
           }
         }
@@ -252,6 +290,9 @@ int main(int argc, char **argv) {
         }
         if (ImGui::MenuItem("Commands", key_for("palette.search").c_str())) {
           palette_open = true;
+          focus_search = true;
+          active.clear();
+          command_form.reset();
           request("palette.search", O{{"query", std::string(search.data())}},
                   false);
         }
@@ -401,38 +442,49 @@ int main(int argc, char **argv) {
           ImGui::End();
         }
       }
+      if (palette_open && ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        if (active.empty()) {
+          palette_open = false, focus_search = false;
+        } else {
+          active.clear();
+          command_form.reset();
+        }
+      }
       if (palette_open) {
         ImGui::SetNextWindowSize(ImVec2(660, 520), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(),
+                                ImGuiCond_Appearing, ImVec2(0.5f, 0.35f));
         ImGui::Begin("Command palette", &palette_open,
                      ImGuiWindowFlags_NoDocking);
+        if (focus_search) {
+          ImGui::SetKeyboardFocusHere();
+          focus_search = false;
+        }
         if (ImGui::InputTextWithHint("##query", "Search every command...",
-                                     search.data(), search.size())) {
+                                     search.data(), search.size(),
+                                     ImGuiInputTextFlags_AutoSelectAll)) {
+          active.clear();
+          command_form.reset();
           request("palette.search", O{{"query", std::string(search.data())}},
                   false);
         }
+        search_center = ImVec2(
+            (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * 0.5f,
+            (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * 0.5f);
         if (active.empty()) {
           for (const auto &item : palette.as<A>()) {
             auto name = item.at("name").as<std::string>();
             if (ImGui::Selectable(
                     (name + "    " + item.at("shortcut").as<std::string>())
                         .c_str())) {
-              active = name;
-              O defaults;
-              for (const auto &[field, spec] :
-                   item.at("inputSchema").at("properties").as<O>()) {
-                const auto type = spec.at("type").as<std::string>();
-                if (type == "integer") {
-                  defaults.emplace(field, std::uint64_t{0});
-                } else if (type == "boolean") {
-                  defaults.emplace(field, false);
-                } else if (type == "array") {
-                  defaults.emplace(field, A{});
-                } else {
-                  defaults.emplace(field, "");
-                }
-              }
-              std::snprintf(arguments.data(), arguments.size(), "%s",
-                            J(defaults).dump().c_str());
+              choose_command(item);
+            }
+            if (name == "workspace.configure") {
+              settings_center = ImVec2(
+                  (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) *
+                      0.5f,
+                  (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) *
+                      0.5f);
             }
             if (ImGui::IsItemHovered()) {
               ImGui::SetTooltip(
@@ -441,19 +493,16 @@ int main(int argc, char **argv) {
           }
         } else {
           ImGui::TextUnformatted(active.c_str());
-          ImGui::TextDisabled("Arguments (JSON)");
-          ImGui::InputTextMultiline("##args", arguments.data(),
-                                    arguments.size(), ImVec2(-1, 160));
-          if (ImGui::Button("Execute")) {
-            try {
-              request(active, J::parse(arguments.data()));
-            } catch (const std::exception &e) {
-              status = e.what();
+          if (command_form) {
+            if (auto arguments = command_form->draw()) {
+              request(active, *arguments);
             }
           }
           ImGui::SameLine();
           if (ImGui::Button("Back")) {
             active.clear();
+            command_form.reset();
+            focus_search = true;
           }
         }
         ImGui::End();
@@ -499,7 +548,7 @@ int main(int argc, char **argv) {
         if (frames == 100 || frames == 110) {
           platform.test_key('k', true);
         }
-        if (frames == 108 && !palette_open) {
+        if (frames == 108 && (!palette_open || !ImGui::GetIO().WantTextInput)) {
           throw std::runtime_error(
               "Interaction smoke: Ctrl+K did not open palette");
         }
@@ -519,11 +568,48 @@ int main(int argc, char **argv) {
           platform.test_key('\r', false);
         }
       }
+      if (smoke_input && ready) {
+        if (frames == 148) {
+          platform.test_key('k', true);
+        }
+        if (frames == 151) {
+          platform.test_pointer(search_center, true);
+        }
+        if (frames == 152) {
+          platform.test_pointer(search_center, false);
+        }
+        if (frames == 154) {
+          platform.test_text("workspace.configure");
+        }
+        if (frames == 164) {
+          platform.test_pointer(settings_center, true);
+        }
+        if (frames == 165) {
+          platform.test_pointer(settings_center, false);
+        }
+        if (frames == 174 || frames == 175) {
+          if (!command_form) {
+            throw std::runtime_error(
+                "Interaction smoke: settings form did not open");
+          }
+          platform.test_pointer(command_form->test_center("reduced_motion"),
+                                frames == 174);
+        }
+        if (frames == 183 || frames == 184) {
+          platform.test_pointer(command_form->test_execute_center(),
+                                frames == 183);
+        }
+        if (frames == 200 &&
+            !frame.at("workspace").at("reduced_motion").as<bool>()) {
+          throw std::runtime_error(
+              "Interaction smoke: typed form did not apply settings");
+        }
+      }
       ++frames;
       if (mcp && frames % 30 == 0) {
         refresh = true;
       }
-      bool finish = smoke && frames >= (smoke_input ? 155U : 90U) && ready &&
+      bool finish = smoke && frames >= (smoke_input ? 210U : 90U) && ready &&
                     pending.empty() && outgoing.empty();
       platform.end_frame(finish ? capture : "");
       if (finish) {

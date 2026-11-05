@@ -1,0 +1,114 @@
+#include "command_service.hpp"
+#include "ui/command_form.hpp"
+#include <cstdlib>
+#include <iostream>
+
+using J = lyko::Json;
+using O = J::Object;
+void check(bool condition, const char *message) {
+  if (!condition) {
+    std::cerr << "FAIL: " << message << '\n';
+    std::exit(1);
+  }
+}
+J request(const std::string &name, J args = O{}) {
+  return O{
+      {"instance", "test"}, {"command", name}, {"arguments", std::move(args)}};
+}
+int main() {
+  lyko::MockEngineBridge backend;
+  lyko::CommandService service("test", backend);
+  const auto all = service.descriptors();
+  const auto descriptor = [&](const std::string &name) -> const J & {
+    for (const auto &item : all.as<J::Array>()) {
+      if (item.at("name").as<std::string>() == name) {
+        return item;
+      }
+    }
+    throw std::invalid_argument("Missing command");
+  };
+  lyko::CommandForm settings(
+      descriptor("workspace.configure").at("inputSchema"));
+  check(settings.errors().empty(), "settings defaults valid");
+  check(settings.value("scale_percent").as<std::uint64_t>() == 100,
+        "registry default scale");
+  settings.set("scale_percent", std::uint64_t{74});
+  check(settings.errors().contains("scale_percent"), "minimum checked");
+  bool rejected = false;
+  try {
+    (void)settings.arguments();
+  } catch (const std::invalid_argument &) {
+    rejected = true;
+  }
+  check(rejected, "invalid draft cannot submit");
+  settings.set("scale_percent", std::uint64_t{251});
+  check(settings.errors().contains("scale_percent"), "maximum checked");
+  settings.set("scale_percent", std::uint64_t{150});
+  settings.set("theme", "unknown");
+  check(settings.errors().contains("theme"), "enum checked");
+  settings.set("theme", "high_contrast");
+  settings.set("reduced_motion", "true");
+  check(settings.errors().contains("reduced_motion"), "boolean type checked");
+  settings.set("reduced_motion", true);
+  check(settings.errors().empty(), "corrected draft valid");
+  auto applied =
+      service.call(request("workspace.configure", settings.arguments()));
+  check(applied.at("ok").as<bool>(), "typed draft accepted by service");
+  auto state = service.call(request("workspace.query"));
+  check(state.at("data").at("scale_percent").as<std::uint64_t>() == 150,
+        "same bus state");
+  lyko::CommandForm create(descriptor("entity.create").at("inputSchema"));
+  check(create.errors().empty(), "entity default valid");
+  create.set("name", "");
+  check(create.errors().contains("name"), "required string checked");
+  std::string unicode;
+  for (unsigned i = 0; i < 33; ++i) {
+    unicode += "\xf0\x9f\x98\x80";
+  }
+  create.set("name", unicode);
+  check(create.errors().contains("name"), "UTF-8 bytes match backend bound");
+  create.set("name", std::string("\xc0\xaf"));
+  check(create.errors().contains("name"), "malformed UTF-8 rejected");
+  create.set("name", "Player");
+  check(service.call(request("entity.create", create.arguments()))
+            .at("ok")
+            .as<bool>(),
+        "entity form mutation succeeds");
+  lyko::CommandForm rename(descriptor("entity.rename").at("inputSchema"));
+  rename.set("id", std::uint64_t{18446744073709551615ULL});
+  rename.set("name", "Maximum ID");
+  check(rename.errors().empty(),
+        "uint64 precision preserved without float coercion");
+  rename.set("id", std::int64_t{-1});
+  check(rename.errors().contains("id"), "signed ID rejected");
+  rename.set("id", 1.5);
+  check(rename.errors().contains("id"), "fractional ID rejected");
+  lyko::CommandForm bind(descriptor("keymap.bind").at("inputSchema"));
+  bind.set("command", "unknown.command");
+  check(bind.errors().contains("command"), "registered command enum used");
+  bind.set("command", "history.undo");
+  bind.set("shortcut", "");
+  check(bind.errors().empty(), "explicit unbind accepted");
+  lyko::CommandForm batch(descriptor("transaction.execute").at("inputSchema"));
+  batch.set("commands", "[]");
+  check(batch.errors().contains("commands"), "array type checked");
+  batch.set("commands", J::Array{});
+  check(batch.errors().empty(),
+        "array draft shape accepted; domain validation remains on bus");
+  bool unknown = false;
+  try {
+    batch.set("typo", true);
+  } catch (const std::invalid_argument &) {
+    unknown = true;
+  }
+  check(unknown, "unknown fields cannot enter draft");
+  const auto invalid_unicode = service.call(
+      request("entity.create", O{{"name", std::string("\xc0\xaf")}}));
+  check(!invalid_unicode.at("ok").as<bool>(),
+        "named C++ service rejects malformed UTF-8 before writing");
+  const auto unchanged = service.call(request("workspace.query"));
+  check(unchanged.at("revision").as<std::uint64_t>() == 2,
+        "draft edits do not mutate document or history");
+  std::cout << "Passed schema defaults, typed limits/enums, UTF-8 bounds, "
+               "exact IDs and authoritative dispatch\n";
+}

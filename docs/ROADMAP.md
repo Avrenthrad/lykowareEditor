@@ -21,7 +21,10 @@ MCP, async execution, software preview and first ImGui/SDL3 desktop are implemen
 and tested locally on Linux. CMake and clang-tidy checks now run successfully.
 Desktop smoke tests include actual SDL input and a separately inspected X11 frame.
 
-Next: generated friendly palette forms, context menus and shortcut discoverability,
+Schema-driven primitive palette forms, contextual defaults and parameterized
+shortcuts are now implemented and covered by model and SDL interaction tests.
+
+Next: a nested transaction builder and more shortcut discoverability,
 transaction-backed flexible docking, icons/fonts/visual polish, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

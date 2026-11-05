@@ -13,7 +13,7 @@ namespace lyko {
 namespace {
 using O = Json::Object;
 using A = Json::Array;
-struct Field { std::string name; std::string type; };
+struct Field { std::string name; std::string type; O constraints = {}; };
 enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot };
 struct Entry {
     std::string name, description;
@@ -29,9 +29,9 @@ const std::vector<Entry>& registry() {
             for (const auto& [command, shortcut] : workspace.keymap) { (void)shortcut; (void)lookup(command); }
             return ReplaceWorkspace{workspace}; }},
         {"workspace.save", "Publish TOML UI settings, layout and keymap to a new path; export cannot be undone.", {{"path", "string"}}, {}, Action::workspace_save},
-        {"workspace.configure", "Set UI scaling (75..250%), dark/high_contrast theme and reduced motion atomically.", {{"scale_percent", "integer"}, {"theme", "string"}, {"reduced_motion", "boolean"}}, [](const Json& a) -> Mutation { return ConfigureWorkspace{a.at("scale_percent").as<std::uint64_t>(), a.at("theme").as<std::string>(), a.at("reduced_motion").as<bool>()}; }},
-        {"panel.dock", "Move a registered panel to left/right/center/bottom/hidden.", {{"panel", "string"}, {"dock", "string"}}, [](const Json& a) -> Mutation { return SetPanelDock{a.at("panel").as<std::string>(), a.at("dock").as<std::string>()}; }},
-        {"layout.resize", "Resize a dock split while preserving a usable center area.", {{"dock", "string"}, {"percent", "integer"}}, [](const Json& a) -> Mutation { return ResizeDock{a.at("dock").as<std::string>(), a.at("percent").as<std::uint64_t>()}; }},
+        {"workspace.configure", "Set UI scaling (75..250%), dark/high_contrast theme and reduced motion atomically.", {{"scale_percent", "integer", {{"title","UI scale (%)"},{"minimum",std::uint64_t{75}},{"maximum",std::uint64_t{250}},{"default",std::uint64_t{100}}}}, {"theme", "string", {{"enum",A{"dark","high_contrast"}},{"default","dark"}}}, {"reduced_motion", "boolean", {{"title","Reduce motion"},{"default",false}}}}, [](const Json& a) -> Mutation { return ConfigureWorkspace{a.at("scale_percent").as<std::uint64_t>(), a.at("theme").as<std::string>(), a.at("reduced_motion").as<bool>()}; }},
+        {"panel.dock", "Move a registered panel to left/right/center/bottom/hidden.", {{"panel", "string", {{"enum",A{"scene","inspector","viewport","console","history"}},{"default","scene"}}}, {"dock", "string", {{"enum",A{"left","right","center","bottom","hidden"}},{"default","left"}}}}, [](const Json& a) -> Mutation { return SetPanelDock{a.at("panel").as<std::string>(), a.at("dock").as<std::string>()}; }},
+        {"layout.resize", "Resize a dock split while preserving a usable center area.", {{"dock", "string", {{"enum",A{"left","right","bottom"}},{"default","left"}}}, {"percent", "integer", {{"title","Size (%)"},{"minimum",std::uint64_t{10}},{"maximum",std::uint64_t{50}},{"default",std::uint64_t{25}}}}}, [](const Json& a) -> Mutation { return ResizeDock{a.at("dock").as<std::string>(), a.at("percent").as<std::uint64_t>()}; }},
         {"keymap.bind", "Bind a canonical shortcut to a registered command; empty shortcut unbinds.", {{"command", "string"}, {"shortcut", "string"}}, [](const Json& a) -> Mutation {
             auto command = a.at("command").as<std::string>(); (void)lookup(command);
             return BindShortcut{command, a.at("shortcut").as<std::string>()}; }},
@@ -40,8 +40,8 @@ const std::vector<Entry>& registry() {
         {"design.tokens", "Read toolkit-independent accessible colour, scale, typography and motion tokens.", {}, {}, Action::tokens},
         {"palette.search", "Search every registered command and show its current shortcut; empty query lists all.", {{"query", "string"}}, {}, Action::palette},
         {"selection.query", "Read the selected entity for the inspector, or null when unselected.", {}, {}, Action::selection},
-        {"entity.create", "Create a named entity with a stable ID.", {{"name", "string"}}, [](const Json& a) -> Mutation { return CreateEntity{a.at("name").as<std::string>()}; }},
-        {"entity.rename", "Rename an existing entity.", {{"id", "integer"}, {"name", "string"}}, [](const Json& a) -> Mutation { return RenameEntity{a.at("id").as<std::uint64_t>(), a.at("name").as<std::string>()}; }},
+        {"entity.create", "Create a named entity with a stable ID.", {{"name", "string", {{"default","New entity"}}}}, [](const Json& a) -> Mutation { return CreateEntity{a.at("name").as<std::string>()}; }},
+        {"entity.rename", "Rename an existing entity.", {{"id", "integer", {{"title","Entity ID"},{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"name", "string"}}, [](const Json& a) -> Mutation { return RenameEntity{a.at("id").as<std::uint64_t>(), a.at("name").as<std::string>()}; }},
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
@@ -76,7 +76,7 @@ void validate(const Entry& entry, const Json& args) {
     for (const auto& field : entry.fields) {
         names.push_back(field.name);
         const auto& value = args.at(field.name);
-        if (field.type == "string") { (void)value.as<std::string>(); }
+        if (field.type == "string") { const auto& text=value.as<std::string>(); if(!json_detail::valid_utf8(text)){throw std::invalid_argument("Field "+field.name+" must be valid UTF-8");} }
         else if (field.type == "integer") { (void)value.as<std::uint64_t>(); }
         else if (field.type == "boolean") { (void)value.as<bool>(); }
         else if (field.type == "array") { (void)value.as<A>(); }
@@ -89,9 +89,12 @@ Json schema(const Entry& entry) {
         O spec{{"type", field.type}};
         if (field.type == "string") {
             spec.emplace("minLength", std::uint64_t{field.name == "query" || field.name == "shortcut" ? 0U : 1U});
-            if (field.name == "name" || field.name == "value") { spec.emplace("maxLength", std::uint64_t{128}); }
+            if (field.name == "name" || field.name == "value") { spec.emplace("maxLength", std::uint64_t{128}); spec.emplace("x-maxBytes",std::uint64_t{128}); }
         }
         if (field.type == "integer") { spec.emplace("minimum", std::uint64_t{0}); }
+        for(const auto& [key,value]:field.constraints){spec.insert_or_assign(key,value);}
+        if(field.name=="path"){spec.emplace("description","Path to a local file. Saving requires a new destination.");}
+        if(field.name=="command" && entry.name=="keymap.bind") { A names; for(const auto& command:registry()){names.emplace_back(command.name);} spec.emplace("enum",std::move(names)); }
         properties.emplace(field.name, std::move(spec)); required.emplace_back(field.name);
     }
     return O{{"type", "object"}, {"properties", std::move(properties)},

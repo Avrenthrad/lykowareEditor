@@ -21,7 +21,8 @@ Buttons, selection, committed inspector edits, themes and panel-location menus
 submit named commands through CommandQueue. Forms, hover/focus and palette search
 text are transient input drafts, not independently persisted document mutations.
 The palette discovers every command and its shortcut/description; the initial
-parameter editor is JSON and still needs human-friendly generated widgets.
+parameter editor was JSON; ADR 0006 supersedes this with schema-driven primitive
+widgets and an advanced JSON editor only for arrays.
 
 Use the starter slot/split workspace model for docked panels. Native undocking,
 arbitrary split dragging and resizing are disabled until these changes can be

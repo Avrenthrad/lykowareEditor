@@ -127,9 +127,24 @@
   /workspace/.lyko-system. Network works with approved unsandboxed execution; prior
   proxy-failure diagnoses were incorrect. No environment restart was needed.
 
+## Schema-driven palette forms
+
+- Added registry-owned defaults, titles, enum choices and numeric constraints,
+  published through both CLI discovery and MCP. UTF-8 byte limits are explicit.
+- Added a toolkit-independent draft form model plus desktop text, uint64, checkbox
+  and dropdown controls. Inline errors prevent invalid draft submission; the bus
+  remains authoritative for domain validation and atomic changes. Direct named
+  C++ service calls also reject malformed UTF-8 before writing.
+- Workspace/rename forms prefill current values. Parameterized shortcuts open
+  forms; Ctrl+K focuses search. Array transactions retain an advanced JSON editor.
+- All 13 desktop-preset tests pass. The SDL interaction harness searches, opens,
+  edits and submits workspace.configure through the generated controls.
+- All 10 headless/model tests pass under ASan/UBSan with the documented local leak
+  limitation. Clang-tidy reports no project-code findings. ADR 0006 records scope.
+
 ## Review and environment handover
 
-- Pushed the five private codex/standalone-editor-* review branches; see
+- Prepared the private codex/standalone-editor-* review branches, including forms; see
   docs/REVIEW_STACK.md for the intended PR bases. Main is untouched.
 - Draft PR creation is blocked by api.github.com network policy (CONNECT 403).
   Added this domain to the environment configuration draft, preserving existing
@@ -144,7 +159,8 @@
   self-hosted runners; no paid jobs or artifact uploads have been invoked.
 - This is a starter shell. Native free docking is disabled until represented by
   commands; use Workspace panel menus and layout.resize for the saved slot model.
-  Palette parameters currently use JSON rather than generated friendly widgets.
+  Primitive palette parameters use generated controls; transaction arrays still
+  use advanced JSON. A nested transaction builder remains future work.
 - Icons/font refinement, final polish, prefab/asset schemas, glTF import and binary
   cooking remain outstanding. The software preview is explicitly simulated.
 - Scene/workspace exports preserve existing files; in-place replacement and
@@ -157,5 +173,5 @@ Use only this repository and the existing isolated checkout; no worktree unless
 explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Continue with
-human-friendly palette forms, context menus, transaction-backed free docking and
+transaction-backed free docking, deeper form widgets, visual polish and
 Windows verification. Keep docs/STATUS.md current. Joshua merges.
