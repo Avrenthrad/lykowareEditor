@@ -33,7 +33,8 @@ public:
     }
   }
   // Returns validated arguments only when the user presses Execute.
-  std::optional<Json> draw(bool show_execute = true) {
+  std::optional<Json> draw(bool show_execute = true,
+                           const Json *command_error = nullptr) {
     using O = Json::Object;
     using A = Json::Array;
     const auto label = [](std::string text) {
@@ -134,6 +135,11 @@ public:
       }
       if (parse_errors_.contains(name)) {
         ImGui::TextWrapped("%s", parse_errors_.at(name).c_str());
+      }
+      if (command_error &&
+          command_error->at("field").as<std::string>() == name) {
+        ImGui::TextWrapped(
+            "%s", command_error->at("message").as<std::string>().c_str());
       }
       ImGui::PopID();
     }

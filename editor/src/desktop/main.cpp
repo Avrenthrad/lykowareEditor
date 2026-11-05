@@ -1,5 +1,6 @@
 #include "command_form.hpp"
 #include "docking.hpp"
+#include "form_feedback.hpp"
 #include "icons.hpp"
 #include "platform.hpp"
 #include "shortcut_browser.hpp"
@@ -108,11 +109,14 @@ void theme(const J &tokens) {
 } // namespace
 int main(int argc, char **argv) {
   bool smoke = false, mcp = false, smoke_input = false, smoke_docking = false,
-       smoke_layout_form = false;
+       smoke_layout_form = false, smoke_feedback = false;
   std::string capture, instance = "desktop";
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
-    if (arg == "--smoke-layout-form") {
+    if (arg == "--smoke-feedback") {
+      smoke = true;
+      smoke_feedback = true;
+    } else if (arg == "--smoke-layout-form") {
       smoke = true;
       smoke_layout_form = true;
     } else if (arg == "--smoke-docking") {
@@ -151,7 +155,7 @@ int main(int argc, char **argv) {
     lyko::ShortcutBrowser shortcuts;
     bool focus_palette = false;
     lyko::DesktopSmokeHarness harness(smoke_input, smoke_docking,
-                                      smoke_layout_form);
+                                      smoke_layout_form, smoke_feedback);
     std::jthread protocol;
     if (mcp) {
       protocol = std::jthread(
@@ -162,15 +166,21 @@ int main(int argc, char **argv) {
          palette_open = false, focus_search = false;
     std::uint64_t revision = 0, editing = 0;
     std::string status = "Ready", style, active, editing_name;
-    std::deque<J> outgoing;
-    std::map<std::uint64_t, std::string> pending;
+    std::deque<lyko::QueuedCommand> outgoing;
+    std::map<std::uint64_t, lyko::PendingCommand> pending;
     std::array<char, 256> search{}, rename{};
     std::optional<lyko::DesktopCommandForm> command_form;
     std::optional<lyko::DesktopTransactionForm> transaction_form;
+    lyko::FormFeedback feedback;
     auto request = [&](const std::string &name, J args = O{},
-                       bool mutation = true) {
+                       bool mutation = true, bool from_form = false) {
       if (outgoing.size() >= 64) {
         status = "Too many pending commands; wait for completion.";
+        if (from_form) {
+          feedback.reject(
+              feedback.generation(),
+              lyko::error_json(revision, "queue_full", "command", status));
+        }
         return false;
       }
       O object{{"instance", instance},
@@ -179,7 +189,9 @@ int main(int argc, char **argv) {
       if (mutation && ready) {
         object.emplace("expected_revision", revision);
       }
-      outgoing.emplace_back(std::move(object));
+      outgoing.push_back(
+          {std::move(object),
+           from_form ? std::optional(feedback.generation()) : std::nullopt});
       return true;
     };
     const auto choose_command = [&](const J &item, const O &prefill = O{}) {
@@ -206,6 +218,7 @@ int main(int argc, char **argv) {
         current.insert_or_assign(key, value);
       }
       transaction_form.reset();
+      feedback.reset();
       command_form.reset();
       if (name == "transaction.execute") {
         transaction_form.emplace(catalog);
@@ -235,14 +248,19 @@ int main(int argc, char **argv) {
     while (platform.begin_frame()) {
       while (auto done = queue.try_pop()) {
         docking.completed(done->ticket);
-        auto name = pending.at(done->ticket);
+        const auto operation = pending.at(done->ticket);
+        const auto &name = operation.name;
+        if (operation.form) {
+          feedback.complete(*operation.form, done->ticket, done->response);
+        }
         pending.erase(done->ticket);
         if (name == "editor.snapshot") {
           snapshot_pending = false;
         }
         const auto &response = done->response;
         if (!response.at("ok").as<bool>()) {
-          status = response.at("error").at("message").as<std::string>();
+          status = name + ": " +
+                   response.at("error").at("message").as<std::string>();
           refresh = true;
           continue;
         }
@@ -363,6 +381,7 @@ int main(int argc, char **argv) {
           active.clear();
           command_form.reset();
           transaction_form.reset();
+          feedback.reset();
           request("palette.search", O{{"query", std::string(search.data())}},
                   false);
         }
@@ -551,6 +570,7 @@ int main(int argc, char **argv) {
           active.clear();
           command_form.reset();
           transaction_form.reset();
+          feedback.reset();
         }
       }
       if (palette_open) {
@@ -573,6 +593,7 @@ int main(int argc, char **argv) {
           active.clear();
           command_form.reset();
           transaction_form.reset();
+          feedback.reset();
           request("palette.search", O{{"query", std::string(search.data())}},
                   false);
         }
@@ -597,20 +618,29 @@ int main(int argc, char **argv) {
           }
         } else {
           ImGui::TextUnformatted(active.c_str());
+          ImGui::BeginDisabled(feedback.busy());
+          std::optional<J> arguments;
           if (transaction_form) {
-            if (auto arguments = transaction_form->draw()) {
-              request(active, *arguments);
-            }
+            arguments = transaction_form->draw();
           } else if (command_form) {
-            if (auto arguments = command_form->draw()) {
-              request(active, *arguments);
-            }
+            arguments = command_form->draw(true, feedback.error());
           }
-          ImGui::SameLine();
+          ImGui::EndDisabled();
+          if (arguments && feedback.begin(*arguments)) {
+            request(active, *arguments, true, true);
+          }
+          if (transaction_form) {
+            feedback.reconcile(transaction_form->draft_arguments());
+          } else if (command_form) {
+            feedback.reconcile(command_form->draft_arguments());
+          }
+          lyko::draw_form_feedback(feedback);
+          ImGui::Spacing();
           if (ImGui::Button("Back")) {
             active.clear();
             command_form.reset();
             transaction_form.reset();
+            feedback.reset();
             focus_search = true;
           }
         }
@@ -626,7 +656,9 @@ int main(int argc, char **argv) {
                  O{{"layout", lyko::dock_layout_json(change->layout)}}}};
           auto accepted = queue.try_submit(std::move(request));
           if (accepted) {
-            pending.emplace(*accepted.ticket, "layout.replace");
+            pending.emplace(
+                *accepted.ticket,
+                lyko::PendingCommand{"layout.replace", std::nullopt});
             docking.submitted(*accepted.ticket);
           } else {
             docking.rejected(accepted.error->message);
@@ -637,27 +669,39 @@ int main(int argc, char **argv) {
         }
       }
       while (!outgoing.empty()) {
-        auto submitted = queue.try_submit(outgoing.front());
+        auto submitted = queue.try_submit(outgoing.front().message);
         if (!submitted) {
           if (submitted.error->code == "queue_busy" ||
               submitted.error->code == "queue_full") {
             break;
           }
           status = submitted.error->message;
+          if (outgoing.front().form) {
+            feedback.reject(*outgoing.front().form,
+                            lyko::error_json(revision, submitted.error->code,
+                                             submitted.error->field,
+                                             submitted.error->message));
+          }
           outgoing.pop_front();
           continue;
         }
-        pending.emplace(*submitted.ticket,
-                        outgoing.front().at("command").as<std::string>());
+        pending.emplace(
+            *submitted.ticket,
+            lyko::PendingCommand{
+                outgoing.front().message.at("command").as<std::string>(),
+                outgoing.front().form});
+        if (outgoing.front().form) {
+          feedback.accepted(*outgoing.front().form, *submitted.ticket);
+        }
         outgoing.pop_front();
       }
       if (smoke && ready) {
-        harness.step(frames,
-                     {platform, root, frame, revision, create_center,
-                      name_center, search_center, settings_center,
-                      command_form ? &*command_form : nullptr,
-                      transaction_form ? &*transaction_form : nullptr,
-                      &shortcuts, shortcuts_center, palette_open, status});
+        harness.step(frames, {platform, root, frame, revision, create_center,
+                              name_center, search_center, settings_center,
+                              command_form ? &*command_form : nullptr,
+                              transaction_form ? &*transaction_form : nullptr,
+                              &shortcuts, shortcuts_center, &feedback,
+                              palette_open, status});
       }
       ++frames;
       if (mcp && frames % 30 == 0) {

@@ -229,3 +229,15 @@ Body text starts at 15px and follows UI scaling. Standard controls use the 32px
 height token; this does not claim every small control meets a touch-target size.
 Surface, hover/active, border and focus colours follow the design tokens in both
 themes. Full Unicode glyph coverage and screen-reader support remain future work.
+
+Palette forms now show waiting, completion and failure feedback beside the draft.
+A matching service field error also appears under its control; expand Error details
+for structured code/field/request information. Service errors preserve the draft;
+edit it and explicitly submit again. Pending form edits/Execute are disabled to
+prevent duplicate submissions. Back/search remains available, and leaving a form
+does not cancel an already submitted command. Late replies do not replace another
+form's feedback. Query results have an expandable 4 KiB preview with a truncation
+marker; the underlying structured response is preserved.
+
+`--smoke-feedback` exercises a rejected shortcut binding, correction/retry and a
+second rejection through native SDL input, checking feedback and revision behavior.

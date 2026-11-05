@@ -366,6 +366,76 @@ void DesktopSmokeHarness::step(unsigned frames, const SmokeContext &context) {
       }
     }
   }
+  if (feedback_) {
+    auto *browser = context.shortcuts;
+    if (frames == 20 || frames == 21) {
+      platform.test_pointer(context.shortcuts_center, frames == 20);
+    }
+    if (frames == 30 || frames == 31) {
+      platform.test_pointer(browser->test_search_center(), frames == 30);
+    }
+    if (frames == 36) {
+      platform.test_text("history.redo");
+    }
+    if (frames == 45 || frames == 46) {
+      platform.test_pointer(browser->test_edit_center("history.redo"),
+                            frames == 45);
+    }
+    if (frames == 60) {
+      if (!command_form || !command_form->draft_arguments() ||
+          command_form->draft_arguments()->at("command").as<std::string>() !=
+              "history.redo") {
+        throw std::runtime_error("Feedback smoke: binding draft did not open");
+      }
+      feedback_revision_ = revision;
+    }
+    if (frames == 65 || frames == 66 || frames == 115 || frames == 116 ||
+        frames == 165 || frames == 166) {
+      platform.test_pointer(command_form->test_center("shortcut"),
+                            frames == 65 || frames == 115 || frames == 165);
+    }
+    if (frames == 70 || frames == 120 || frames == 170) {
+      platform.test_key('a', true);
+    }
+    if (frames == 72 || frames == 172) {
+      platform.test_text("Ctrl+Z");
+    }
+    if (frames == 122) {
+      platform.test_text("Ctrl+R");
+    }
+    if (frames == 85 || frames == 86 || frames == 140 || frames == 141 ||
+        frames == 185 || frames == 186) {
+      platform.test_pointer(command_form->test_execute_center(),
+                            frames == 85 || frames == 140 || frames == 185);
+    }
+    if (frames == 105 || frames == 205) {
+      const auto *error = context.feedback->error();
+      if (!error ||
+          error->at("code").as<std::string>() != "shortcut_conflict" ||
+          error->at("field").as<std::string>() != "shortcut" ||
+          revision != feedback_revision_ + (frames == 205 ? 1U : 0U) ||
+          !command_form->draft_arguments()) {
+        throw std::runtime_error("Feedback smoke: structured conflict missing, "
+                                 "draft lost, or failed command changed state");
+      }
+    }
+    if (frames == 130 && context.feedback->result()) {
+      throw std::runtime_error(
+          "Feedback smoke: corrected draft retained old error");
+    }
+    if (frames == 160) {
+      if (!context.feedback->result() ||
+          !context.feedback->result()->at("ok").as<bool>() ||
+          frame.at("workspace")
+                  .at("keymap")
+                  .at("history.redo")
+                  .as<std::string>() != "Ctrl+R" ||
+          revision != feedback_revision_ + 1) {
+        throw std::runtime_error(
+            "Feedback smoke: corrected draft did not retry successfully");
+      }
+    }
+  }
   if (smoke_docking && ready) {
     const auto merged = [&]() {
       for (const auto &[id, node] :

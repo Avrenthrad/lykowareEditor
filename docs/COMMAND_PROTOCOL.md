@@ -226,3 +226,26 @@ imported or discarded. Invalid imports and invalid typed candidates preserve the
 valid draft; typed errors must be corrected or acknowledged before execution.
 This widget supports the layout object contract specifically; other objects retain
 advanced JSON controls. File, node, ratio and nesting limits remain unchanged.
+
+## Form-local command feedback
+
+The desktop tags local outgoing requests and pending queue tickets with a draft
+generation. These tags are not sent to the command service or MCP. A completion
+updates form feedback only when both generation and ticket match. Back, a new
+search or opening another form clears local feedback; hiding the palette retains
+the draft. Neither action cancels accepted work. Old replies still pass
+through normal global status/snapshot handling.
+
+A form cannot submit again while pending. Normal queue backpressure keeps an
+unaccepted request waiting; local-buffer exhaustion or a terminal admission error
+is shown and permits an explicit new submission. Errors preserve submitted arguments; editing them
+clears obsolete feedback. Matching service fields are shown inline, with code,
+field, request and response revision available in feedback details. Transaction
+errors stay at batch level because the service currently does not return a row
+index. Stale revisions request the existing snapshot refresh and require review
+before explicit retry; mutations are never automatically replayed.
+
+Successful query data is shown as a UTF-8-safe 4 KiB JSON preview, with a marker
+when truncated. This is a presentation bound, not a wire-protocol change or a
+modification of the original structured response. Feedback itself is transient
+and creates no document/history mutation.

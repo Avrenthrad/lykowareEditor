@@ -84,9 +84,11 @@ public:
     const bool submit = ImGui::Button("Execute transaction");
     execute_center_ = center();
     ImGui::EndDisabled();
+    arguments_ = arguments;
     return submit ? arguments : std::nullopt;
   }
 
+  const std::optional<Json> &draft_arguments() const { return arguments_; }
   ImVec2 test_add_center() const { return add_center_; }
   ImVec2 test_choice_center(const std::string &name) const {
     return choices_centers_.at(name);
@@ -107,6 +109,7 @@ private:
     std::string name;
     std::unique_ptr<DesktopCommandForm> form;
   };
+  std::optional<Json> arguments_;
   TransactionForm model_;
   std::vector<Row> rows_;
 };

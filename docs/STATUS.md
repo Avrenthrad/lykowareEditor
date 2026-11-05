@@ -257,6 +257,30 @@
   persistence, engine or backend contract changed. Full glyph coverage, Windows,
   hardware frame rate and screen-reader behavior remain unverified.
 
+## Inline command feedback
+
+- Added form-local waiting/completion/error feedback for normal and transaction
+  forms. Matching service field errors appear beside controls; structured code,
+  field and request details remain available without blocking dialogs.
+- Correlate results by both draft generation and queue ticket. Late replies from
+  an abandoned form cannot overwrite a new form, even for the same command.
+  Navigation does not cancel commands already submitted.
+- Disable form edits/Execute while that form is pending; retain Back/search
+  navigation. Queue admission failures are shown locally and permit explicit
+  retry. No mutation is automatically retried.
+- Preserve drafts on service errors and clear obsolete feedback when arguments
+  change. Successful queries expose a UTF-8-safe, bounded 4 KiB result preview;
+  truncation does not alter the original structured response.
+- Model tests cover generations/tickets, duplicate submission, local rejection,
+  draft invalidation, retries and Unicode preview bounds. Native SDL input triggers
+  a shortcut conflict, verifies the draft/revision are preserved, corrects the
+  draft and submits successfully, then confirms a second conflict stays visible.
+- All 19 desktop checks and all 13 ASan/UBSan groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The conflict/correction scenario passes in X11/Xvfb and was visually inspected.
+- ADR 0012 records the lifecycle and presentation rules. Queue metadata remains
+  local to the adapter; CLI/MCP/service contracts and persistence are unchanged.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -281,5 +305,5 @@ Use only this repository and the existing isolated checkout; no worktree unless
 explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Continue with
-inline command feedback, broader object schemas and
+broader object schemas, further usability polish and
 Windows verification. Keep docs/STATUS.md current. Joshua merges.

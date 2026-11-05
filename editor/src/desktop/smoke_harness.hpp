@@ -2,6 +2,7 @@
 #include "command_form.hpp"
 #include "shortcut_browser.hpp"
 #include "transaction_form.hpp"
+#include "ui/form_feedback.hpp"
 namespace lyko {
 struct SmokeContext {
   DesktopPlatform &platform;
@@ -13,21 +14,28 @@ struct SmokeContext {
   DesktopTransactionForm *transaction_form;
   ShortcutBrowser *shortcuts;
   ImVec2 shortcuts_center;
+  const FormFeedback *feedback;
   bool palette_open;
   const std::string &status;
 };
 class DesktopSmokeHarness {
 public:
-  DesktopSmokeHarness(bool input, bool docking, bool layout_form = false)
-      : input_(input), docking_(docking), layout_form_(layout_form) {}
+  DesktopSmokeHarness(bool input, bool docking, bool layout_form = false,
+                      bool feedback = false)
+      : input_(input), docking_(docking), layout_form_(layout_form),
+        feedback_(feedback) {}
   void step(unsigned frames, const SmokeContext &context);
   void validate(const Json &frame) const;
   unsigned target_frames() const {
-    return layout_form_ ? 300U : (docking_ ? 370U : (input_ ? 530U : 90U));
+    return feedback_
+               ? 225U
+               : (layout_form_ ? 300U
+                               : (docking_ ? 370U : (input_ ? 530U : 90U)));
   }
 
 private:
-  bool input_, docking_, layout_form_;
+  bool input_, docking_, layout_form_, feedback_;
+  std::uint64_t feedback_revision_ = 0;
   Json before_layout_form_;
   std::uint64_t layout_form_revision_ = 0;
   ImVec2 dock_start_{}, dock_target_{};

@@ -40,6 +40,9 @@ and draft validation. A general recursive schema renderer remains future work.
 The first visual polish pass adds embedded Apache-2.0 Roboto, a consistent original
 vector icon set, token-sized controls and matching interactive surface colours.
 
-Next: inline command feedback, broader object schemas, Windows and target
+Form-local command feedback now correlates queue tickets/drafts, displays field
+errors and query previews, and supports explicit correction/retry.
+
+Next: broader object schemas, further usability polish, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.
