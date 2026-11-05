@@ -209,6 +209,30 @@
   findings. The same browser/rebinding sequence passes in X11/Xvfb and its
   resulting frame was inspected.
 
+## Typed layout object forms
+
+- Added a layout-specific nested object editor for layout.replace, including batch
+  rows: split direction/share, active tabs, tab order, panel grouping/hiding and
+  creation of new splits. Standalone forms start from the confirmed layout;
+  newly added batch rows use a valid starter draft.
+- Added a toolkit-independent LayoutForm draft model that validates candidate
+  edits through the existing layout validator before replacing its private tree.
+  No edit touches live state/history until one explicit command submission.
+- Retained advanced JSON import with an explicit import/discard boundary. Dirty
+  or invalid JSON blocks execution and typed editing until resolved; invalid
+  typed edits preserve the valid tree and require correction or acknowledgement.
+- Model tests cover structural edits, exact ratios, active tabs, rejected edits,
+  canonicalization, all-hidden/restore, JSON roundtrip and one-step bus undo/redo.
+  Native input tests edit a percentage, verify no live change before Execute,
+  check exactly one revision, undo/redo and malformed JSON import/discard gating.
+- All 17 desktop-preset tests and all 12 ASan/UBSan groups pass (with the
+  documented local leak-check limitation). Clang-tidy reports no project-code
+  findings. The typed form/import scenario passes in X11/Xvfb; its final frame
+  was inspected. Windows and target hardware remain unverified.
+- ADR 0010 records the specialized widget and its limits. No generic recursive
+  JSON Schema renderer, new protocol command, dependency or engine integration
+  was introduced.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -218,7 +242,8 @@
   windows are rejected and restored. Legacy panel.dock/layout.resize commands
   explicitly reset custom layouts to starter presets.
   Primitive palette parameters and batch rows use generated controls. Layout
-  objects retain advanced JSON; richer nested object widgets remain future work.
+  objects have typed controls plus JSON import; generic nested schema widgets
+  remain future work.
 - Icons/font refinement, final polish, prefab/asset schemas, glTF import and binary
   cooking remain outstanding. The software preview is explicitly simulated.
 - Scene/workspace exports preserve existing files; in-place replacement and
@@ -231,5 +256,5 @@ Use only this repository and the existing isolated checkout; no worktree unless
 explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Continue with
-richer object widgets, icons/fonts/visual polish and
+icons/fonts/visual polish, broader object schemas and
 Windows verification. Keep docs/STATUS.md current. Joshua merges.

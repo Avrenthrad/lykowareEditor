@@ -1,4 +1,5 @@
 #pragma once
+#include "layout_form.hpp"
 #include "platform.hpp"
 #include "ui/command_form.hpp"
 #include <array>
@@ -12,6 +13,11 @@ public:
       : descriptor_(descriptor), form_(descriptor.at("inputSchema")) {
     for (const auto &[name, value] : current) {
       form_.set(name, value);
+    }
+    if (descriptor_.at("name").as<std::string>() == "layout.replace") {
+      layout_.emplace(form_.schema().at("properties").at("layout"),
+                      form_.value("layout"));
+      form_.set("layout", layout_->value());
     }
     for (const auto &[name, spec] :
          form_.schema().at("properties").as<Json::Object>()) {
@@ -46,7 +52,16 @@ public:
           spec.contains("title") ? spec.at("title").as<std::string>() : name;
       title = label(std::move(title));
       const auto type = spec.at("type").as<std::string>();
-      if (spec.contains("enum")) {
+      if (name == "layout" && layout_) {
+        layout_->draw();
+        form_.set(name, layout_->value());
+        if (layout_->valid()) {
+          parse_errors_.erase(name);
+        } else {
+          parse_errors_[name] =
+              "Resolve the layout draft error before executing.";
+        }
+      } else if (spec.contains("enum")) {
         const auto current = form_.value(name).as<std::string>();
         if (ImGui::BeginCombo(title.c_str(), current.empty()
                                                  ? "Choose..."
@@ -78,7 +93,7 @@ public:
       } else if (type == "array" || type == "object") {
         ImGui::TextUnformatted(title.c_str());
         ImGui::TextDisabled(type == "array" ? "Advanced: JSON array"
-                                            : "Advanced: layout JSON object");
+                                            : "Advanced: JSON object");
         auto &buffer = buffers_.at(name);
         if (ImGui::InputTextMultiline("##array", buffer.data(), buffer.size(),
                                       ImVec2(-1, 120))) {
@@ -145,6 +160,10 @@ public:
     return form_.arguments();
   }
 
+  DesktopLayoutForm *test_layout_form() {
+    return layout_ ? &*layout_ : nullptr;
+  }
+
   ImVec2 test_center(const std::string &name) const {
     return centers_.at(name);
   }
@@ -153,6 +172,7 @@ public:
 private:
   std::map<std::string, ImVec2> centers_;
   ImVec2 execute_center_{};
+  std::optional<DesktopLayoutForm> layout_;
   Json descriptor_;
   CommandForm form_;
   std::map<std::string, std::array<char, 16384>> buffers_;

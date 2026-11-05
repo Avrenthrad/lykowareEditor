@@ -34,7 +34,9 @@ implemented and covered by model and native SDL interaction tests.
 A searchable shortcut browser, binding edit links, live action hints and contextual
 Rename now improve command discoverability. Bindings still use the shared bus.
 
-Next: richer nested object widgets,
-icons/fonts/visual polish, Windows and target
+Layout object forms now expose split/tab/panel controls with explicit JSON import
+and draft validation. A general recursive schema renderer remains future work.
+
+Next: icons/fonts/visual polish, broader object schemas, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

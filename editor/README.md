@@ -151,7 +151,7 @@ primitive arguments use generated fields, dropdowns and checkboxes with inline
 validation. transaction.execute opens a typed batch builder: add registered
 mutations, edit fields, reorder/remove rows, then execute once. A batch failure
 leaves all rows unapplied; undo/redo acts on the whole batch. The GUI allows up
-to 64 rows. Layout objects retain an advanced JSON editor.
+to 64 rows. Layout objects provide typed split/tab/panel controls plus advanced JSON import.
 Dockspace resizing, splitting, merging, tab reordering and active tabs share
 undo/redo with CLI/MCP layout.replace. Workspace exports write TOML v2 and read
 v1/v2. Floating-window drops restore the confirmed layout with an inline error.
@@ -182,7 +182,8 @@ arguments. Ctrl+K focuses search; Escape goes back or closes it.
 The draft model is independent of ImGui and never edits scene/history until an
 explicit command submission. Domain errors such as stale revisions, shortcut
 conflicts and nonexistent entities still come from the authoritative service.
-Batch arrays use an advanced JSON field; richer nested editors remain future work.
+Batch commands use typed rows; layout objects use typed controls with JSON import.
+A general recursive schema renderer remains future work.
 The --smoke-input harness additionally opens workspace.configure, edits reduced
 motion with SDL mouse events and checks that submission updates the workspace.
 
@@ -203,3 +204,18 @@ menus offer Inspect, Rename, Undo and Redo with current shortcut labels.
 
 The input smoke test additionally edits Undo to Ctrl+U through the shortcut
 browser, verifies the old key stops dispatching, and checks binding undo/redo.
+
+Open layout.replace to edit a private layout draft: change split direction or share
+(5–95%, with 0.01% precision), active tabs, tab order, panel placement/visibility,
+or create another split. Groups are labelled by their panels. Execute applies the
+whole draft as one undoable command. Batch rows use the same controls; a newly
+added layout row starts from the starter layout rather than a live snapshot.
+
+Advanced JSON import remains available. Text edits must be imported or discarded
+before Execute becomes available. Invalid imports preserve the valid draft and
+leave live state untouched. Invalid typed edits also preserve the draft; correct
+the error or choose Keep valid draft before executing. This is a specialized
+layout widget, not a general recursive JSON Schema form renderer.
+
+`--smoke-layout-form` checks typed percentage editing, explicit submission,
+undo/redo and invalid JSON import/discard through native SDL events.

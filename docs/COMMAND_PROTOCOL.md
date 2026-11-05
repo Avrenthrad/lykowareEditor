@@ -194,8 +194,8 @@ with the current instance and expected revision. Child rows never execute alone.
 The GUI limits batches to 64 rows; this is a local draft bound, not a new CLI/MCP
 protocol limit. Queries, history operations, exports and recursive transactions
 are excluded. Primitive validation is advisory; cross-row/domain validation and
-atomic rollback belong to the shared service. Nested layout objects still use
-advanced JSON. A stale revision returns the existing structured service error.
+atomic rollback belong to the shared service. Nested layout objects use typed layout controls plus explicit advanced JSON
+import. A stale revision returns the existing structured service error.
 
 ## Shortcut discovery in the desktop
 
@@ -210,3 +210,19 @@ Undo hint use confirmed bindings, so undo/redo and externally edited keymaps
 update them after snapshot refresh. Parameterized shortcuts open forms; contextual
 Rename prefills the clicked entity, even when another entity is selected. Browser
 search/navigation is transient UI state, with no separate document mutation path.
+
+## Layout object drafts
+
+The layout.replace palette field and batch rows expose split direction/share,
+active tabs, tab order, panel grouping/hiding and split creation. Percentages map
+to integer basis points without altering untouched values. Candidate edits run
+through the existing graph validator and canonicalizer, in a private draft.
+Execute still sends the same layout.replace object, with the same revision guard
+and atomic history behavior; no service contract or persistence format changed.
+
+Standalone desktop forms prefill the confirmed layout. New transaction rows use
+the starter layout. Advanced JSON text edits block submission until explicitly
+imported or discarded. Invalid imports and invalid typed candidates preserve the
+valid draft; typed errors must be corrected or acknowledged before execution.
+This widget supports the layout object contract specifically; other objects retain
+advanced JSON controls. File, node, ratio and nesting limits remain unchanged.

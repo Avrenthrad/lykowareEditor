@@ -241,6 +241,131 @@ void DesktopSmokeHarness::step(unsigned frames, const SmokeContext &context) {
       throw std::runtime_error("Interaction smoke: binding redo failed");
     }
   }
+  if (layout_form_) {
+    if (frames == 20 || frames == 130) {
+      platform.test_key('k', true);
+    }
+    if (frames == 30) {
+      platform.test_text("layout.replace");
+    }
+    if (frames == 45 || frames == 46) {
+      platform.test_pointer(settings_center, frames == 45);
+    }
+    if (frames == 60) {
+      if (!command_form || !command_form->test_layout_form()) {
+        throw std::runtime_error(
+            "Layout form smoke: typed editor did not open");
+      }
+      before_layout_form_ = frame.at("workspace").at("layout");
+      layout_form_revision_ = revision;
+    }
+    if (frames == 65 || frames == 66) {
+      platform.test_pointer(
+          command_form->test_layout_form()->test_ratio_center("root"),
+          frames == 65);
+    }
+    if (frames == 70) {
+      platform.test_key('a', true);
+    }
+    if (frames == 72) {
+      platform.test_text("30");
+    }
+    if (frames == 90) {
+      const auto draft = command_form->draft_arguments();
+      if (!draft ||
+          draft->at("layout")
+                  .at("nodes")
+                  .at("root")
+                  .at("ratio")
+                  .as<std::uint64_t>() != 3000 ||
+          frame.at("workspace").at("layout") != before_layout_form_ ||
+          revision != layout_form_revision_) {
+        throw std::runtime_error("Layout form smoke: typed draft changed live "
+                                 "state or percent editing failed");
+      }
+    }
+    if (frames == 100 || frames == 101) {
+      platform.test_pointer(command_form->test_execute_center(), frames == 100);
+    }
+    if (frames == 125 && (frame.at("workspace")
+                                  .at("layout")
+                                  .at("nodes")
+                                  .at("root")
+                                  .at("ratio")
+                                  .as<std::uint64_t>() != 3000 ||
+                          revision != layout_form_revision_ + 1)) {
+      throw std::runtime_error(
+          "Layout form smoke: Execute did not commit exactly once: " + status);
+    }
+    if (frames == 140) {
+      platform.test_key('z', true);
+    }
+    if (frames == 160 &&
+        frame.at("workspace").at("layout") != before_layout_form_) {
+      throw std::runtime_error("Layout form smoke: undo failed");
+    }
+    if (frames == 170) {
+      platform.test_key('z', true, true);
+    }
+    if (frames == 190 && frame.at("workspace")
+                                 .at("layout")
+                                 .at("nodes")
+                                 .at("root")
+                                 .at("ratio")
+                                 .as<std::uint64_t>() != 3000) {
+      throw std::runtime_error("Layout form smoke: redo failed");
+    }
+  }
+  if (layout_form_) {
+    if (frames == 195) {
+      platform.test_key('k', true);
+    }
+    auto *editor = command_form ? command_form->test_layout_form() : nullptr;
+    if (frames == 198 || frames == 199 || frames == 270 || frames == 271) {
+      platform.test_pointer(editor->test_tree_center(),
+                            frames == 198 || frames == 270);
+    }
+    if (frames == 205 || frames == 206 || frames == 265 || frames == 266) {
+      platform.test_pointer(editor->test_json_toggle_center(),
+                            frames == 205 || frames == 265);
+    }
+    if (frames == 215 || frames == 216) {
+      platform.test_pointer(editor->test_json_center(), frames == 215);
+    }
+    if (frames == 220) {
+      platform.test_key('a', true);
+    }
+    if (frames == 222) {
+      platform.test_text("{bad");
+    }
+    if (frames == 230 && command_form->draft_arguments()) {
+      throw std::runtime_error(
+          "Layout form smoke: dirty JSON did not block submission");
+    }
+    if (frames == 235 || frames == 236) {
+      platform.test_pointer(editor->test_import_center(), frames == 235);
+    }
+    if (frames == 245 && command_form->draft_arguments()) {
+      throw std::runtime_error(
+          "Layout form smoke: invalid JSON import enabled submission");
+    }
+    if (frames == 250 || frames == 251) {
+      platform.test_pointer(editor->test_discard_center(), frames == 250);
+    }
+    if (frames == 260) {
+      const auto draft = command_form->draft_arguments();
+      if (!draft ||
+          draft->at("layout")
+                  .at("nodes")
+                  .at("root")
+                  .at("ratio")
+                  .as<std::uint64_t>() != 3000 ||
+          revision != layout_form_revision_ + 3) {
+        throw std::runtime_error("Layout form smoke: discarded JSON did not "
+                                 "restore valid draft or changed history");
+      }
+    }
+  }
   if (smoke_docking && ready) {
     const auto merged = [&]() {
       for (const auto &[id, node] :

@@ -18,16 +18,18 @@ struct SmokeContext {
 };
 class DesktopSmokeHarness {
 public:
-  DesktopSmokeHarness(bool input, bool docking)
-      : input_(input), docking_(docking) {}
+  DesktopSmokeHarness(bool input, bool docking, bool layout_form = false)
+      : input_(input), docking_(docking), layout_form_(layout_form) {}
   void step(unsigned frames, const SmokeContext &context);
   void validate(const Json &frame) const;
   unsigned target_frames() const {
-    return docking_ ? 370U : (input_ ? 530U : 90U);
+    return layout_form_ ? 300U : (docking_ ? 370U : (input_ ? 530U : 90U));
   }
 
 private:
-  bool input_, docking_;
+  bool input_, docking_, layout_form_;
+  Json before_layout_form_;
+  std::uint64_t layout_form_revision_ = 0;
   ImVec2 dock_start_{}, dock_target_{};
   std::uint64_t resized_ratio_ = 0, before_float_revision_ = 0;
   Json before_float_;

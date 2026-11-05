@@ -14,6 +14,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-docking | codex/standalone-editor-forms | Validated layout trees, TOML v2 migration and undoable native docking |
 | codex/standalone-editor-transactions | codex/standalone-editor-docking | Typed atomic batch builder, row validation and desktop interaction tests |
 | codex/standalone-editor-shortcuts | codex/standalone-editor-transactions | Searchable shortcut browser, binding edit links, live action hints and rebinding interaction tests |
+| codex/standalone-editor-layout-forms | codex/standalone-editor-shortcuts | Typed layout object drafts, JSON import gating and model/native interaction tests |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -22,7 +23,8 @@ it has not been applied to the running policy. API authentication remains untest
 No token values are requested or stored. After relevant settings are applied,
 retry the API check before requesting credentials or creating duplicate PRs.
 
-Local validation: dev preset 11/11, desktop preset 15/15, ASan/UBSan preset 11/11 with
+Local validation: desktop preset 17/17 (including 12 headless/model groups),
+ASan/UBSan preset 12/12 with
 local leak-check limitation, queue ThreadSanitizer check, clang-tidy with no
 project-code findings, and X11 interaction/capture inspection. Windows and remote
 CI remain unrun. Joshua reviews and merges.

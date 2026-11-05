@@ -60,11 +60,15 @@ void theme(const J &tokens) {
 }
 } // namespace
 int main(int argc, char **argv) {
-  bool smoke = false, mcp = false, smoke_input = false, smoke_docking = false;
+  bool smoke = false, mcp = false, smoke_input = false, smoke_docking = false,
+       smoke_layout_form = false;
   std::string capture, instance = "desktop";
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
-    if (arg == "--smoke-docking") {
+    if (arg == "--smoke-layout-form") {
+      smoke = true;
+      smoke_layout_form = true;
+    } else if (arg == "--smoke-docking") {
       smoke = true;
       smoke_docking = true;
     } else if (arg == "--smoke-input") {
@@ -99,7 +103,8 @@ int main(int argc, char **argv) {
     lyko::DockingAdapter docking;
     lyko::ShortcutBrowser shortcuts;
     bool focus_palette = false;
-    lyko::DesktopSmokeHarness harness(smoke_input, smoke_docking);
+    lyko::DesktopSmokeHarness harness(smoke_input, smoke_docking,
+                                      smoke_layout_form);
     std::jthread protocol;
     if (mcp) {
       protocol = std::jthread(
@@ -532,7 +537,7 @@ int main(int argc, char **argv) {
               choose_command(item);
             }
             if (name == "workspace.configure" ||
-                name == "transaction.execute") {
+                name == "transaction.execute" || name == "layout.replace") {
               settings_center = ImVec2(
                   (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) *
                       0.5f,
