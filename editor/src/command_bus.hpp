@@ -12,6 +12,8 @@
 namespace lyko {
 using EntityId = std::uint64_t;
 struct CreateEntity { std::string name; };
+struct DeleteEntity { EntityId id; };
+struct DuplicateEntity { EntityId id; std::string name; };
 struct RenameEntity { EntityId id; std::string name; };
 struct Play {};
 struct Stop {};
@@ -32,7 +34,7 @@ struct ResizeDock { std::string dock; std::uint64_t percent; };
 struct BindShortcut { std::string command; std::string shortcut; };
 struct SelectEntity { EntityId id; }; // Zero clears selection.
 struct ReplaceScene { Document document; };
-using Mutation = std::variant<CreateEntity, RenameEntity, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
+using Mutation = std::variant<CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
 struct Error { std::string code; std::string field; std::string message; };
 struct Result {
     std::uint64_t revision;

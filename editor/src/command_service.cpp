@@ -45,6 +45,8 @@ const std::vector<Entry>& registry() {
         {"selection.query", "Read the selected entity for the inspector, or null when unselected.", {}, {}, Action::selection},
         {"entity.create", "Create a named entity with a stable ID.", {{"name", "string", {{"default","New entity"}}}}, [](const Json& a) -> Mutation { return CreateEntity{a.at("name").as<std::string>()}; }},
         {"entity.rename", "Rename an existing entity.", {{"id", "integer", {{"title","Entity ID"},{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"name", "string"}}, [](const Json& a) -> Mutation { return RenameEntity{a.at("id").as<std::uint64_t>(), a.at("name").as<std::string>()}; }},
+        {"entity.delete", "Delete an entity and clear its selection atomically; undo restores both.", {{"id", "integer", {{"title","Entity ID"},{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, [](const Json& a) -> Mutation { return DeleteEntity{a.at("id").as<std::uint64_t>()}; }},
+        {"entity.duplicate", "Duplicate an entity under a new stable ID and select the copy atomically.", {{"id", "integer", {{"title","Source entity ID"},{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"name", "string", {{"default","Entity copy"}}}}, [](const Json& a) -> Mutation { return DuplicateEntity{a.at("id").as<std::uint64_t>(), a.at("name").as<std::string>()}; }},
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},

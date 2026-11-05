@@ -241,3 +241,9 @@ marker; the underlying structured response is preserved.
 
 `--smoke-feedback` exercises a rejected shortcut binding, correction/retry and a
 second rejection through native SDL input, checking feedback and revision behavior.
+
+Entity context menus now include Duplicate and Delete. Duplicate opens a source/name
+form and selects the new copy on commit. Delete acts on the clicked entity and
+clears selection if necessary. Both are undoable and available as entity.duplicate
+and entity.delete through CLI/MCP, the palette, rebindable keys and batch rows.
+The current entity model contains names only; no runtime resources are duplicated.

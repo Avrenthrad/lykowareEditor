@@ -43,6 +43,9 @@ vector icon set, token-sized controls and matching interactive surface colours.
 Form-local command feedback now correlates queue tickets/drafts, displays field
 errors and query previews, and supports explicit correction/retry.
 
+Basic entity Duplicate/Delete actions now share atomic selection/history behavior
+across desktop, CLI and MCP.
+
 Next: broader object schemas, further usability polish, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

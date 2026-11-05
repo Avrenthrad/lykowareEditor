@@ -31,7 +31,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
         try {
         error = std::visit([&](const auto& command) -> std::optional<Error> {
             using T = std::decay_t<decltype(command)>;
-            if constexpr (std::is_same_v<T, CreateEntity> || std::is_same_v<T, RenameEntity>) {
+            if constexpr (std::is_same_v<T, CreateEntity> || std::is_same_v<T, RenameEntity> || std::is_same_v<T, DuplicateEntity>) {
                 if (command.name.empty() || command.name.size() > 128) {
                     return Error{"invalid_name", "name", "Name must contain 1 to 128 bytes."};
                 }
@@ -40,11 +40,20 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                         return Error{"id_exhausted", "id", "No identifiers remain."};
                     }
                     candidate.entities.emplace(candidate.next_id++, command.name);
+                } else if constexpr (std::is_same_v<T, DuplicateEntity>) {
+                    if (!candidate.entities.contains(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
+                    if (candidate.next_id == std::numeric_limits<EntityId>::max()) { return Error{"id_exhausted", "id", "No identifiers remain."}; }
+                    const auto id = candidate.next_id++;
+                    candidate.entities.emplace(id, command.name);
+                    candidate.workspace.selection = id;
                 } else {
                     auto entity = candidate.entities.find(command.id);
                     if (entity == candidate.entities.end()) { return Error{"not_found", "id", "Entity does not exist."}; }
                     entity->second = command.name;
                 }
+            } else if constexpr (std::is_same_v<T, DeleteEntity>) {
+                if (!candidate.entities.erase(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
+                if (candidate.workspace.selection == command.id) { candidate.workspace.selection.reset(); }
             } else if constexpr (std::is_same_v<T, ReplaceScene>) {
                 if (command.document.next_id == 0) { return Error{"invalid_scene", "next_id", "Next ID must be positive."}; }
                 for (const auto& [id, name] : command.document.entities) {

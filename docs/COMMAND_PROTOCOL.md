@@ -249,3 +249,16 @@ Successful query data is shown as a UTF-8-safe 4 KiB JSON preview, with a marker
 when truncated. This is a presentation bound, not a wire-protocol change or a
 modification of the original structured response. Feedback itself is transient
 and creates no document/history mutation.
+
+## Entity authoring actions
+
+`entity.duplicate` requires `id` (existing unsigned entity ID) and `name`
+(1–128 UTF-8 bytes). It allocates the next stable ID and selects the copy as one
+transaction. `entity.delete` requires `id`; it removes that entity and clears
+selection if selected. Both support expected_revision, batching and undo/redo.
+Missing IDs return not_found/id. Exhausted allocation returns id_exhausted/id.
+Deletion preserves next_id; failed batches roll back allocations and selection.
+The current entity model contains only IDs/names; no runtime resources are cloned.
+Scene JSON v1 is unchanged. New forms prefill the selected entity when available;
+context actions target the clicked entity. Duplicate opens a name draft; Delete
+executes directly and can be undone without a blocking confirmation dialog.

@@ -17,6 +17,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-layout-forms | codex/standalone-editor-shortcuts | Typed layout object drafts, JSON import gating and model/native interaction tests |
 | codex/standalone-editor-visual-polish | codex/standalone-editor-layout-forms | Embedded Apache-2.0 Roboto, original vector icons and token-driven visual polish |
 | codex/standalone-editor-form-feedback | codex/standalone-editor-visual-polish | Ticket-correlated inline feedback, field errors, bounded results and correction/retry tests |
+| codex/standalone-editor-entity-actions | codex/standalone-editor-form-feedback | Atomic entity duplicate/delete, contextual actions and CLI/MCP authoring tests |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -25,8 +26,8 @@ it has not been applied to the running policy. API authentication remains untest
 No token values are requested or stored. After relevant settings are applied,
 retry the API check before requesting credentials or creating duplicate PRs.
 
-Local validation: desktop preset 19/19 (including 13 headless/model groups),
-ASan/UBSan preset 13/13 with
+Local validation: desktop preset 20/20 (including 14 headless/model groups),
+ASan/UBSan preset 14/14 with
 local leak-check limitation, queue ThreadSanitizer check, clang-tidy with no
 project-code findings, and X11 interaction/capture inspection. Windows and remote
 CI remain unrun. Joshua reviews and merges.

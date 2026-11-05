@@ -204,11 +204,14 @@ int main(int argc, char **argv) {
           current.emplace(key, w.at(key));
         }
       }
-      if (ready && name == "entity.rename") {
+      if (ready && (name == "entity.rename" || name == "entity.duplicate" ||
+                    name == "entity.delete")) {
         const auto &entity = frame.at("selection").at("entity");
         if (std::holds_alternative<O>(entity.value)) {
           current.emplace("id", entity.at("id"));
-          current.emplace("name", entity.at("name"));
+          if (name != "entity.delete") {
+            current.emplace("name", entity.at("name"));
+          }
         }
       }
       if (ready && name == "layout.replace") {
@@ -442,6 +445,16 @@ int main(int argc, char **argv) {
                           O{{"id", id}, {"name", entity.at("name")}});
               }
               lyko::command_tooltip(hints, "entity.rename");
+              if (ImGui::MenuItem("Duplicate...",
+                                  key_for("entity.duplicate").c_str())) {
+                open_form("entity.duplicate",
+                          O{{"id", id}, {"name", entity.at("name")}});
+              }
+              lyko::command_tooltip(hints, "entity.duplicate");
+              if (ImGui::MenuItem("Delete", key_for("entity.delete").c_str())) {
+                request("entity.delete", O{{"id", id}});
+              }
+              lyko::command_tooltip(hints, "entity.delete");
               ImGui::Separator();
               if (ImGui::MenuItem("Undo", key_for("history.undo").c_str())) {
                 request("history.undo");

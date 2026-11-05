@@ -281,6 +281,23 @@
 - ADR 0012 records the lifecycle and presentation rules. Queue metadata remains
   local to the adapter; CLI/MCP/service contracts and persistence are unchanged.
 
+## Basic entity authoring actions
+
+- Added entity.duplicate (explicit source ID/name) and entity.delete through the
+  typed bus and registry, with palette forms, shortcuts, transaction-row discovery
+  and scene context-menu actions. Duplicate selects its new stable ID; deleting
+  the selected entity clears selection atomically. Undo/redo restores both.
+- Invalid sources/names and identifier exhaustion fail before commit. Deletion
+  never rewinds the allocator. Failed batches preserve scene, selection and history.
+- Existing JSON v1 persistence is unchanged. These entities currently contain only
+  names; duplication copies authoring data, not mock runtime state or resources.
+- New black-box tests cover selection, history, stable IDs, bad-input rollback,
+  stale revisions, failed batches, CLI/MCP parity and JSON save/load compatibility.
+- All 20 desktop checks and all 14 ASan/UBSan groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  Windows remains unverified.
+- ADR 0013 records behavior. No engine integration or dependency was introduced.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
