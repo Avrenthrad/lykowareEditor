@@ -60,16 +60,23 @@ inline Matrix4 local_matrix(const Transform &transform) {
   return multiply_matrix(
       multiply_matrix(multiply_matrix(multiply_matrix(t, rx), ry), rz), s);
 }
-inline Matrix4 world_matrix(const Document &document, EntityId id) {
+inline Matrix4 world_matrix(const Document &document, EntityId id,
+                            bool validate_forest = true) {
   if (!document.entities.contains(id)) {
     throw std::invalid_argument("Entity does not exist.");
   }
-  if (auto error = hierarchy_error(document)) {
-    throw std::invalid_argument(*error);
+  if (validate_forest) {
+    if (auto error = hierarchy_error(document)) {
+      throw std::invalid_argument(*error);
+    }
   }
   std::vector<EntityId> chain{id};
   while (document.parents.contains(chain.back())) {
-    chain.push_back(document.parents.at(chain.back()));
+    const auto parent = document.parents.at(chain.back());
+    if (chain.size() > 64 || !document.entities.contains(parent)) {
+      throw std::invalid_argument("Invalid ancestor chain.");
+    }
+    chain.push_back(parent);
   }
   auto result = identity_matrix();
   for (auto it = chain.rbegin(); it != chain.rend(); ++it) {

@@ -14,7 +14,7 @@ namespace lyko {
 using EntityId = std::uint64_t;
 struct CreateEntity { std::string name; };
 struct SetTransform { EntityId id; Transform transform; };
-struct ReparentEntity { EntityId id; EntityId parent; };
+struct ReparentEntity { EntityId id; EntityId parent; bool preserve_world = false; };
 struct DeleteEntity { EntityId id; };
 struct DuplicateEntity { EntityId id; std::string name; };
 struct RenameEntity { EntityId id; std::string name; };

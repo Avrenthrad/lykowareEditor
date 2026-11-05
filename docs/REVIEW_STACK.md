@@ -21,6 +21,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-scene-tree | codex/standalone-editor-entity-actions | Validated authoring hierarchy, tree queries and v1/v2 scene persistence |
 | codex/standalone-editor-transforms | codex/standalone-editor-scene-tree | Local transform commands, numeric forms and v3 scene persistence |
 | codex/standalone-editor-world-transforms | codex/standalone-editor-transforms | Read-only world matrices, explicit conventions and analytic CLI/MCP tests |
+| codex/standalone-editor-preserve-world | codex/standalone-editor-world-transforms | Conservative atomic world-preserving reparent and analytic rejection/history tests |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -29,8 +30,8 @@ it has not been applied to the running policy. API authentication remains untest
 No token values are requested or stored. After relevant settings are applied,
 retry the API check before requesting credentials or creating duplicate PRs.
 
-Local validation: desktop preset 23/23 (including 17 headless/model groups),
-ASan/UBSan preset 17/17 with
+Local validation: desktop preset 24/24 (including 18 headless/model groups),
+ASan/UBSan preset 18/18 with
 local leak-check limitation, queue ThreadSanitizer check, clang-tidy with no
 project-code findings, and X11 interaction/capture inspection. Windows and remote
 CI remain unrun. Joshua reviews and merges.

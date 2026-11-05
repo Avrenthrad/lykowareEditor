@@ -1,4 +1,5 @@
 #include "command_bus.hpp"
+#include "preserve_world.hpp"
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
@@ -66,9 +67,15 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 else { candidate.transforms.insert_or_assign(command.id, command.transform); }
             } else if constexpr (std::is_same_v<T, ReparentEntity>) {
                 if (!candidate.entities.contains(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
+                const auto before_reparent = command.preserve_world ? std::optional<Document>(candidate) : std::nullopt;
                 if (command.parent == 0) { candidate.parents.erase(command.id); }
                 else { candidate.parents.insert_or_assign(command.id, command.parent); }
                 if (auto issue = hierarchy_error(candidate)) { return Error{"invalid_hierarchy", "parent", *issue}; }
+                if(before_reparent){
+                    if(before_reparent->parents==candidate.parents){return {};}
+                    try {preserve_world(*before_reparent,candidate,command.id,command.parent);}
+                    catch(const std::exception& issue){return Error{"cannot_preserve_world","parent",issue.what()};}
+                }
             } else if constexpr (std::is_same_v<T, ReplaceScene>) {
                 if (auto issue = hierarchy_error(command.document)) { return Error{"invalid_hierarchy", "parents", *issue}; }
                 for(const auto& [id, transform]:command.document.transforms){

@@ -310,3 +310,18 @@ Angles are reduced modulo 360 before conversion to radians. Nonfinite compositio
 intermediates return transform_range/transform; normal double rounding/underflow
 still applies, so invertibility is not guaranteed. Queries do not alter revisions,
 history or JSON v3 persistence. The mock preview does not consume these matrices.
+
+## World-preserving reparent
+
+entity.reparent_world takes id and parent (0 for root). It changes hierarchy and
+local TRS atomically, preserving every affected subtree world-matrix component
+within 1e-9 * max(1, abs(original component)). Existing entity.reparent continues
+to preserve local values. Both share existence, cycle and depth validation.
+
+The new operation computes inverse(new_parent_world)*old_world, decomposes to
+local TRS and verifies recomposition plus the affected subtree. Reflection is
+represented by a negative X scale when needed; equivalent Euler/scale values
+may differ. Local shear, pivots/scales below 1e-12, nonfinite arithmetic, or failed
+residual checks return cannot_preserve_world/parent without changing state/history.
+This is a conservative operation, not a guarantee that all finite TRS cases pass.
+Same-parent requests are no-ops. No matrix override or persistence change is added.

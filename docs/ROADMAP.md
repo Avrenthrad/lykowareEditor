@@ -53,6 +53,9 @@ Local authoring transform commands, numeric forms and JSON v3 persistence now
 provide position/rotation/scale data. Read-only world matrix composition now
 preserves affine shear and exposes explicit conventions through transform.world.
 
+Conservative world-preserving reparent is now a separate undoable command; shear
+and unsafe numerical cases fail without mutation.
+
 Next: broader object schemas, further usability polish, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

@@ -348,6 +348,23 @@
 - ADR 0016 records conventions. Persistence is unchanged; world-space editing,
   decomposition, world-preserving reparent and real rendering remain future work.
 
+## World-preserving reparent
+
+- Added entity.reparent_world with context/palette/CLI/MCP/batch parity. Existing
+  local-preserving reparent behavior is unchanged. The new command changes parent
+  and local TRS in one undoable transaction after validating the candidate forest.
+- Added inverse/decomposition with reflection and gimbal-angle handling. Verify
+  local recomposition, parent inverse residual and every affected subtree world
+  matrix. Reject local shear, unsafe scales/pivots and numerical failures without
+  committing. Same-parent calls are no-ops.
+- Subtree checks reuse the already validated forest and retain bounded ancestor
+  traversal, avoiding repeated whole-scene scans per descendant.
+- All 24 desktop checks and all 18 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+- Added analytic subtree/history/rejection/CLI-MCP tests and ADR 0017. Preservation
+  tolerance is component-wise 1e-9*max(1,abs(original)); this is conservative,
+  finite-precision behavior, not universal/exact TRS decomposition.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

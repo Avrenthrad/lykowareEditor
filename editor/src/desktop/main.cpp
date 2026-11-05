@@ -205,7 +205,8 @@ int main(int argc, char **argv) {
         }
       }
       if (ready && (name == "entity.rename" || name == "entity.duplicate" ||
-                    name == "entity.delete" || name == "entity.reparent")) {
+                    name == "entity.delete" || name == "entity.reparent" ||
+                    name == "entity.reparent_world")) {
         const auto &entity = frame.at("selection").at("entity");
         if (std::holds_alternative<O>(entity.value)) {
           current.emplace("id", entity.at("id"));
@@ -481,6 +482,12 @@ int main(int argc, char **argv) {
                           O{{"id", id}, {"parent", entity.at("parent")}});
               }
               lyko::command_tooltip(hints, "entity.reparent");
+              if (ImGui::MenuItem("Reparent (preserve world)...",
+                                  key_for("entity.reparent_world").c_str())) {
+                open_form("entity.reparent_world",
+                          O{{"id", id}, {"parent", entity.at("parent")}});
+              }
+              lyko::command_tooltip(hints, "entity.reparent_world");
               if (ImGui::MenuItem("Delete", key_for("entity.delete").c_str())) {
                 request("entity.delete", O{{"id", id}});
               }

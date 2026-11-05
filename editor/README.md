@@ -272,3 +272,10 @@ CLI/MCP expose the same query. Matrices use right-handed Y-up/-Z-forward editor
 coordinates, row-major storage and column vectors; local order is T*Rx*Ry*Rz*S.
 Shear/reflection are retained. This is a computed query, not a world-space editor,
 reparent-with-world-preservation operation or real-renderer integration.
+
+Use entity.reparent_world (or Reparent (preserve world) in an entity context menu)
+to keep subtree world placement while changing parent. It applies one undoable
+hierarchy/local-transform transaction. Shear or unsafe numerical cases are rejected
+with a clear error and the scene stays unchanged. Preservation uses a documented
+component-wise 1e-9 relative/absolute tolerance; it is not exact arithmetic.
+The original entity.reparent still keeps local values and is always available.
