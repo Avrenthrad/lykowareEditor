@@ -16,12 +16,12 @@ without mandatory artifact uploads or paid services.
 
 ## Current checkpoint
 
-ADR 0001 is drafted; ADR 0002 records headless protocol/publication choices.
-The command core, JSON CLI, scene JSON persistence, stdio MCP and deterministic
-mock feedback loop are implemented and tested locally. Desktop shell, prefab and
-asset schemas and glTF import remain outstanding. The toolkit-independent shell
-model (tokens, selection, panel slots, palette, keymap and TOML configuration) is
-implemented, with no actual GUI window yet. CMake,
-Windows and clang-tidy validation require missing tooling/platform support;
-manual self-hosted CI is configured but has not run. Restore the cloud proxy
-before acquiring reviewed GUI dependencies or reconciling with remote main.
+The command core, JSON CLI, scene/workspace persistence, shared-instance desktop
+MCP, async execution, software preview and first ImGui/SDL3 desktop are implemented
+and tested locally on Linux. CMake and clang-tidy checks now run successfully.
+Desktop smoke tests include actual SDL input and a separately inspected X11 frame.
+
+Next: generated friendly palette forms, context menus and shortcut discoverability,
+transaction-backed flexible docking, icons/fonts/visual polish, Windows and target
+hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
+cooking remain later milestones. CI is manual/self-hosted and has not been run.

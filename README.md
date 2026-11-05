@@ -1,8 +1,9 @@
 # Lykoware Editor
 
 Standalone, command-driven editor for Lykoleon Studios. The current implementation
-provides a headless JSON CLI, stdio MCP server, transactional scene editing and a
-deterministic mock backend. The desktop UI and real runtime are future work.
+provides a standalone ImGui/SDL3 desktop, headless JSON CLI, shared-instance stdio
+MCP, transactional editing and a deterministic mock backend. Final UI polish and
+a real game runtime are future work.
 
 - [Build, test and run](editor/README.md)
 - [Command protocol](docs/COMMAND_PROTOCOL.md)

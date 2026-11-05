@@ -78,7 +78,7 @@
   Unicode paths and CLI/MCP parity. ADR 0003 records scope and parser limitations.
 - All seven test groups passed under ASan/UBSan with leak detection disabled
   because LeakSanitizer is incompatible with this environment tracing.
-- The shell model is implemented; no actual GUI window or docking adapter exists.
+- This checkpoint implemented the shell model; the actual window follows below.
 
 ## Desktop execution and panel snapshot slice
 
@@ -101,36 +101,49 @@
   Remote main remains at the original starting commit; GUI dependencies are now
   being acquired through the approved network path.
 
+## Desktop shell and environment milestone
+
+- Added a real optional ImGui/SDL3 window, docked scene/inspector/viewport/console/
+  history panels, Ctrl+K palette, inspector rename, undo/redo, workspace menus and
+  mock preview texture. All committed editor changes use the command service.
+- Vendored pinned MIT ImGui and zlib SDL sources with provenance, licence records
+  and an offline checksum-verified CMake wrapper. Headless builds stay independent.
+- Added desktop --mcp against the same visible instance, safe EOF/disconnect
+  handling and periodic snapshot refresh. No network listener is opened.
+- CMake dev builds and all nine headless tests pass. All 12 desktop-preset checks
+  pass, including render,
+  shared-MCP/disconnect and synthetic SDL interaction checks pass. A real X11/Xvfb
+  window passed the same mouse/key/rename interaction sequence and was captured
+  for visual inspection. The interaction harness creates an
+  entity, undoes/redoes, opens Ctrl+K and renames through the inspector.
+- The actual sanitizer preset builds with clang-tidy enabled and passes all nine
+  tests with leak detection disabled for the environment tracing restriction.
+  Queue tests also pass under ThreadSanitizer. Clang-tidy reports no project-code
+  findings. Windows and remote CI have not run.
+- Added tested, repeatable rootless cloud setup under editor/tools/setup-cloud.sh.
+  Tools/system packages live outside the checkout in /workspace/.lyko-tools and
+  /workspace/.lyko-system. Network works with approved unsandboxed execution; prior
+  proxy-failure diagnoses were incorrect. No environment restart was needed.
+
 ## Current limitations
 
-- Default sandbox network requests fail; approved network-enabled commands work.
-  Remote main has been checked and has no new commits beyond the starting point.
-- Local starting commit: `8308edf` (Initial commit), branch `work`.
-- GCC 14.2 and Make are present; CMake and Ninja are absent. Installation and
-  dependency acquisition remain blocked by network access.
-- CMake presets, Windows builds and clang-tidy remain unrun because the required
-  tools/platform are unavailable. CI is configured but unexecuted; approved
-  self-hosted runners are required. No dependencies have been vendored.
-- GUI window/docking adapter, prefab/asset schemas and glTF import are outstanding.
-  CLI JSON requests and registry input schemas are implemented; transport and
-  persistence contracts will be extended in subsequent slices.
-- ADR remains proposed for review; it describes the target architecture.
+- Windows compilation/runtime, hardware performance, screen-reader behavior and
+  handheld input remain unverified. CI is manual-only and requires approved
+  self-hosted runners; no paid jobs or artifact uploads have been invoked.
+- This is a starter shell. Native free docking is disabled until represented by
+  commands; use Workspace panel menus and layout.resize for the saved slot model.
+  Palette parameters currently use JSON rather than generated friendly widgets.
+- Icons/font refinement, final polish, prefab/asset schemas, glTF import and binary
+  cooking remain outstanding. The software preview is explicitly simulated.
+- Scene/workspace exports preserve existing files; in-place replacement and
+  power-loss durability remain future work. JSON/TOML limits remain documented.
+- ADRs are proposed/implemented locally for Joshua's review, not merged decisions.
 
 ## Next handover
 
-Restore environment proxy connectivity, fetch this repository's main, reconcile
-local commits with remote changes, then validate CMake presets and add the
-desktop shell using reviewed, pinned permissive dependencies. Validate external
-MCP client compatibility and complete prefab/asset schemas. Python 3.11+ is
-required for the independent TOML test parser. Use the
-existing isolated checkout; do not create a worktree unless explicitly requested.
-Do not access the engine repository. Record progress here after each task.
-
-## Vendored desktop dependencies
-
-- Added unmodified ImGui v1.92.5-docking core/backend subset and SDL3 3.2.28 source
-  archive from verified upstream tags. Version/commit/licence records are in
-  third_party/README.md. The optional CMake wrapper verifies the SDL archive hash
-  and extracts offline into the build tree. Headless targets stay independent.
-- CMake/Ninja and rootless Linux development prerequisites are installed. The dev
-  preset and all nine headless tests pass; desktop code follows in the next commit.
+Use only this repository and the existing isolated checkout; no worktree unless
+explicitly requested and no external engine access. Activate cloud tools with
+`source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
+needed. See editor/README.md for desktop/MCP/headless commands. Continue with
+human-friendly palette forms, context menus, transaction-backed free docking and
+Windows verification. Keep docs/STATUS.md current. Joshua merges.

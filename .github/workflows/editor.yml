@@ -20,6 +20,9 @@ jobs:
       - run: cmake --preset dev
       - run: cmake --build --preset dev --parallel 2
       - run: ctest --preset dev
+      - run: cmake --preset desktop
+      - run: cmake --build --preset desktop --parallel 2
+      - run: ctest --preset desktop
   sanitizers-and-tidy:
     runs-on: [self-hosted, Linux, X64]
     defaults:
