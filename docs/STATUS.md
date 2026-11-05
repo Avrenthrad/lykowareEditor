@@ -125,3 +125,12 @@ MCP client compatibility and complete prefab/asset schemas. Python 3.11+ is
 required for the independent TOML test parser. Use the
 existing isolated checkout; do not create a worktree unless explicitly requested.
 Do not access the engine repository. Record progress here after each task.
+
+## Vendored desktop dependencies
+
+- Added unmodified ImGui v1.92.5-docking core/backend subset and SDL3 3.2.28 source
+  archive from verified upstream tags. Version/commit/licence records are in
+  third_party/README.md. The optional CMake wrapper verifies the SDL archive hash
+  and extracts offline into the build tree. Headless targets stay independent.
+- CMake/Ninja and rootless Linux development prerequisites are installed. The dev
+  preset and all nine headless tests pass; desktop code follows in the next commit.
