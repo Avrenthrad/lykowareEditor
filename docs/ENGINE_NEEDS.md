@@ -12,3 +12,6 @@ or depend on another repository to satisfy this list.
 - Renderer surface ownership, resize and lifetime contracts, decided separately.
 
 Until integration is approved, implement and test these contracts with the mock.
+
+- Future integration must define parent/root semantics, cycle/depth validation,
+  and transform preservation when reparenting; current hierarchy is authoring-only.

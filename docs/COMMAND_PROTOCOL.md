@@ -262,3 +262,19 @@ The current entity model contains only IDs/names; no runtime resources are clone
 Scene JSON v1 is unchanged. New forms prefill the selected entity when available;
 context actions target the clicked entity. Duplicate opens a name draft; Delete
 executes directly and can be undone without a blocking confirmation dialog.
+
+## Scene hierarchy
+
+entity.reparent takes id and parent (unsigned IDs); parent 0 moves to scene root.
+It validates existence, cycles and maximum depth 64 before committing, with full
+transaction rollback and undo/redo. scene.tree returns schema_version 1 and a flat
+parent-first nodes array containing id, name, parent and depth. Siblings sort by ID.
+editor.snapshot includes the same tree as scene_tree; legacy scene.query remains
+flat for compatibility. Duplicate keeps the source parent and does not copy its
+children. Delete promotes direct children to root, retaining deeper relationships.
+There are no transforms yet, so reparenting has no spatial semantics.
+
+Scene files read versions 1 and 2. V1 means all entities are roots. Files with
+parent links write v2 with a parent field on every entity (0 for roots); flat files
+continue to write v1. Root-only v2 input therefore normalizes to v1 on export.
+Invalid or excessive-depth hierarchy loads leave scene/history unchanged.

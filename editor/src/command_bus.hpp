@@ -12,6 +12,7 @@
 namespace lyko {
 using EntityId = std::uint64_t;
 struct CreateEntity { std::string name; };
+struct ReparentEntity { EntityId id; EntityId parent; };
 struct DeleteEntity { EntityId id; };
 struct DuplicateEntity { EntityId id; std::string name; };
 struct RenameEntity { EntityId id; std::string name; };
@@ -20,11 +21,24 @@ struct Stop {};
 struct SendInput { std::string value; };
 struct Document {
     std::map<EntityId, std::string> entities;
+    std::map<EntityId, EntityId> parents; // Sparse: absence means scene root.
     EntityId next_id = 1;
     RuntimeState runtime;
     Workspace workspace;
     bool operator==(const Document&) const = default;
 };
+inline std::optional<std::string> hierarchy_error(const Document& document) {
+    for (const auto& [id, parent] : document.parents) {
+        if (!document.entities.contains(id) || !document.entities.contains(parent)) { return "Hierarchy references a missing entity."; }
+        auto current = id;
+        unsigned depth = 0;
+        while (document.parents.contains(current)) {
+            current = document.parents.at(current);
+            if (++depth > 64) { return "Hierarchy has a cycle or exceeds depth 64."; }
+        }
+    }
+    return {};
+}
 struct ReplaceDockLayout { DockLayout layout; };
 struct ResetDockLayout {};
 struct ReplaceWorkspace { Workspace workspace; };
@@ -34,7 +48,7 @@ struct ResizeDock { std::string dock; std::uint64_t percent; };
 struct BindShortcut { std::string command; std::string shortcut; };
 struct SelectEntity { EntityId id; }; // Zero clears selection.
 struct ReplaceScene { Document document; };
-using Mutation = std::variant<CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
+using Mutation = std::variant<CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, ReparentEntity, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
 struct Error { std::string code; std::string field; std::string message; };
 struct Result {
     std::uint64_t revision;

@@ -14,7 +14,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -47,6 +47,8 @@ const std::vector<Entry>& registry() {
         {"entity.rename", "Rename an existing entity.", {{"id", "integer", {{"title","Entity ID"},{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"name", "string"}}, [](const Json& a) -> Mutation { return RenameEntity{a.at("id").as<std::uint64_t>(), a.at("name").as<std::string>()}; }},
         {"entity.delete", "Delete an entity and clear its selection atomically; undo restores both.", {{"id", "integer", {{"title","Entity ID"},{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, [](const Json& a) -> Mutation { return DeleteEntity{a.at("id").as<std::uint64_t>()}; }},
         {"entity.duplicate", "Duplicate an entity under a new stable ID and select the copy atomically.", {{"id", "integer", {{"title","Source entity ID"},{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"name", "string", {{"default","Entity copy"}}}}, [](const Json& a) -> Mutation { return DuplicateEntity{a.at("id").as<std::uint64_t>(), a.at("name").as<std::string>()}; }},
+        {"entity.reparent", "Move an entity under another entity, or parent zero for scene root; reject cycles and depth over 64.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation { return ReparentEntity{a.at("id").as<std::uint64_t>(),a.at("parent").as<std::uint64_t>()}; }},
+        {"scene.tree", "Read a deterministic parent-first scene tree with parent IDs and depths.", {}, {}, Action::tree},
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
@@ -172,13 +174,14 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
+        else if (entry.action == Action::tree) { data = scene_tree_json(bus_.snapshot().first); }
         else if (entry.action == Action::history) { data = history_json(bus_.history_snapshot()); }
         else if (entry.action == Action::snapshot) {
             const auto state = bus_.editor_snapshot();
             data = O{{"schema_version", std::uint64_t{1}}, {"mock", true}, {"scene", document_json(state.document)},
                      {"workspace", workspace_json(state.document.workspace)}, {"selection", selection_json(state.document)},
                      {"tokens", design_tokens(state.document.workspace)}, {"logs", logs_json(state.document.runtime)},
-                     {"history", history_json(state.history)}};
+                     {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
             result.revision = state.revision;
         }
         else if (entry.action == Action::tokens) { data = design_tokens(bus_.snapshot().first.workspace); }

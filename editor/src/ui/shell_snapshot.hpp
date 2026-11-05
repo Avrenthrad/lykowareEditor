@@ -5,6 +5,19 @@
 #include "ui/dock_layout_json.hpp"
 
 namespace lyko {
+inline Json scene_tree_json(const Document& document) {
+    std::map<EntityId, std::vector<EntityId>> children;
+    for (const auto& [id, name] : document.entities) { (void)name; children[document.parents.contains(id) ? document.parents.at(id) : EntityId{0}].push_back(id); }
+    std::vector<std::pair<EntityId, std::uint64_t>> pending;
+    for (auto it = children[0].rbegin(); it != children[0].rend(); ++it) { pending.emplace_back(*it, 0); }
+    Json::Array nodes;
+    while (!pending.empty()) {
+        const auto [id, depth] = pending.back(); pending.pop_back();
+        nodes.emplace_back(Json::Object{{"id",id},{"name",document.entities.at(id)},{"parent",document.parents.contains(id) ? document.parents.at(id) : EntityId{0}},{"depth",depth}});
+        for (auto it = children[id].rbegin(); it != children[id].rend(); ++it) { pending.emplace_back(*it, depth + 1); }
+    }
+    return Json::Object{{"schema_version",std::uint64_t{1}},{"nodes",std::move(nodes)}};
+}
 inline Json workspace_json(const Workspace& workspace) {
     using O = Json::Object;
     O panels, splits, keymap;

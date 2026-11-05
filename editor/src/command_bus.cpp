@@ -45,6 +45,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                     if (candidate.next_id == std::numeric_limits<EntityId>::max()) { return Error{"id_exhausted", "id", "No identifiers remain."}; }
                     const auto id = candidate.next_id++;
                     candidate.entities.emplace(id, command.name);
+                    if (candidate.parents.contains(command.id)) { candidate.parents.emplace(id, candidate.parents.at(command.id)); }
                     candidate.workspace.selection = id;
                 } else {
                     auto entity = candidate.entities.find(command.id);
@@ -53,8 +54,16 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 }
             } else if constexpr (std::is_same_v<T, DeleteEntity>) {
                 if (!candidate.entities.erase(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
+                candidate.parents.erase(command.id);
+                std::erase_if(candidate.parents, [&](const auto& edge) { return edge.second == command.id; });
                 if (candidate.workspace.selection == command.id) { candidate.workspace.selection.reset(); }
+            } else if constexpr (std::is_same_v<T, ReparentEntity>) {
+                if (!candidate.entities.contains(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
+                if (command.parent == 0) { candidate.parents.erase(command.id); }
+                else { candidate.parents.insert_or_assign(command.id, command.parent); }
+                if (auto issue = hierarchy_error(candidate)) { return Error{"invalid_hierarchy", "parent", *issue}; }
             } else if constexpr (std::is_same_v<T, ReplaceScene>) {
+                if (auto issue = hierarchy_error(command.document)) { return Error{"invalid_hierarchy", "parents", *issue}; }
                 if (command.document.next_id == 0) { return Error{"invalid_scene", "next_id", "Next ID must be positive."}; }
                 for (const auto& [id, name] : command.document.entities) {
                     if (id == 0 || id >= command.document.next_id || name.empty() || name.size() > 128) {
@@ -65,6 +74,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                     return Error{"invalid_scene", "runtime", "Loaded scenes must not contain runtime state."};
                 }
                 candidate.entities = command.document.entities;
+                candidate.parents = command.document.parents;
                 candidate.next_id = command.document.next_id;
                 candidate.runtime = command.document.runtime;
                 candidate.workspace.selection.reset();

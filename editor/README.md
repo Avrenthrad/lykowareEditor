@@ -247,3 +247,12 @@ form and selects the new copy on commit. Delete acts on the clicked entity and
 clears selection if necessary. Both are undoable and available as entity.duplicate
 and entity.delete through CLI/MCP, the palette, rebindable keys and batch rows.
 The current entity model contains names only; no runtime resources are duplicated.
+
+Use entity.reparent with id and parent (0 for root) to build a scene hierarchy.
+The Scene panel indents entities in parent-first order and offers Reparent in its
+context menu. scene.tree exposes parent IDs/depths to CLI/MCP; editor.snapshot
+contains scene_tree. Cycles and depth above 64 are rejected. Parent deletion
+promotes direct children to root; duplicate remains beside its source and copies
+no descendants. Undo restores hierarchy and selection atomically. Scenes with
+parent links save as JSON v2; v1 still loads and flat scenes still export as v1.
+No transforms, runtime parenting or engine integration are implemented yet.

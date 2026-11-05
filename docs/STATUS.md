@@ -298,6 +298,22 @@
   Windows remains unverified.
 - ADR 0013 records behavior. No engine integration or dependency was introduced.
 
+## Authoring scene hierarchy
+
+- Added entity.reparent and deterministic scene.tree through the shared registry.
+  Candidate hierarchy validation rejects missing references, cycles and depth >64.
+- Snapshots include scene_tree; Scene uses parent-first indentation with horizontal
+  scrolling and contextual Reparent forms. Legacy flat scene.query is unchanged.
+- Duplicate preserves its source parent without descendants. Delete promotes
+  direct children to root. Undo/redo and batch rollback include all parent links.
+- Scene persistence reads v1/v2 and writes v2 only when parent links exist; flat
+  exports remain v1. Malformed hierarchy loads preserve scene/history.
+- All 21 desktop checks and all 15 ASan/UBSan groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  X11 hierarchy updates through same-instance MCP were captured and inspected.
+- Added hierarchy graph/history/persistence tests and ADR 0014. Spatial transforms,
+  component parenting and runtime integration remain future work.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

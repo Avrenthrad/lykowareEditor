@@ -205,11 +205,11 @@ int main(int argc, char **argv) {
         }
       }
       if (ready && (name == "entity.rename" || name == "entity.duplicate" ||
-                    name == "entity.delete")) {
+                    name == "entity.delete" || name == "entity.reparent")) {
         const auto &entity = frame.at("selection").at("entity");
         if (std::holds_alternative<O>(entity.value)) {
           current.emplace("id", entity.at("id"));
-          if (name != "entity.delete") {
+          if (name == "entity.rename" || name == "entity.duplicate") {
             current.emplace("name", entity.at("name"));
           }
         }
@@ -412,7 +412,7 @@ int main(int argc, char **argv) {
         }
         auto visible = [&](const char *id) { return !hidden.contains(id); };
         if (visible("scene")) {
-          ImGui::Begin("Scene");
+          ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
           lyko::panel_heading(lyko::Icon::entity, "SCENE COLLECTION");
           if (lyko::icon_button(lyko::Icon::add, "Create entity")) {
             request("entity.create", O{{"name", "New entity"}});
@@ -422,8 +422,15 @@ int main(int argc, char **argv) {
               (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * 0.5f);
           lyko::command_tooltip(hints, "entity.create");
           ImGui::Separator();
-          for (const auto &entity : frame.at("scene").at("entities").as<A>()) {
+          for (const auto &entity :
+               frame.at("scene_tree").at("nodes").as<A>()) {
             auto id = entity.at("id").as<std::uint64_t>();
+            const float indent =
+                static_cast<float>(entity.at("depth").as<std::uint64_t>()) *
+                ImGui::GetStyle().IndentSpacing;
+            if (indent > 0) {
+              ImGui::Indent(indent);
+            }
             ImGui::PushID(std::to_string(id).c_str());
             const auto &selection = w.at("selection");
             bool selected =
@@ -451,6 +458,12 @@ int main(int argc, char **argv) {
                           O{{"id", id}, {"name", entity.at("name")}});
               }
               lyko::command_tooltip(hints, "entity.duplicate");
+              if (ImGui::MenuItem("Reparent...",
+                                  key_for("entity.reparent").c_str())) {
+                open_form("entity.reparent",
+                          O{{"id", id}, {"parent", entity.at("parent")}});
+              }
+              lyko::command_tooltip(hints, "entity.reparent");
               if (ImGui::MenuItem("Delete", key_for("entity.delete").c_str())) {
                 request("entity.delete", O{{"id", id}});
               }
@@ -467,6 +480,9 @@ int main(int argc, char **argv) {
               ImGui::EndPopup();
             }
             ImGui::PopID();
+            if (indent > 0) {
+              ImGui::Unindent(indent);
+            }
           }
           ImGui::End();
         }
