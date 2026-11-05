@@ -1,5 +1,6 @@
 #include "command_service.hpp"
 #include "scene_io.hpp"
+#include "prefab.hpp"
 #include "transform_json.hpp"
 #include "world_transform.hpp"
 #include "text_file.hpp"
@@ -16,7 +17,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -55,6 +56,8 @@ const std::vector<Entry>& registry() {
         {"transform.set", "Set local position, intrinsic XYZ Euler degrees and nonzero signed scale atomically; authoring only.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"px","number",{{"title","Position X"},{"default",0.0}}}, {"py","number",{{"title","Position Y"},{"default",0.0}}}, {"pz","number",{{"title","Position Z"},{"default",0.0}}}, {"rx","number",{{"title","Rotation X (degrees)"},{"default",0.0}}}, {"ry","number",{{"title","Rotation Y (degrees)"},{"default",0.0}}}, {"rz","number",{{"title","Rotation Z (degrees)"},{"default",0.0}}}, {"sx","number",{{"title","Scale X"},{"default",1.0}}}, {"sy","number",{{"title","Scale Y"},{"default",1.0}}}, {"sz","number",{{"title","Scale Z"},{"default",1.0}}}}, [](const Json& a)->Mutation { O values=a.as<O>();values.erase("id");return SetTransform{a.at("id").as<std::uint64_t>(),parse_transform(values)}; }},
         {"transform.world", "Compose a right-handed Y-up world matrix from local transforms; row-major storage, column vectors, T*Rx*Ry*Rz*S.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::world_transform},
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
+        {"prefab.export", "Export an authoring subtree to a NEW JSON prefab path; local placement is retained and export is not undoable.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string"}}, {}, Action::prefab_export},
+        {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
@@ -137,7 +140,7 @@ Json CommandService::descriptors() const {
     for (const auto& entry : registry()) {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
-                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save) ? "filesystem_export" :
+                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export) ? "filesystem_export" :
                                 (entry.decode || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
                             {"undoable", static_cast<bool>(entry.decode) || entry.action == Action::transaction},
                             {"mutation", static_cast<bool>(entry.decode) || entry.action == Action::transaction}});
@@ -175,6 +178,7 @@ Json CommandService::call(const Json& request) {
         } else if (entry.action == Action::undo) { result = bus_.undo(instance_, expected); }
         else if (entry.action == Action::redo) { result = bus_.redo(instance_, expected); }
         else if (entry.action == Action::save) { save_scene(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first); data = O{{"saved", true}}; }
+        else if (entry.action == Action::prefab_export) { export_prefab(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first,args.at("id").as<std::uint64_t>());data=O{{"saved",true}}; }
         else if (entry.action == Action::workspace_save) { save_workspace(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first.workspace); data = O{{"saved", true}}; }
         else if (entry.action == Action::discovery) { data = descriptors(); }
         else if (entry.action == Action::logs) { data = logs_json(bus_.snapshot().first.runtime); }

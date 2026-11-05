@@ -204,9 +204,10 @@ int main(int argc, char **argv) {
           current.emplace(key, w.at(key));
         }
       }
-      if (ready && (name == "entity.rename" || name == "entity.duplicate" ||
-                    name == "entity.delete" || name == "entity.reparent" ||
-                    name == "entity.reparent_world")) {
+      if (ready &&
+          (name == "entity.rename" || name == "entity.duplicate" ||
+           name == "entity.delete" || name == "entity.reparent" ||
+           name == "entity.reparent_world" || name == "prefab.export")) {
         const auto &entity = frame.at("selection").at("entity");
         if (std::holds_alternative<O>(entity.value)) {
           current.emplace("id", entity.at("id"));
@@ -476,6 +477,11 @@ int main(int argc, char **argv) {
                           O{{"id", id}, {"name", entity.at("name")}});
               }
               lyko::command_tooltip(hints, "entity.duplicate");
+              if (ImGui::MenuItem("Export prefab...",
+                                  key_for("prefab.export").c_str())) {
+                open_form("prefab.export", O{{"id", id}});
+              }
+              lyko::command_tooltip(hints, "prefab.export");
               if (ImGui::MenuItem("Reparent...",
                                   key_for("entity.reparent").c_str())) {
                 open_form("entity.reparent",

@@ -23,3 +23,7 @@ Until integration is approved, implement and test these contracts with the mock.
 - Authoring world matrices now use right-handed Y-up/-Z-forward editor units,
   column vectors, row-major storage and T*Rx*Ry*Rz*S local order. A future bridge
   must explicitly match/convert these conventions; no engine assumptions were read.
+
+- Future prefab runtime integration will need atomic bulk creation with remapped
+  entity IDs, parent links and local transforms. Current detached prefabs instantiate
+  editor authoring data only; linked definitions/resources require a later contract.

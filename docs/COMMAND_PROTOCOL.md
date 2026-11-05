@@ -325,3 +325,27 @@ may differ. Local shear, pivots/scales below 1e-12, nonfinite arithmetic, or fai
 residual checks return cannot_preserve_world/parent without changing state/history.
 This is a conservative operation, not a guarantee that all finite TRS cases pass.
 Same-parent requests are no-ops. No matrix override or persistence change is added.
+
+## Detached authoring prefabs
+
+prefab.export takes id and path, captures that entity and all descendants, and
+publishes a NEW file without modifying history. Root-local placement is retained,
+not baked to world space; outside ancestors, siblings, runtime and workspace data
+are excluded. Export-local IDs normalize to parent-first 1..N, with root 1.
+
+Prefab JSON v1 has exactly type (lykoware.prefab), schema_version (1), root and
+scene. The scene uses the existing v1/v2/v3 authoring payload; all entities must
+belong to one rooted tree. Normalized export IDs are file-local, not durable override
+handles. Imports share UTF-8/1 MiB file bounds, strict keys and graph validation.
+
+prefab.instantiate takes path and parent (0 for scene root). It freezes validated
+file content for the request, allocates fresh IDs, remaps parent links, copies local
+transforms and selects the new root in one atomic transaction. Query selection
+and scene.tree to inspect the new entities. Existing-parent/depth/allocation checks
+run against the transaction candidate, so earlier batch commands can create the
+parent and any later failure rolls everything back. Undo/redo includes selection,
+relationships, transforms and allocation. Export is an external effect and is not
+allowed inside transactions; instantiation is batchable.
+
+Instances are detached copies: no linked updates, overrides, asset GUIDs, recursive
+prefab references or runtime resources are introduced. Scene persistence is unchanged.

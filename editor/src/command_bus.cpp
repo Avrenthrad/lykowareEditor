@@ -1,4 +1,5 @@
 #include "command_bus.hpp"
+#include "prefab_model.hpp"
 #include "preserve_world.hpp"
 #include <limits>
 #include <stdexcept>
@@ -32,7 +33,18 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
         try {
         error = std::visit([&](const auto& command) -> std::optional<Error> {
             using T = std::decay_t<decltype(command)>;
-            if constexpr (std::is_same_v<T, CreateEntity> || std::is_same_v<T, RenameEntity> || std::is_same_v<T, DuplicateEntity>) {
+            if constexpr (std::is_same_v<T, InstantiatePrefab>) {
+                if(auto issue=prefab_error(command.source,command.root)){return Error{"invalid_prefab","path",*issue};}
+                if(command.parent&&!candidate.entities.contains(command.parent)){return Error{"not_found","parent","Parent entity does not exist."};}
+                if(command.source.entities.size()>std::numeric_limits<EntityId>::max()-candidate.next_id){return Error{"id_exhausted","id","No identifiers remain."};}
+                std::map<EntityId,EntityId> ids;
+                for(const auto& [id,name]:command.source.entities){const auto next=candidate.next_id++;ids.emplace(id,next);candidate.entities.emplace(next,name);}
+                for(const auto& [id,parent]:command.source.parents){candidate.parents.emplace(ids.at(id),ids.at(parent));}
+                for(const auto& [id,transform]:command.source.transforms){candidate.transforms.emplace(ids.at(id),transform);}
+                if(command.parent){candidate.parents.emplace(ids.at(command.root),command.parent);}
+                if(auto issue=hierarchy_error(candidate)){return Error{"invalid_hierarchy","parent",*issue};}
+                candidate.workspace.selection=ids.at(command.root);
+            } else if constexpr (std::is_same_v<T, CreateEntity> || std::is_same_v<T, RenameEntity> || std::is_same_v<T, DuplicateEntity>) {
                 if (command.name.empty() || command.name.size() > 128) {
                     return Error{"invalid_name", "name", "Name must contain 1 to 128 bytes."};
                 }

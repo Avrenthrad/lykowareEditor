@@ -365,6 +365,25 @@
   tolerance is component-wise 1e-9*max(1,abs(original)); this is conservative,
   finite-precision behavior, not universal/exact TRS decomposition.
 
+## Detached prefab authoring
+
+- Added strict prefab JSON v1 wrapping a validated authoring scene subtree. Export
+  normalizes local IDs in parent-first order, retains root-local placement, and
+  excludes outside entities, runtime and workspace state.
+- Added prefab.export as a no-overwrite external effect and prefab.instantiate as
+  a typed atomic mutation with fresh IDs, remapped parents/transforms and root
+  selection. Undo/redo and failed batches include IDs, selection and copied data.
+- Added contextual export and shared palette/CLI/MCP/batch discovery. Instantiation
+  validates parent existence, allocation and combined hierarchy depth in the bus.
+- Tests cover export isolation, transforms, ID remapping, selection/history, file
+  preservation, malformed forests, exhaustion/depth rollback and CLI/MCP parity.
+- All 25 desktop checks and all 19 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The standalone bus-only compile/test command also passes. Redo survives source
+  file deletion, and staged-parent instantiation works within one transaction.
+- ADR 0018 records scope. Linked definitions/updates, overrides, GUIDs, recursive
+  references and runtime resource instantiation remain future work.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

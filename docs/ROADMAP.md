@@ -56,6 +56,9 @@ preserves affine shear and exposes explicit conventions through transform.world.
 Conservative world-preserving reparent is now a separate undoable command; shear
 and unsafe numerical cases fail without mutation.
 
+Detached prefab subtree export/instantiation now provides reusable authoring
+copies through the shared bus. Linked prefab updates/overrides remain future work.
+
 Next: broader object schemas, further usability polish, Windows and target
-hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
+hardware validation. Linked prefabs, asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

@@ -42,6 +42,7 @@ inline std::optional<std::string> hierarchy_error(const Document& document) {
     }
     return {};
 }
+struct InstantiatePrefab { Document source; EntityId root; EntityId parent; };
 struct ReplaceDockLayout { DockLayout layout; };
 struct ResetDockLayout {};
 struct ReplaceWorkspace { Workspace workspace; };
@@ -51,7 +52,7 @@ struct ResizeDock { std::string dock; std::uint64_t percent; };
 struct BindShortcut { std::string command; std::string shortcut; };
 struct SelectEntity { EntityId id; }; // Zero clears selection.
 struct ReplaceScene { Document document; };
-using Mutation = std::variant<CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, ReparentEntity, SetTransform, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
+using Mutation = std::variant<InstantiatePrefab, CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, ReparentEntity, SetTransform, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
 struct Error { std::string code; std::string field; std::string message; };
 struct Result {
     std::uint64_t revision;
