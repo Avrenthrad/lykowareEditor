@@ -262,5 +262,13 @@ position, Euler-degree rotation and scale fields. Execute submits one atomic
 transform.set; transform.query reads the same values through CLI/MCP. Signed
 fractional numbers are supported, nonfinite values and zero scale are rejected.
 Duplicate/Delete and undo/redo include local transforms. Reparent keeps local
-values; world composition and mock-preview transformation are not implemented.
+values; transform.world computes world matrices, while mock-preview transformation
+remains unimplemented.
 Scenes with nonidentity transforms save as JSON v3; v1/v2 scenes still load.
+
+Inspect world matrix in Inspector opens transform.world for the selected entity.
+Execute shows its matrix/convention metadata in the existing Result data panel.
+CLI/MCP expose the same query. Matrices use right-handed Y-up/-Z-forward editor
+coordinates, row-major storage and column vectors; local order is T*Rx*Ry*Rz*S.
+Shear/reflection are retained. This is a computed query, not a world-space editor,
+reparent-with-world-preservation operation or real-renderer integration.

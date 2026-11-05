@@ -332,6 +332,22 @@
 - Added transform persistence/history/rollback/CLI-MCP parity and numeric draft
   tests. ADR 0015 records authoring semantics and remaining integration decisions.
 
+## Read-only world composition
+
+- Added transform.world and an Inspector query launcher, using the same registry,
+  typed ID form and bounded result feedback as CLI/MCP.
+- Added finite affine matrix composition: right-handed Y-up/-Z-forward editor
+  coordinates, column vectors, row-major storage, T*Rx*Ry*Rz*S local order and
+  parent_world*local hierarchy composition. Shear and reflections are retained.
+- Reduce large angles before radians conversion; reject nonfinite intermediates
+  with structured transform_range errors. Queries preserve scene/history/revision.
+- Analytic tests cover nested rotation/scale/translation, noncommuting Euler order,
+  shear, reparent/undo, large angles, overflow rollback and CLI/MCP parity.
+- All 23 desktop checks and all 17 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+- ADR 0016 records conventions. Persistence is unchanged; world-space editing,
+  decomposition, world-preserving reparent and real rendering remain future work.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

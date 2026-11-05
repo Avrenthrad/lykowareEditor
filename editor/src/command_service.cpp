@@ -1,6 +1,7 @@
 #include "command_service.hpp"
 #include "scene_io.hpp"
 #include "transform_json.hpp"
+#include "world_transform.hpp"
 #include "text_file.hpp"
 #include "software_preview.hpp"
 #include "ui/design_tokens.hpp"
@@ -15,7 +16,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -51,6 +52,7 @@ const std::vector<Entry>& registry() {
         {"entity.reparent", "Move an entity under another entity, or parent zero for scene root; reject cycles and depth over 64.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation { return ReparentEntity{a.at("id").as<std::uint64_t>(),a.at("parent").as<std::uint64_t>()}; }},
         {"scene.tree", "Read a deterministic parent-first scene tree with parent IDs and depths.", {}, {}, Action::tree},
         {"transform.set", "Set local position, intrinsic XYZ Euler degrees and nonzero signed scale atomically; authoring only.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"px","number",{{"title","Position X"},{"default",0.0}}}, {"py","number",{{"title","Position Y"},{"default",0.0}}}, {"pz","number",{{"title","Position Z"},{"default",0.0}}}, {"rx","number",{{"title","Rotation X (degrees)"},{"default",0.0}}}, {"ry","number",{{"title","Rotation Y (degrees)"},{"default",0.0}}}, {"rz","number",{{"title","Rotation Z (degrees)"},{"default",0.0}}}, {"sx","number",{{"title","Scale X"},{"default",1.0}}}, {"sy","number",{{"title","Scale Y"},{"default",1.0}}}, {"sz","number",{{"title","Scale Z"},{"default",1.0}}}}, [](const Json& a)->Mutation { O values=a.as<O>();values.erase("id");return SetTransform{a.at("id").as<std::uint64_t>(),parse_transform(values)}; }},
+        {"transform.world", "Compose a right-handed Y-up world matrix from local transforms; row-major storage, column vectors, T*Rx*Ry*Rz*S.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::world_transform},
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
@@ -178,6 +180,12 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
+        else if (entry.action == Action::world_transform) {
+            const auto document=bus_.snapshot().first;const auto id=args.at("id").as<std::uint64_t>();
+            if(!document.entities.contains(id)){return error_json(revision,"not_found","id","Entity does not exist.");}
+            try {data=world_transform_json(document,id);}
+            catch(const std::overflow_error& error){return error_json(revision,"transform_range","transform",error.what());}
+        }
         else if (entry.action == Action::transform) {
             const auto document=bus_.snapshot().first;const auto id=args.at("id").as<std::uint64_t>();
             if(!document.entities.contains(id)){return error_json(revision,"not_found","id","Entity does not exist.");}

@@ -214,7 +214,8 @@ int main(int argc, char **argv) {
           }
         }
       }
-      if (ready && (name == "transform.set" || name == "transform.query")) {
+      if (ready && (name == "transform.set" || name == "transform.query" ||
+                    name == "transform.world")) {
         const auto &entity = frame.at("selection").at("entity");
         if (std::holds_alternative<O>(entity.value)) {
           const auto id = entity.at("id");
@@ -548,6 +549,10 @@ int main(int argc, char **argv) {
               open_form("transform.set", O{{"id", id}});
             }
             lyko::command_tooltip(hints, "transform.set");
+            if (ImGui::Button("Inspect world matrix...")) {
+              open_form("transform.world", O{{"id", id}});
+            }
+            lyko::command_tooltip(hints, "transform.world");
             const auto undo_key = key_for("history.undo");
             ImGui::TextDisabled("Enter to apply / Undo: %s",
                                 undo_key.empty() ? "Unbound"

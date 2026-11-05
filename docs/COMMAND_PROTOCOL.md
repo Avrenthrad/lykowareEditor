@@ -295,3 +295,18 @@ These values are authoring-only; the mock renderer/runtime does not interpret th
 Scene JSON v3 includes parent and transform on each entity. V1/v2 input supplies
 identity transforms. Export uses v3 only when nonidentity transforms exist,
 otherwise the previous v1/v2 rules apply. Invalid loads preserve scene/history.
+
+## World transform query
+
+transform.world takes id and returns a read-only world matrix plus convention
+metadata. Matrices contain 16 row-major doubles and multiply column vectors.
+Local composition is T*Rx*Ry*Rz*S (intrinsic XYZ Euler degrees); hierarchy
+composition is parent_world*local. Coordinates are right-handed, Y up, -Z forward,
+in editor units. Translation occupies indices 3, 7, 11. Sibling ordering is irrelevant.
+The full affine matrix retains shear and reflection; no world TRS decomposition
+or world-space mutation is implied. Reparent still preserves local values only.
+
+Angles are reduced modulo 360 before conversion to radians. Nonfinite composition
+intermediates return transform_range/transform; normal double rounding/underflow
+still applies, so invertibility is not guaranteed. Queries do not alter revisions,
+history or JSON v3 persistence. The mock preview does not consume these matrices.

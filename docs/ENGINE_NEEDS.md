@@ -19,3 +19,7 @@ Until integration is approved, implement and test these contracts with the mock.
 - Local transform interchange needs agreed units/basis, Euler conversion, world
   composition and reparent world-preservation semantics. Current values are
   authoring-only and must not be assumed to drive the mock runtime/preview.
+
+- Authoring world matrices now use right-handed Y-up/-Z-forward editor units,
+  column vectors, row-major storage and T*Rx*Ry*Rz*S local order. A future bridge
+  must explicitly match/convert these conventions; no engine assumptions were read.
