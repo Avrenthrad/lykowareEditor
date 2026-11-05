@@ -436,6 +436,41 @@ void DesktopSmokeHarness::step(unsigned frames, const SmokeContext &context) {
       }
     }
   }
+  if (assets_) {
+    if (frames == 20 || frames == 21) {
+      platform.test_pointer(context.assets_center, frames == 20);
+    }
+    if (frames == 40 &&
+        (!context.assets->open || context.assets->test_rows() != 1)) {
+      throw std::runtime_error("Asset smoke: catalogue row did not render");
+    }
+    if (frames == 45 || frames == 46) {
+      platform.test_pointer(context.assets->test_forget_center(), frames == 45);
+    }
+    if (frames == 60) {
+      const auto draft =
+          command_form ? command_form->draft_arguments() : std::optional<J>{};
+      if (!draft || draft->at("id").as<std::uint64_t>() != 1) {
+        throw std::runtime_error("Asset smoke: forget form was not prefilled");
+      }
+    }
+    if (frames == 65 || frames == 66) {
+      platform.test_pointer(command_form->test_execute_center(), frames == 65);
+    }
+    if (frames == 85 && !frame.at("assets").at("assets").as<A>().empty()) {
+      throw std::runtime_error("Asset smoke: forget did not commit");
+    }
+    if (frames == 90) {
+      platform.test_key('k', true);
+    }
+    if (frames == 95) {
+      platform.test_key('z', true);
+    }
+    if (frames == 120 && frame.at("assets").at("assets").as<A>().size() != 1) {
+      throw std::runtime_error(
+          "Asset smoke: undo did not restore catalogue entry");
+    }
+  }
   if (smoke_docking && ready) {
     const auto merged = [&]() {
       for (const auto &[id, node] :

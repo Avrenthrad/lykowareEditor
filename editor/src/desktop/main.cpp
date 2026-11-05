@@ -1,3 +1,4 @@
+#include "asset_browser.hpp"
 #include "command_form.hpp"
 #include "docking.hpp"
 #include "form_feedback.hpp"
@@ -109,11 +110,14 @@ void theme(const J &tokens) {
 } // namespace
 int main(int argc, char **argv) {
   bool smoke = false, mcp = false, smoke_input = false, smoke_docking = false,
-       smoke_layout_form = false, smoke_feedback = false;
+       smoke_layout_form = false, smoke_feedback = false, smoke_assets = false;
   std::string capture, instance = "desktop";
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
-    if (arg == "--smoke-feedback") {
+    if (arg == "--smoke-assets") {
+      smoke = true;
+      smoke_assets = true;
+    } else if (arg == "--smoke-feedback") {
       smoke = true;
       smoke_feedback = true;
     } else if (arg == "--smoke-layout-form") {
@@ -153,9 +157,11 @@ int main(int argc, char **argv) {
     lyko::DesktopPlatform platform;
     lyko::DockingAdapter docking;
     lyko::ShortcutBrowser shortcuts;
+    lyko::AssetBrowser assets;
     bool focus_palette = false;
     lyko::DesktopSmokeHarness harness(smoke_input, smoke_docking,
-                                      smoke_layout_form, smoke_feedback);
+                                      smoke_layout_form, smoke_feedback,
+                                      smoke_assets);
     std::jthread protocol;
     if (mcp) {
       protocol = std::jthread(
@@ -264,9 +270,13 @@ int main(int argc, char **argv) {
                                  {"arguments", O{{"value", "right"}}}}}}},
               false);
     }
+    if (smoke_assets) {
+      request("asset.register",
+              O{{"path", "prefabs/Tree.json"}, {"kind", "prefab"}}, false);
+    }
     unsigned frames = 0;
     ImVec2 create_center{}, name_center{}, search_center{}, settings_center{},
-        shortcuts_center{};
+        shortcuts_center{}, assets_center{};
     while (platform.begin_frame()) {
       while (auto done = queue.try_pop()) {
         docking.completed(done->ticket);
@@ -408,6 +418,12 @@ int main(int argc, char **argv) {
                   false);
         }
         if (ready) {
+          if (ImGui::MenuItem("Assets")) {
+            assets.open = true;
+          }
+          assets_center = ImVec2(
+              (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5f,
+              (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5f);
           if (ImGui::MenuItem("Shortcuts")) {
             shortcuts.open = true;
           }
@@ -636,6 +652,9 @@ int main(int argc, char **argv) {
         }
       }
       if (ready) {
+        if (auto action = assets.draw(frame.at("assets"))) {
+          open_form(action->command, action->arguments);
+        }
         if (auto command = shortcuts.draw(hints)) {
           open_form("keymap.bind",
                     O{{"command", *command}, {"shortcut", key_for(*command)}});
@@ -778,8 +797,8 @@ int main(int argc, char **argv) {
                               name_center, search_center, settings_center,
                               command_form ? &*command_form : nullptr,
                               transaction_form ? &*transaction_form : nullptr,
-                              &shortcuts, shortcuts_center, &feedback,
-                              palette_open, status});
+                              &shortcuts, shortcuts_center, &feedback, &assets,
+                              assets_center, palette_open, status});
       }
       ++frames;
       if (mcp && frames % 30 == 0) {

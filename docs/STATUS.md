@@ -384,6 +384,26 @@
 - ADR 0018 records scope. Linked definitions/updates, overrides, GUIDs, recursive
   references and runtime resource instantiation remain future work.
 
+## Asset catalogue foundation
+
+- Added project-scoped catalogue IDs, declared kinds and validated portable-style
+  relative paths. Register/relocate/forget are typed, atomic, undoable mutations;
+  query/list share discovery, CLI/MCP, keymaps and generated command forms.
+- Added independent JSON v1 catalogue save/load with strict validation and
+  no-overwrite exports. Scene/workspace/prefab persistence remains isolated;
+  catalogue load replaces metadata only and participates in history/batches.
+- Added a modeless Assets browser with path/kind filtering, clipped table rows and
+  prefilled action forms. It displays coherent snapshot metadata, without scanning
+  or touching source files. Native input tests forget/undo an entry through the UI.
+- New black-box tests cover persistent IDs, relocation/removal, path rules,
+  duplicates, rollback, manifest validation, persistence isolation and MCP parity.
+- All 27 desktop checks and all 20 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The standalone bus build passes; native forget/undo also passes in X11 and
+  the browser capture was inspected. Windows/handheld behavior remains unverified.
+- ADR 0019 records scope/bounds. No project root resolution, real import, GUIDs,
+  dependencies, hashes, file watching or runtime resource loading is implemented.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

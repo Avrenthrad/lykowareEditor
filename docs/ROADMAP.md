@@ -59,6 +59,9 @@ and unsafe numerical cases fail without mutation.
 Detached prefab subtree export/instantiation now provides reusable authoring
 copies through the shared bus. Linked prefab updates/overrides remain future work.
 
+Asset catalogue metadata now has stable project-scoped IDs, portable-style paths,
+independent persistence and a command-driven browser. Real file import is deferred.
+
 Next: broader object schemas, further usability polish, Windows and target
-hardware validation. Linked prefabs, asset schemas, procedural graphs, glTF import and binary
+hardware validation. Linked prefabs, import/dependency schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

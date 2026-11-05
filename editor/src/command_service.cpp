@@ -17,7 +17,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -58,6 +58,13 @@ const std::vector<Entry>& registry() {
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"prefab.export", "Export an authoring subtree to a NEW JSON prefab path; local placement is retained and export is not undoable.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string"}}, {}, Action::prefab_export},
         {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
+        {"asset.register", "Register metadata for a portable project-relative path without reading or importing the file.", {{"path","string",{{"description","Portable project-relative metadata path; does not read or move a file."},{"maxLength",std::uint64_t{512}},{"x-maxBytes",std::uint64_t{512}}}},{"kind","string",{{"enum",A{"scene","prefab","mesh","texture","script","graph"}},{"default","prefab"}}}}, [](const Json& a)->Mutation{return AssetMutation{RegisterAsset{a.at("path").as<std::string>(),a.at("kind").as<std::string>()}};}},
+        {"asset.relocate", "Change a catalog path while preserving its stable ID; does not move a file.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string",{{"description","Portable project-relative metadata path; does not read or move a file."},{"maxLength",std::uint64_t{512}},{"x-maxBytes",std::uint64_t{512}}}}}, [](const Json& a)->Mutation{return AssetMutation{RelocateAsset{a.at("id").as<std::uint64_t>(),a.at("path").as<std::string>()}};}},
+        {"asset.forget", "Remove catalog metadata undoably; never delete the source file.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, [](const Json& a)->Mutation{return AssetMutation{ForgetAsset{a.at("id").as<std::uint64_t>()}};}},
+        {"asset.list", "Search catalog paths/kinds with ASCII case folding; empty query lists all entries.", {{"query","string"}}, {}, Action::asset_list},
+        {"asset.query", "Read catalog metadata by stable asset ID.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::asset_query},
+        {"asset.catalog.save", "Export catalog JSON to a NEW path; file export is not undoable.", {{"path","string"}}, {}, Action::catalog_save},
+        {"asset.catalog.load", "Validate and replace the catalog undoably, preserving scene and workspace.", {{"path","string"}}, [](const Json& a)->Mutation{return AssetMutation{ReplaceCatalog{load_catalog(path_from_utf8(a.at("path").as<std::string>()))}};}},
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
@@ -140,7 +147,7 @@ Json CommandService::descriptors() const {
     for (const auto& entry : registry()) {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
-                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export) ? "filesystem_export" :
+                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save) ? "filesystem_export" :
                                 (entry.decode || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
                             {"undoable", static_cast<bool>(entry.decode) || entry.action == Action::transaction},
                             {"mutation", static_cast<bool>(entry.decode) || entry.action == Action::transaction}});
@@ -185,6 +192,18 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
+        else if(entry.action==Action::catalog_save){save_catalog(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.assets);data=O{{"saved",true}};}
+        else if(entry.action==Action::asset_query){
+            const auto catalog=bus_.snapshot().first.assets;const auto id=args.at("id").as<std::uint64_t>();
+            if(!catalog.entries.contains(id)){return error_json(revision,"not_found","id","Asset does not exist.");}
+            const auto& asset=catalog.entries.at(id);data=O{{"id",id},{"path",asset.path},{"kind",asset.kind}};
+        }else if(entry.action==Action::asset_list){
+            A entries;const auto query=asset_fold(args.at("query").as<std::string>());
+            const auto json=catalog_json(bus_.snapshot().first.assets);
+            for(const auto& item:json.at("assets").as<A>()){
+                if(asset_fold(item.at("path").as<std::string>()+" "+item.at("kind").as<std::string>()).find(query)!=std::string::npos){entries.push_back(item);}
+            }data=O{{"assets",std::move(entries)}};
+        }
         else if (entry.action == Action::world_transform) {
             const auto document=bus_.snapshot().first;const auto id=args.at("id").as<std::uint64_t>();
             if(!document.entities.contains(id)){return error_json(revision,"not_found","id","Entity does not exist.");}
@@ -203,7 +222,7 @@ Json CommandService::call(const Json& request) {
             data = O{{"schema_version", std::uint64_t{1}}, {"mock", true}, {"scene", document_json(state.document)},
                      {"workspace", workspace_json(state.document.workspace)}, {"selection", selection_json(state.document)},
                      {"tokens", design_tokens(state.document.workspace)}, {"logs", logs_json(state.document.runtime)},
-                     {"transforms", transforms_json(state.document)}, {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
+                     {"transforms", transforms_json(state.document)}, {"assets", catalog_json(state.document.assets)}, {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
             result.revision = state.revision;
         }
         else if (entry.action == Action::tokens) { data = design_tokens(bus_.snapshot().first.workspace); }

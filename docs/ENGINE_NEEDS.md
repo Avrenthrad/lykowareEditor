@@ -27,3 +27,7 @@ Until integration is approved, implement and test these contracts with the mock.
 - Future prefab runtime integration will need atomic bulk creation with remapped
   entity IDs, parent links and local transforms. Current detached prefabs instantiate
   editor authoring data only; linked definitions/resources require a later contract.
+
+- Future asset integration must define project-root resolution, globally portable
+  identity/import/dependency contracts and runtime resource handles. Current IDs
+  are catalogue-scoped metadata and do not load or resolve engine resources.

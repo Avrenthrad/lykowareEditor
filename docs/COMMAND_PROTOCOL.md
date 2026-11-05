@@ -349,3 +349,27 @@ allowed inside transactions; instantiation is batchable.
 
 Instances are detached copies: no linked updates, overrides, asset GUIDs, recursive
 prefab references or runtime resources are introduced. Scene persistence is unchanged.
+
+## Asset catalogue metadata
+
+asset.register takes path and kind (scene/prefab/mesh/texture/script/graph).
+asset.relocate takes id/path and preserves identity; asset.forget takes id and
+removes metadata only. asset.query takes id; asset.list takes query (empty for all)
+and searches path/kind with ASCII case folding. IDs are exact uint64, persistent
+within a catalogue, not global GUIDs. Forgotten IDs are not reused. Mutations
+support revision guards, batching and undo/redo.
+
+Paths use forward-slash relative syntax, 1–512 UTF-8 bytes. Absolute/drive paths,
+backslashes, empty/dot segments, controls, reserved ASCII device basenames,
+trailing dots/spaces and Windows wildcard/stream characters are rejected. Paths
+are unique ignoring ASCII case. Unicode normalization/case equivalence and actual
+filesystem resolution are not performed. These are lexical metadata rules, not
+filesystem containment guarantees. Files need not exist; kind is a declaration,
+not verified file content. No scanning, import, copy, move or source deletion occurs.
+
+asset.catalog.save publishes a NEW JSON v1 file (schema_version, next_id, assets),
+with one {id,path,kind} entry per line. asset.catalog.load validates then replaces
+only catalogue state undoably. Maximum 4096 entries; file I/O remains capped at
+1 MiB, so large in-memory catalogues may need shorter paths to export. Saving is
+an external effect excluded from transactions. Scene/workspace/prefab formats do
+not embed catalogue state. editor.snapshot includes assets with the same payload.

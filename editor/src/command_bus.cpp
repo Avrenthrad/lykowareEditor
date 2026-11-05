@@ -33,7 +33,23 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
         try {
         error = std::visit([&](const auto& command) -> std::optional<Error> {
             using T = std::decay_t<decltype(command)>;
-            if constexpr (std::is_same_v<T, InstantiatePrefab>) {
+            if constexpr (std::is_same_v<T, AssetMutation>) {
+                auto assets=candidate.assets;
+                auto issue=std::visit([&](const auto& edit)->std::optional<Error>{
+                    using A=std::decay_t<decltype(edit)>;
+                    if constexpr(std::is_same_v<A,RegisterAsset>){
+                        if(assets.next_id==std::numeric_limits<std::uint64_t>::max()){return Error{"id_exhausted","id","No asset IDs remain."};}
+                        assets.entries.emplace(assets.next_id++,Asset{edit.path,edit.kind});
+                    }else if constexpr(std::is_same_v<A,RelocateAsset>){
+                        if(!assets.entries.contains(edit.id)){return Error{"not_found","id","Asset does not exist."};}assets.entries.at(edit.id).path=edit.path;
+                    }else if constexpr(std::is_same_v<A,ForgetAsset>){
+                        if(!assets.entries.erase(edit.id)){return Error{"not_found","id","Asset does not exist."};}
+                    }else{assets=edit.catalog;}
+                    if(auto error=catalog_error(assets)){return Error{"invalid_catalog","catalog",*error};}
+                    return {};
+                },command);
+                if(issue){return issue;}candidate.assets=std::move(assets);
+            } else if constexpr (std::is_same_v<T, InstantiatePrefab>) {
                 if(auto issue=prefab_error(command.source,command.root)){return Error{"invalid_prefab","path",*issue};}
                 if(command.parent&&!candidate.entities.contains(command.parent)){return Error{"not_found","parent","Parent entity does not exist."};}
                 if(command.source.entities.size()>std::numeric_limits<EntityId>::max()-candidate.next_id){return Error{"id_exhausted","id","No identifiers remain."};}
