@@ -27,6 +27,9 @@ Names and mock input values accept 1–128 UTF-8 bytes. Unknown fields fail.
 | `workspace.save` | `path`: string | Export workspace TOML to a new file |
 | `workspace.load` | `path`: string | Load settings/layout/keymap undoably; preserve scene and selection |
 | `panel.dock` | `panel`: string, `dock`: string | Assign a registered panel to a dock slot or hidden |
+| `layout.query` | none | Return authoritative split/tab layout |
+| `layout.replace` | `layout`: object | Validate and replace the full split/tab tree undoably |
+| `layout.reset` | none | Restore starter layout from panel/split presets |
 | `layout.resize` | `dock`: string, `percent`: uint64 | Resize left/right/bottom split (10–50); retain 30% center width |
 | `keymap.bind` | `command`: string, `shortcut`: string | Bind a canonical shortcut; empty string unbinds |
 | `selection.set` | `id`: uint64 | Select an entity; zero clears selection |
@@ -83,7 +86,7 @@ publishes it with a hard link that fails if the destination exists. It does not
 overwrite existing files. Hard-link support is required; failure does not fall
 back to a partial copy. Save is an explicit external export: undo cannot retract
 a published file. This provides atomic publication, not power-loss durability.
-Workspace configuration is TOML schema v1 (ADR 0003). Prefab/asset schemas and
+Workspace configuration writes TOML schema v2 and reads v1/v2 (ADRs 0003/0007). Prefab/asset schemas and
 glTF import remain future work.
 
 ## MCP over stdio
@@ -111,20 +114,23 @@ interoperability testing is still required.
 
 Panel IDs are `scene`, `inspector`, `viewport`, `console`, `history`. Dock slots
 are `left`, `right`, `center`, `bottom`, `hidden`; only left/right/bottom have
-resizable percentages. This starter model does not yet represent arbitrary nested
-docking. UI state and scene edits share atomic transactions and undo history.
+resizable percentages. These are starter presets: panel.dock and layout.resize
+reset any custom tree. The authoritative current tree is layout.query or
+workspace.query.layout. UI state and scene edits share atomic transactions and
+undo history.
 
 Shortcut syntax is case-sensitive and canonical: modifiers Ctrl, Alt, Shift, Super
 in that order, then A–Z, 0–9, F1–F24, Enter, Escape, Space, Tab, Backspace, Delete,
 Home, End, PageUp, PageDown, Up, Down, Left or Right. Each shortcut has one command;
 conflicts fail without changes. The default palette binding is Ctrl+K. Rebinding
-updates palette results immediately; actual OS keyboard dispatch awaits the GUI.
+updates palette results and desktop keyboard dispatch immediately.
 Palette queries support empty strings and at most 128 UTF-8 bytes. Matching uses
 ASCII case folding, with prefix/name/description ranking and stable name ordering.
 
 Workspace TOML includes schema_version, scale_percent, theme, reduced_motion and
-panels/splits/keymap tables. Only the generated v1 subset plus comments/whitespace
-is supported; unknown tables, keys, bindings, conflicting shortcuts and unsupported
+panels/splits/keymap tables. Version 2 adds layout and layout.nodes.ID tables;
+version 1 loads into a generated starter tree. Only the generated subset plus
+comments/whitespace is supported; unknown tables, keys, bindings, conflicting shortcuts and unsupported
 versions fail before changing state. A workspace load preserves selection and the
 scene; a scene load clears selection and preserves layout/preferences. Config
 exports exclude selection and runtime data. File paths use explicit UTF-8 encoding;
@@ -159,3 +165,21 @@ commit revision, commands, mutation_count and applied status. Undo/redo changes
 the cursor and current revision; it does not rewrite original commit revisions.
 A failed edit preserves the redo branch; a changed edit after undo discards it.
 No-op edits and queries create no entries. History stays in memory only.
+
+## Split/tab layout contract
+
+`layout.replace` takes `layout: {root, nodes, hidden}`. Each node is either
+`{kind: "tabs", panels: [panel IDs], active: panel ID}` (active is empty for an empty leaf), or
+`{kind: "split", axis: "horizontal"|"vertical", ratio: uint64, first: node ID, second: node ID}`.
+Ratios are basis points, 500–9500. Input is bounded to 63 nodes and depth 8;
+unknown fields, cycles, shared/unreachable nodes and invalid active tabs fail.
+Every registered panel occurs exactly once across tabs and hidden. Node IDs use
+1–64 ASCII letters/digits/underscore/hyphen. Discovery exposes the nested schema.
+
+Validation precedes mutation. Normalization removes empty regions, collapses
+single-child splits, sorts hidden IDs and assigns structural IDs root, root-0,
+etc. These IDs are paths, not durable handles. An all-hidden layout has one empty
+root. Equivalent replacements create no history record. Save/load includes tab
+order, active tabs and hidden panels; arbitrary floating windows are unsupported.
+Desktop gestures preview locally and submit one revision-guarded replacement;
+rejection restores confirmed state. Other clients use the same commands.

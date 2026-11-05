@@ -16,7 +16,7 @@ public:
     for (const auto &[name, spec] :
          form_.schema().at("properties").as<Json::Object>()) {
       const auto type = spec.at("type").as<std::string>();
-      if (type == "string" || type == "array") {
+      if (type == "string" || type == "array" || type == "object") {
         auto text = type == "string" ? form_.value(name).as<std::string>()
                                      : form_.value(name).dump();
         if (text.size() >= buffers_[name].size()) {
@@ -75,23 +75,28 @@ public:
         if (ImGui::InputText(title.c_str(), buffer.data(), buffer.size())) {
           form_.set(name, std::string(buffer.data()));
         }
-      } else if (type == "array") {
+      } else if (type == "array" || type == "object") {
         ImGui::TextUnformatted(title.c_str());
-        ImGui::TextDisabled("Advanced: JSON array of commands");
+        ImGui::TextDisabled(type == "array" ? "Advanced: JSON array"
+                                            : "Advanced: layout JSON object");
         auto &buffer = buffers_.at(name);
         if (ImGui::InputTextMultiline("##array", buffer.data(), buffer.size(),
                                       ImVec2(-1, 120))) {
           try {
             auto value = Json::parse(buffer.data());
-            (void)value.as<A>();
+            if (type == "array") {
+              (void)value.as<A>();
+            } else {
+              (void)value.as<O>();
+            }
             form_.set(name, std::move(value));
             parse_errors_.erase(name);
           } catch (const std::invalid_argument &) {
-            parse_errors_[name] = "Enter a valid JSON array.";
+            parse_errors_[name] = "Enter valid JSON matching the field type.";
           }
         }
       }
-      if (type == "string" || type == "array") {
+      if (type == "string" || type == "array" || type == "object") {
         const auto &buffer = buffers_.at(name);
         if (std::char_traits<char>::length(buffer.data()) >=
             buffer.size() - 1) {

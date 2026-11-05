@@ -24,7 +24,11 @@ Desktop smoke tests include actual SDL input and a separately inspected X11 fram
 Schema-driven primitive palette forms, contextual defaults and parameterized
 shortcuts are now implemented and covered by model and SDL interaction tests.
 
+Transaction-backed split/tab docking, active tabs, undo/redo and TOML v2 layout
+persistence are implemented; v1 settings migrate on load. Floating windows remain
+a future extension.
+
 Next: a nested transaction builder and more shortcut discoverability,
-transaction-backed flexible docking, icons/fonts/visual polish, Windows and target
+icons/fonts/visual polish, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

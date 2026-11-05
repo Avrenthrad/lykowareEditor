@@ -1,6 +1,7 @@
 #include "command_form.hpp"
-#include "imgui_internal.h"
+#include "docking.hpp"
 #include "platform.hpp"
+#include "smoke_harness.hpp"
 #include "transport/mcp_stream.hpp"
 #include "ui/command_queue.hpp"
 #include <array>
@@ -9,6 +10,7 @@
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include <set>
 namespace {
 using J = lyko::Json;
 using O = J::Object;
@@ -54,38 +56,16 @@ void theme(const J &tokens) {
       static_cast<float>(tokens.at("scale_percent").as<std::uint64_t>()) /
       100.f;
 }
-void docks(ImGuiID root, const J &w) {
-  ImGui::DockBuilderRemoveNode(root);
-  ImGui::DockBuilderAddNode(root, ImGuiDockNodeFlags_DockSpace);
-  ImGui::DockBuilderSetNodeSize(root, ImGui::GetMainViewport()->WorkSize);
-  ImGuiID center = root;
-  const auto &sizes = w.at("splits");
-  float l = static_cast<float>(sizes.at("left").as<std::uint64_t>()) / 100.f,
-        r = static_cast<float>(sizes.at("right").as<std::uint64_t>()) / 100.f,
-        b = static_cast<float>(sizes.at("bottom").as<std::uint64_t>()) / 100.f;
-  auto left =
-      ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, l, nullptr, &center);
-  auto right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, r / (1 - l),
-                                           nullptr, &center);
-  auto bottom =
-      ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, b, nullptr, &center);
-  const std::map<std::string, ImGuiID> ids{
-      {"left", left}, {"right", right}, {"center", center}, {"bottom", bottom}};
-  for (const auto &[panel, dock] : w.at("panels").as<O>()) {
-    if (dock.as<std::string>() != "hidden") {
-      ImGui::DockBuilderDockWindow(titles.at(panel).c_str(),
-                                   ids.at(dock.as<std::string>()));
-    }
-  }
-  ImGui::DockBuilderFinish(root);
-}
 } // namespace
 int main(int argc, char **argv) {
-  bool smoke = false, mcp = false, smoke_input = false;
+  bool smoke = false, mcp = false, smoke_input = false, smoke_docking = false;
   std::string capture, instance = "desktop";
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
-    if (arg == "--smoke-input") {
+    if (arg == "--smoke-docking") {
+      smoke = true;
+      smoke_docking = true;
+    } else if (arg == "--smoke-input") {
       smoke = true;
       smoke_input = true;
     } else if (arg == "--smoke") {
@@ -114,6 +94,8 @@ int main(int argc, char **argv) {
     lyko::CommandService service(instance, backend);
     lyko::CommandQueue queue(service);
     lyko::DesktopPlatform platform;
+    lyko::DockingAdapter docking;
+    lyko::DesktopSmokeHarness harness(smoke_input, smoke_docking);
     std::jthread protocol;
     if (mcp) {
       protocol = std::jthread(
@@ -123,7 +105,7 @@ int main(int argc, char **argv) {
     bool ready = false, refresh = true, snapshot_pending = false,
          palette_open = false, focus_search = false;
     std::uint64_t revision = 0, editing = 0;
-    std::string status = "Ready", layout, style, active, editing_name;
+    std::string status = "Ready", style, active, editing_name;
     std::deque<J> outgoing;
     std::map<std::uint64_t, std::string> pending;
     std::array<char, 256> search{}, rename{};
@@ -132,7 +114,7 @@ int main(int argc, char **argv) {
                        bool mutation = true) {
       if (outgoing.size() >= 64) {
         status = "Too many pending commands; wait for completion.";
-        return;
+        return false;
       }
       O object{{"instance", instance},
                {"command", name},
@@ -141,6 +123,7 @@ int main(int argc, char **argv) {
         object.emplace("expected_revision", revision);
       }
       outgoing.emplace_back(std::move(object));
+      return true;
     };
     const auto choose_command = [&](const J &item) {
       const auto name = item.at("name").as<std::string>();
@@ -158,6 +141,9 @@ int main(int argc, char **argv) {
           current.emplace("id", entity.at("id"));
           current.emplace("name", entity.at("name"));
         }
+      }
+      if (ready && name == "layout.replace") {
+        current.emplace("layout", frame.at("workspace").at("layout"));
       }
       command_form.emplace(item, current);
     };
@@ -181,6 +167,7 @@ int main(int argc, char **argv) {
     ImVec2 create_center{}, name_center{}, search_center{}, settings_center{};
     while (platform.begin_frame()) {
       while (auto done = queue.try_pop()) {
+        docking.completed(done->ticket);
         auto name = pending.at(done->ticket);
         pending.erase(done->ticket);
         if (name == "editor.snapshot") {
@@ -194,6 +181,7 @@ int main(int argc, char **argv) {
         }
         if (name == "editor.snapshot") {
           frame = response.at("data");
+          docking.snapshot();
           revision = response.at("revision").as<std::uint64_t>();
           ready = true;
           request("preview.capture", O{}, false);
@@ -209,9 +197,10 @@ int main(int argc, char **argv) {
         }
       }
       if (refresh && !snapshot_pending) {
-        request("editor.snapshot", O{}, false);
-        snapshot_pending = true;
-        refresh = false;
+        if (request("editor.snapshot", O{}, false)) {
+          snapshot_pending = true;
+          refresh = false;
+        }
       }
       if (ready) {
         auto next = frame.at("tokens").dump();
@@ -275,6 +264,7 @@ int main(int argc, char **argv) {
                         {"reduced_motion", w.at("reduced_motion")}});
             }
           }
+          ImGui::TextDisabled("Starter slot presets reset custom docking");
           for (const auto &[panel, title] : titles) {
             if (ImGui::BeginMenu(title.c_str())) {
               for (auto dock :
@@ -285,6 +275,9 @@ int main(int argc, char **argv) {
               }
               ImGui::EndMenu();
             }
+          }
+          if (ImGui::MenuItem("Reset starter layout")) {
+            request("layout.reset");
           }
           ImGui::EndMenu();
         }
@@ -302,20 +295,15 @@ int main(int argc, char **argv) {
                             status.c_str());
         ImGui::EndMainMenuBar();
       }
-      auto root = ImGui::DockSpaceOverViewport(
-          0, ImGui::GetMainViewport(),
-          ImGuiDockNodeFlags_NoUndocking | ImGuiDockNodeFlags_NoDockingSplit |
-              ImGuiDockNodeFlags_NoResize);
+      auto root = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
       if (ready) {
         const auto &w = frame.at("workspace");
-        auto next = w.at("panels").dump() + w.at("splits").dump();
-        if (next != layout) {
-          docks(root, w);
-          layout = next;
+        docking.sync(root, w.at("layout"), revision);
+        std::set<std::string> hidden;
+        for (const auto &panel : w.at("layout").at("hidden").as<A>()) {
+          hidden.insert(panel.as<std::string>());
         }
-        auto visible = [&](const char *id) {
-          return w.at("panels").at(id).as<std::string>() != "hidden";
-        };
+        auto visible = [&](const char *id) { return !hidden.contains(id); };
         if (visible("scene")) {
           ImGui::Begin("Scene");
           ImGui::TextDisabled("SCENE COLLECTION");
@@ -507,6 +495,26 @@ int main(int argc, char **argv) {
         }
         ImGui::End();
       }
+      if (ready) {
+        if (auto change = docking.finish()) {
+          J request =
+              O{{"instance", instance},
+                {"command", "layout.replace"},
+                {"expected_revision", change->expected_revision},
+                {"arguments",
+                 O{{"layout", lyko::dock_layout_json(change->layout)}}}};
+          auto accepted = queue.try_submit(std::move(request));
+          if (accepted) {
+            pending.emplace(*accepted.ticket, "layout.replace");
+            docking.submitted(*accepted.ticket);
+          } else {
+            docking.rejected(accepted.error->message);
+          }
+        }
+        if (auto message = docking.take_message(); !message.empty()) {
+          status = message;
+        }
+      }
       while (!outgoing.empty()) {
         auto submitted = queue.try_submit(outgoing.front());
         if (!submitted) {
@@ -522,107 +530,25 @@ int main(int argc, char **argv) {
                         outgoing.front().at("command").as<std::string>());
         outgoing.pop_front();
       }
-      if (smoke_input && ready) {
-        if (frames == 20) {
-          platform.test_pointer(create_center, true);
-        }
-        if (frames == 21) {
-          platform.test_pointer(create_center, false);
-        }
-        if (frames == 40 || frames == 80) {
-          platform.test_key('z', true);
-        }
-        if (frames == 60) {
-          platform.test_key('z', true, true);
-        }
-        for (auto checkpoint : {38U, 58U, 78U, 98U}) {
-          if (frames == checkpoint) {
-            const auto expected =
-                (checkpoint == 38 || checkpoint == 78) ? 4U : 3U;
-            if (frame.at("scene").at("entities").as<A>().size() != expected) {
-              throw std::runtime_error(
-                  "Interaction smoke: create/undo/redo did not update scene");
-            }
-          }
-        }
-        if (frames == 100 || frames == 110) {
-          platform.test_key('k', true);
-        }
-        if (frames == 108 && (!palette_open || !ImGui::GetIO().WantTextInput)) {
-          throw std::runtime_error(
-              "Interaction smoke: Ctrl+K did not open palette");
-        }
-        if (frames == 120) {
-          platform.test_pointer(name_center, true);
-        }
-        if (frames == 121) {
-          platform.test_pointer(name_center, false);
-        }
-        if (frames == 124) {
-          platform.test_key('a', true);
-        }
-        if (frames == 126) {
-          platform.test_text("Hero");
-        }
-        if (frames == 128) {
-          platform.test_key('\r', false);
-        }
-      }
-      if (smoke_input && ready) {
-        if (frames == 148) {
-          platform.test_key('k', true);
-        }
-        if (frames == 151) {
-          platform.test_pointer(search_center, true);
-        }
-        if (frames == 152) {
-          platform.test_pointer(search_center, false);
-        }
-        if (frames == 154) {
-          platform.test_text("workspace.configure");
-        }
-        if (frames == 164) {
-          platform.test_pointer(settings_center, true);
-        }
-        if (frames == 165) {
-          platform.test_pointer(settings_center, false);
-        }
-        if (frames == 174 || frames == 175) {
-          if (!command_form) {
-            throw std::runtime_error(
-                "Interaction smoke: settings form did not open");
-          }
-          platform.test_pointer(command_form->test_center("reduced_motion"),
-                                frames == 174);
-        }
-        if (frames == 183 || frames == 184) {
-          platform.test_pointer(command_form->test_execute_center(),
-                                frames == 183);
-        }
-        if (frames == 200 &&
-            !frame.at("workspace").at("reduced_motion").as<bool>()) {
-          throw std::runtime_error(
-              "Interaction smoke: typed form did not apply settings");
-        }
+      if (smoke && ready) {
+        harness.step(frames, {platform, root, frame, revision, create_center,
+                              name_center, search_center, settings_center,
+                              command_form ? &*command_form : nullptr,
+                              palette_open, status});
       }
       ++frames;
       if (mcp && frames % 30 == 0) {
         refresh = true;
       }
-      bool finish = smoke && frames >= (smoke_input ? 210U : 90U) && ready &&
+      bool finish = smoke && frames >= harness.target_frames() && ready &&
                     pending.empty() && outgoing.empty();
       platform.end_frame(finish ? capture : "");
       if (finish) {
-        if (smoke_input &&
-            frame.at("selection").at("entity").at("name").as<std::string>() !=
-                "Hero") {
-          throw std::runtime_error(
-              "Interaction smoke: inspector rename failed");
-        }
-        if (frame.at("scene").at("entities").as<A>().size() != 3 ||
-            frame.at("workspace").at("selection").as<std::uint64_t>() != 1 ||
-            frame.at("scene").at("runtime").at("inputs").as<A>().size() != 1) {
-          return 1;
+        harness.validate(frame);
+        if (smoke_docking) {
+          std::cerr
+              << "Dock interaction passed: resize, merge, split, undo/redo, "
+                 "active tab and floating-drop rollback\n";
         }
         (mcp ? std::cerr : std::cout)
             << "Desktop smoke passed: three entities, inspector, history and "

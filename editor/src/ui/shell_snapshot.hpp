@@ -2,6 +2,7 @@
 #include "command_bus.hpp"
 #include "json.hpp"
 #include "ui/design_tokens.hpp"
+#include "ui/dock_layout_json.hpp"
 
 namespace lyko {
 inline Json workspace_json(const Workspace& workspace) {
@@ -11,7 +12,7 @@ inline Json workspace_json(const Workspace& workspace) {
     for (const auto& [name, percent] : workspace.splits) { splits.emplace(name, percent); }
     for (const auto& [name, shortcut] : workspace.keymap) { keymap.emplace(name, shortcut); }
     return O{{"scale_percent", workspace.scale_percent}, {"theme", workspace.theme},
-             {"reduced_motion", workspace.reduced_motion}, {"panels", std::move(panels)},
+             {"reduced_motion", workspace.reduced_motion}, {"layout",dock_layout_json(effective_dock_layout(workspace))}, {"panels", std::move(panels)},
              {"splits", std::move(splits)}, {"keymap", std::move(keymap)},
              {"selection", workspace.selection ? Json(*workspace.selection) : Json(nullptr)}};
 }

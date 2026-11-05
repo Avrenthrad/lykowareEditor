@@ -1,5 +1,6 @@
 #pragma once
 #include "imgui.h"
+#include <cstdint>
 #include <string>
 #include <vector>
 struct SDL_Window;
@@ -17,6 +18,7 @@ public:
   void set_preview(const std::string &ppm);
   void draw_preview(ImVec2 size);
   // Synthetic SDL input is used only by the opt-in interaction smoke harness.
+  void test_motion(ImVec2 position);
   void test_pointer(ImVec2 position, bool down);
   void test_key(char key, bool ctrl, bool shift = false);
   void test_text(const char *text);
@@ -24,6 +26,7 @@ public:
 
 private:
   void cleanup();
+  std::uint64_t frame_started_ = 0;
   SDL_Window *window_ = nullptr;
   SDL_Renderer *renderer_ = nullptr;
   SDL_Texture *preview_ = nullptr;

@@ -14,7 +14,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -30,8 +30,11 @@ const std::vector<Entry>& registry() {
             return ReplaceWorkspace{workspace}; }},
         {"workspace.save", "Publish TOML UI settings, layout and keymap to a new path; export cannot be undone.", {{"path", "string"}}, {}, Action::workspace_save},
         {"workspace.configure", "Set UI scaling (75..250%), dark/high_contrast theme and reduced motion atomically.", {{"scale_percent", "integer", {{"title","UI scale (%)"},{"minimum",std::uint64_t{75}},{"maximum",std::uint64_t{250}},{"default",std::uint64_t{100}}}}, {"theme", "string", {{"enum",A{"dark","high_contrast"}},{"default","dark"}}}, {"reduced_motion", "boolean", {{"title","Reduce motion"},{"default",false}}}}, [](const Json& a) -> Mutation { return ConfigureWorkspace{a.at("scale_percent").as<std::uint64_t>(), a.at("theme").as<std::string>(), a.at("reduced_motion").as<bool>()}; }},
-        {"panel.dock", "Move a registered panel to left/right/center/bottom/hidden.", {{"panel", "string", {{"enum",A{"scene","inspector","viewport","console","history"}},{"default","scene"}}}, {"dock", "string", {{"enum",A{"left","right","center","bottom","hidden"}},{"default","left"}}}}, [](const Json& a) -> Mutation { return SetPanelDock{a.at("panel").as<std::string>(), a.at("dock").as<std::string>()}; }},
-        {"layout.resize", "Resize a dock split while preserving a usable center area.", {{"dock", "string", {{"enum",A{"left","right","bottom"}},{"default","left"}}}, {"percent", "integer", {{"title","Size (%)"},{"minimum",std::uint64_t{10}},{"maximum",std::uint64_t{50}},{"default",std::uint64_t{25}}}}}, [](const Json& a) -> Mutation { return ResizeDock{a.at("dock").as<std::string>(), a.at("percent").as<std::uint64_t>()}; }},
+        {"panel.dock", "Apply a starter panel slot preset; this resets a custom dock tree.", {{"panel", "string", {{"enum",A{"scene","inspector","viewport","console","history"}},{"default","scene"}}}, {"dock", "string", {{"enum",A{"left","right","center","bottom","hidden"}},{"default","left"}}}}, [](const Json& a) -> Mutation { return SetPanelDock{a.at("panel").as<std::string>(), a.at("dock").as<std::string>()}; }},
+        {"layout.query", "Read the effective validated dock split/tab tree.", {}, {}, Action::layout},
+        {"layout.replace", "Replace the complete dock tree as one validated undoable transaction.", {{"layout","object",dock_layout_constraints()}}, [](const Json& a)->Mutation{return ReplaceDockLayout{parse_dock_layout(a.at("layout"))};}},
+        {"layout.reset", "Restore the starter slot layout as one undoable transaction.", {}, [](const Json&)->Mutation{return ResetDockLayout{};}},
+        {"layout.resize", "Resize a starter dock slot and reset a custom tree; retain usable center space.", {{"dock", "string", {{"enum",A{"left","right","bottom"}},{"default","left"}}}, {"percent", "integer", {{"title","Size (%)"},{"minimum",std::uint64_t{10}},{"maximum",std::uint64_t{50}},{"default",std::uint64_t{25}}}}}, [](const Json& a) -> Mutation { return ResizeDock{a.at("dock").as<std::string>(), a.at("percent").as<std::uint64_t>()}; }},
         {"keymap.bind", "Bind a canonical shortcut to a registered command; empty shortcut unbinds.", {{"command", "string"}, {"shortcut", "string"}}, [](const Json& a) -> Mutation {
             auto command = a.at("command").as<std::string>(); (void)lookup(command);
             return BindShortcut{command, a.at("shortcut").as<std::string>()}; }},
@@ -79,6 +82,7 @@ void validate(const Entry& entry, const Json& args) {
         if (field.type == "string") { const auto& text=value.as<std::string>(); if(!json_detail::valid_utf8(text)){throw std::invalid_argument("Field "+field.name+" must be valid UTF-8");} }
         else if (field.type == "integer") { (void)value.as<std::uint64_t>(); }
         else if (field.type == "boolean") { (void)value.as<bool>(); }
+        else if (field.type == "object") { (void)value.as<O>(); }
         else if (field.type == "array") { (void)value.as<A>(); }
     }
     keys(args, names);
@@ -165,6 +169,7 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::logs) { data = logs_json(bus_.snapshot().first.runtime); }
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
+        else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
         else if (entry.action == Action::history) { data = history_json(bus_.history_snapshot()); }
         else if (entry.action == Action::snapshot) {
             const auto state = bus_.editor_snapshot();

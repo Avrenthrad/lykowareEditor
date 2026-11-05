@@ -59,6 +59,12 @@ int main() {
         }
     }
     check(winners == 1 && concurrent.snapshot().first.entities.size() == 1, "concurrent stale writes serialize");
+    lyko::CommandBus layout_bus("layout", backend);
+    lyko::DockLayout cycle;cycle.root="root";
+    cycle.nodes.emplace("root",lyko::DockNode{"horizontal",5000,"root","leaf",{},""});cycle.nodes.emplace("leaf",lyko::DockNode{});
+    auto bad_layout=layout_bus.execute("layout",{}, {lyko::CreateEntity{"Rollback"},lyko::ReplaceDockLayout{cycle}});
+    check(!bad_layout&&bad_layout.error->code=="invalid_layout","typed layout mutation validates before commit");
+    check(layout_bus.snapshot().first.entities.empty()&&layout_bus.revision()==0&&!layout_bus.history_snapshot().cursor,"typed layout failure rolls back batch and history");
     FailingBridge failing;
     lyko::CommandBus broken("test", failing);
     auto failure = broken.execute("test", {}, {lyko::CreateEntity{"A"}, lyko::Play{}});

@@ -24,6 +24,8 @@ public:
         values_.emplace(name, false);
       } else if (type == "array") {
         values_.emplace(name, Json::Array{});
+      } else if (type == "object") {
+        values_.emplace(name, Json::Object{});
       } else {
         throw std::invalid_argument("Unsupported command form field type");
       }
@@ -87,6 +89,10 @@ public:
       } else if (type == "array" &&
                  !std::holds_alternative<Json::Array>(value.value)) {
         errors[name] = "Enter a JSON array.";
+      }
+      if (type == "object" &&
+          !std::holds_alternative<Json::Object>(value.value)) {
+        errors[name] = "Enter a JSON object.";
       }
       if (spec.contains("enum")) {
         const auto &choices = spec.at("enum").as<Json::Array>();

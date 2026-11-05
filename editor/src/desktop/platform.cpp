@@ -63,6 +63,7 @@ void DesktopPlatform::cleanup() {
   SDL_Quit();
 }
 bool DesktopPlatform::begin_frame() {
+  frame_started_ = SDL_GetTicksNS();
   shortcuts.clear();
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
@@ -117,7 +118,11 @@ void DesktopPlatform::end_frame(const std::string &capture) {
     }
   }
   SDL_RenderPresent(renderer_);
-  SDL_Delay(16);
+  constexpr std::uint64_t frame_budget = 16666667;
+  const auto elapsed = SDL_GetTicksNS() - frame_started_;
+  if (elapsed < frame_budget) {
+    SDL_DelayNS(frame_budget - elapsed);
+  }
 }
 void DesktopPlatform::set_preview(const std::string &ppm) {
   std::istringstream input(ppm);
@@ -157,6 +162,15 @@ void DesktopPlatform::draw_preview(ImVec2 size) {
   } else {
     ImGui::TextDisabled("Preparing mock preview...");
   }
+}
+void DesktopPlatform::test_motion(ImVec2 position) {
+  SDL_Event event{};
+  event.type = SDL_EVENT_MOUSE_MOTION;
+  event.motion.windowID = SDL_GetWindowID(window_);
+  event.motion.x = position.x;
+  event.motion.y = position.y;
+  event.motion.state = SDL_BUTTON_LMASK;
+  SDL_PushEvent(&event);
 }
 void DesktopPlatform::test_pointer(ImVec2 position, bool down) {
   SDL_Event motion{};

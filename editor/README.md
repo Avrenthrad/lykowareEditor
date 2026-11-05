@@ -148,8 +148,12 @@ transport, not the window. Different process instances still have separate state
 The first shell supports entity creation/selection/rename, play/stop, preview,
 history, theme and command-driven panel placement. Ctrl+K browses all commands;
 primitive arguments use generated fields, dropdowns and checkboxes with inline
-validation. Transaction arrays retain an advanced JSON editor. Native arbitrary docking is
-intentionally disabled pending an undoable layout representation. No font/icon
+validation. Nested objects and transaction arrays use an advanced JSON editor.
+Dockspace resizing, splitting, merging, tab reordering and active tabs share
+undo/redo with CLI/MCP layout.replace. Workspace exports write TOML v2 and read
+v1/v2. Floating-window drops restore the confirmed layout with an inline error.
+Legacy panel.dock/layout.resize commands reset custom trees to starter presets.
+No font/icon
 polish, hardware frame-rate or full accessibility claim is made yet.
 
 Opt-in test harnesses (not production capture commands):
@@ -178,3 +182,6 @@ conflicts and nonexistent entities still come from the authoritative service.
 Batch arrays use an advanced JSON field; richer nested editors remain future work.
 The --smoke-input harness additionally opens workspace.configure, edits reduced
 motion with SDL mouse events and checks that submission updates the workspace.
+
+`--smoke-docking` exercises native resize, merge, tab reorder/selection, split,
+undo/redo and unsupported floating-drop rollback through synthetic SDL input.

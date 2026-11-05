@@ -106,6 +106,25 @@ int main() {
       request("entity.create", O{{"name", std::string("\xc0\xaf")}}));
   check(!invalid_unicode.at("ok").as<bool>(),
         "named C++ service rejects malformed UTF-8 before writing");
+  lyko::CommandForm layout_form(descriptor("layout.replace").at("inputSchema"));
+  layout_form.set("layout", "not an object");
+  check(layout_form.errors().contains("layout"),
+        "layout draft object type checked");
+  const auto tree = service.call(request("layout.query")).at("data");
+  layout_form.set("layout", tree);
+  check(service.call(request("layout.replace", layout_form.arguments()))
+            .at("ok")
+            .as<bool>(),
+        "layout form dispatch shares authoritative validation");
+  check(descriptor("layout.replace")
+                .at("inputSchema")
+                .at("properties")
+                .at("layout")
+                .at("properties")
+                .at("nodes")
+                .at("maxProperties")
+                .as<std::uint64_t>() == 63,
+        "discovery publishes nested dock schema");
   const auto unchanged = service.call(request("workspace.query"));
   check(unchanged.at("revision").as<std::uint64_t>() == 2,
         "draft edits do not mutate document or history");

@@ -23,6 +23,8 @@ struct Document {
     Workspace workspace;
     bool operator==(const Document&) const = default;
 };
+struct ReplaceDockLayout { DockLayout layout; };
+struct ResetDockLayout {};
 struct ReplaceWorkspace { Workspace workspace; };
 struct ConfigureWorkspace { std::uint64_t scale_percent; std::string theme; bool reduced_motion; };
 struct SetPanelDock { std::string panel; std::string dock; };
@@ -30,7 +32,7 @@ struct ResizeDock { std::string dock; std::uint64_t percent; };
 struct BindShortcut { std::string command; std::string shortcut; };
 struct SelectEntity { EntityId id; }; // Zero clears selection.
 struct ReplaceScene { Document document; };
-using Mutation = std::variant<CreateEntity, RenameEntity, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace>;
+using Mutation = std::variant<CreateEntity, RenameEntity, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
 struct Error { std::string code; std::string field; std::string message; };
 struct Result {
     std::uint64_t revision;

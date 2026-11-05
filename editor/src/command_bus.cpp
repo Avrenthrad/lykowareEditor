@@ -59,6 +59,12 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 candidate.next_id = command.document.next_id;
                 candidate.runtime = command.document.runtime;
                 candidate.workspace.selection.reset();
+            } else if constexpr (std::is_same_v<T, ReplaceDockLayout>) {
+                if(auto error=dock_layout_error(command.layout)){return Error{"invalid_layout","layout",*error};}
+                const auto current=effective_dock_layout(candidate.workspace);
+                const auto normalized=canonical_dock_layout(command.layout);if(current!=normalized){candidate.workspace.layout=normalized;}
+            } else if constexpr (std::is_same_v<T, ResetDockLayout>) {
+                candidate.workspace.layout.reset();
             } else if constexpr (std::is_same_v<T, ReplaceWorkspace>) {
                 if (auto message = workspace_error(command.workspace)) { return Error{"invalid_workspace", "workspace", *message}; }
                 const auto selection = candidate.workspace.selection;
@@ -81,6 +87,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                     return Error{"invalid_dock", "dock", "Choose left, right, center, bottom or hidden."};
                 }
                 panel->second = command.dock;
+                candidate.workspace.layout.reset();
             } else if constexpr (std::is_same_v<T, ResizeDock>) {
                 if (!candidate.workspace.splits.contains(command.dock)) { return Error{"invalid_dock", "dock", "Only left, right and bottom splits can be resized."}; }
                 if (command.percent < 10 || command.percent > 50) { return Error{"invalid_split", "percent", "Dock size must be 10 to 50 percent."}; }
@@ -88,6 +95,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 splits.at(command.dock) = command.percent;
                 if (splits.at("left") + splits.at("right") > 70) { return Error{"invalid_split", "percent", "Keep at least 30 percent of the width for the center."}; }
                 candidate.workspace.splits = std::move(splits);
+                candidate.workspace.layout.reset();
             } else if constexpr (std::is_same_v<T, BindShortcut>) {
                 if (command.command.empty() || command.command.size() > 128 || !valid_shortcut(command.shortcut)) {
                     return Error{"invalid_shortcut", "shortcut", "Use canonical Ctrl+Alt+Shift+Super modifiers followed by a supported key; empty unbinds."};

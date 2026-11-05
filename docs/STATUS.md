@@ -152,13 +152,31 @@
 - install_script/start_skill are saved in the same draft. Current-instance setup
   and repeatability are verified; fresh-task restoration/publication are not.
 
+## Transaction-backed docking
+
+- Added validated split/tab trees and layout.query/replace/reset through the shared
+  command service, CLI and MCP. Native resize, merge, tab reorder/selection and
+  split gestures commit one undoable transaction with revision conflict checks.
+- Added workspace TOML v2 persistence with v1 migration. Canonical trees prune
+  empty regions, enforce panel coverage and keep stable structural path IDs.
+- Desktop restores confirmed state after rejected or unsupported floating drops.
+  Window resizing preserves relative splits without recording a layout edit.
+- All 15 desktop-preset tests and 11 ASan/UBSan headless tests pass (local leak
+  detection disabled as above). Clang-tidy reports no project-code findings.
+  Native SDL interactions and an X11/Xvfb capture were checked. The harness covers
+  resize, merge, reorder, active tabs, splitting, undo/redo and floating rollback.
+- Extracted opt-in interaction scenarios from main; frame pacing now waits only
+  for the remaining frame budget. Hardware performance remains unmeasured.
+- ADR 0007 documents the model and migration. No engine integration occurred.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
   handheld input remain unverified. CI is manual-only and requires approved
   self-hosted runners; no paid jobs or artifact uploads have been invoked.
-- This is a starter shell. Native free docking is disabled until represented by
-  commands; use Workspace panel menus and layout.resize for the saved slot model.
+- This is a starter shell. Dockspace split/tab layouts are supported; floating
+  windows are rejected and restored. Legacy panel.dock/layout.resize commands
+  explicitly reset custom layouts to starter presets.
   Primitive palette parameters use generated controls; transaction arrays still
   use advanced JSON. A nested transaction builder remains future work.
 - Icons/font refinement, final polish, prefab/asset schemas, glTF import and binary
@@ -173,5 +191,5 @@ Use only this repository and the existing isolated checkout; no worktree unless
 explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Continue with
-transaction-backed free docking, deeper form widgets, visual polish and
+deeper form widgets, shortcut discoverability, visual polish and
 Windows verification. Keep docs/STATUS.md current. Joshua merges.

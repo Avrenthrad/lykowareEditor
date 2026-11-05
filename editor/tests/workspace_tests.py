@@ -104,11 +104,11 @@ with tempfile.TemporaryDirectory() as temp:
     check(r[7]['data'] == r[2]['data'] and r[9]['data'] == expected, 'config undo/redo')
     check(not r[10]['ok'] and path.read_bytes() == original, 'config save preserves existing file')
     bad_configs = [
-        original.decode().replace('schema_version = 1', 'schema_version = 2'),
+        original.decode().replace('schema_version = 2', 'schema_version = 999'),
         original.decode() + '\n[panels]\n',
         original.decode().replace('scale_percent = 150', 'scale_percent = 999'),
         original.decode().replace('"play.start" = "F5"', '"play.start" = "Ctrl+K"'),
-        original.decode() + '\n"unknown.command" = "Ctrl+U"\n',
+        original.decode().replace('\n[layout]\n', '\n"unknown.command" = "Ctrl+U"\n\n[layout]\n'),
         original.decode().replace('theme = "high_contrast"', 'theme = "high_contrast"\ntheme = "dark"'),
     ]
     for text in bad_configs:

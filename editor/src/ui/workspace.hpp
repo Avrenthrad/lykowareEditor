@@ -1,4 +1,5 @@
 #pragma once
+#include "dock_layout.hpp"
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -11,6 +12,7 @@ struct Workspace {
     std::uint64_t scale_percent = 100;
     std::string theme = "dark";
     bool reduced_motion = false;
+    std::optional<DockLayout> layout;
     std::optional<std::uint64_t> selection;
     std::map<std::string, std::string> panels{
         {"scene", "left"}, {"inspector", "right"}, {"viewport", "center"},
@@ -57,7 +59,9 @@ inline std::optional<std::string> workspace_error(const Workspace& w) {
         for (const auto& prior : assigned) { if (prior == shortcut) { return "Conflicting shortcut binding"; } }
         assigned.push_back(shortcut);
     }
+    if(w.layout){if(auto error=dock_layout_error(*w.layout)){return error;}}
     return {};
 }
+inline DockLayout effective_dock_layout(const Workspace& w){return w.layout?canonical_dock_layout(*w.layout):starter_dock_layout(w.panels,w.splits);}
 
 }
