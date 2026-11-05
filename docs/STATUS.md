@@ -233,6 +233,30 @@
   JSON Schema renderer, new protocol command, dependency or engine integration
   was introduced.
 
+## Typography, icons and surface polish
+
+- Vendored unmodified Roboto Regular (font version 2.001047, upstream commit
+  38062f4b4a0be4346d07a928408da21602545e9e) under Apache-2.0. The font's own licence
+  metadata and upstream licence were checked; provenance and SHA-256 are recorded
+  in third_party/README.md. No newer differently licensed font was substituted.
+- Added an optional desktop-only checksum-verified CMake resource wrapper. Font
+  bytes are embedded, so the executable needs no adjacent font or source path.
+  Headless builds remain independent of GUI resources.
+- Applied a 15px Roboto body baseline, token-driven 32px normal controls, consistent
+  spacing and explicit surface/hover/active/border colours. Added matching panel
+  headings and ten original vector icons on one grid, with text labels and native
+  button keyboard behavior retained.
+- Expanded existing contrast checks across hover and active surfaces. Dark mode
+  meets the existing 4.5:1 text target and high contrast meets 7:1 for normal/muted
+  text on the checked surfaces. This is not a full accessibility certification.
+- Inspected X11 captures at 100% dark and 150% high contrast. The scaled render
+  was driven through the same-instance MCP command service from a different cwd.
+- All 17 desktop tests and all 12 ASan/UBSan groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+- ADR 0011 records the resource, design-token and icon decisions. No command,
+  persistence, engine or backend contract changed. Full glyph coverage, Windows,
+  hardware frame rate and screen-reader behavior remain unverified.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -244,7 +268,8 @@
   Primitive palette parameters and batch rows use generated controls. Layout
   objects have typed controls plus JSON import; generic nested schema widgets
   remain future work.
-- Icons/font refinement, final polish, prefab/asset schemas, glTF import and binary
+- This is the first typography/icon pass. Further polish, prefab/asset schemas,
+  glTF import and binary
   cooking remain outstanding. The software preview is explicitly simulated.
 - Scene/workspace exports preserve existing files; in-place replacement and
   power-loss durability remain future work. JSON/TOML limits remain documented.
@@ -256,5 +281,5 @@ Use only this repository and the existing isolated checkout; no worktree unless
 explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Continue with
-icons/fonts/visual polish, broader object schemas and
+inline command feedback, broader object schemas and
 Windows verification. Keep docs/STATUS.md current. Joshua merges.

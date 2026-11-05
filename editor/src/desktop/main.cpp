@@ -1,5 +1,6 @@
 #include "command_form.hpp"
 #include "docking.hpp"
+#include "icons.hpp"
 #include "platform.hpp"
 #include "shortcut_browser.hpp"
 #include "smoke_harness.hpp"
@@ -38,7 +39,43 @@ void theme(const J &tokens) {
   s.Colors[ImGuiCol_FrameBg] = color(c.at("surface"));
   s.Colors[ImGuiCol_Text] = color(c.at("text"));
   s.Colors[ImGuiCol_TextDisabled] = color(c.at("muted_text"));
-  s.Colors[ImGuiCol_CheckMark] = color(c.at("accent"));
+  for (auto slot :
+       {ImGuiCol_PopupBg, ImGuiCol_TitleBg, ImGuiCol_Tab, ImGuiCol_TabDimmed,
+        ImGuiCol_TableHeaderBg, ImGuiCol_MenuBarBg}) {
+    s.Colors[slot] = color(c.at("surface"));
+  }
+  for (auto slot :
+       {ImGuiCol_Border, ImGuiCol_Separator, ImGuiCol_TableBorderStrong,
+        ImGuiCol_TableBorderLight, ImGuiCol_ScrollbarGrab}) {
+    s.Colors[slot] = color(c.at("border"));
+  }
+  for (auto slot : {ImGuiCol_FrameBgHovered, ImGuiCol_Button,
+                    ImGuiCol_HeaderHovered, ImGuiCol_TabHovered}) {
+    s.Colors[slot] = color(c.at("surface_hover"));
+  }
+  for (auto slot :
+       {ImGuiCol_FrameBgActive, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive,
+        ImGuiCol_Header, ImGuiCol_HeaderActive, ImGuiCol_TitleBgActive,
+        ImGuiCol_TabSelected, ImGuiCol_TabDimmedSelected,
+        ImGuiCol_TextSelectedBg}) {
+    s.Colors[slot] = color(c.at("surface_active"));
+  }
+  for (auto slot : {ImGuiCol_ScrollbarBg, ImGuiCol_DockingEmptyBg,
+                    ImGuiCol_TitleBgCollapsed}) {
+    s.Colors[slot] = color(c.at("background"));
+  }
+  for (auto slot :
+       {ImGuiCol_CheckMark, ImGuiCol_SliderGrab, ImGuiCol_SliderGrabActive,
+        ImGuiCol_SeparatorHovered, ImGuiCol_SeparatorActive,
+        ImGuiCol_ResizeGripHovered, ImGuiCol_ResizeGripActive,
+        ImGuiCol_TabSelectedOverline, ImGuiCol_TabDimmedSelectedOverline,
+        ImGuiCol_ScrollbarGrabActive}) {
+    s.Colors[slot] = color(c.at("accent"));
+  }
+  s.Colors[ImGuiCol_ScrollbarGrabHovered] = color(c.at("muted_text"));
+  s.Colors[ImGuiCol_ResizeGrip] = color(c.at("border"));
+  s.Colors[ImGuiCol_DockingPreview] = color(c.at("accent"));
+  s.Colors[ImGuiCol_DockingPreview].w = 0.35f;
   s.Colors[ImGuiCol_NavCursor] = color(c.at("focus"));
   const auto numeric = [](const J &v) {
     return std::holds_alternative<double>(v.value)
@@ -51,12 +88,22 @@ void theme(const J &tokens) {
   s.WindowRounding = numeric(tokens.at("geometry").at("corner_radius_px"));
   s.FrameRounding = s.WindowRounding;
   s.WindowPadding = ImVec2(large, large);
-  s.FramePadding = ImVec2(small, small / 2);
-  s.ItemSpacing = ImVec2(small, small);
-  s.FontSizeBase = 14;
-  s.FontScaleMain =
+  const float scale =
       static_cast<float>(tokens.at("scale_percent").as<std::uint64_t>()) /
       100.f;
+  const float body = numeric(tokens.at("typography").at("body_px"));
+  s.FramePadding = ImVec2(
+      small,
+      (numeric(tokens.at("geometry").at("control_height_px")) - body) / 2.f);
+  s.CellPadding = ImVec2(small, small / 2);
+  s.ItemInnerSpacing = ImVec2(small, small / 2);
+  s.TabRounding = s.WindowRounding;
+  s.PopupRounding = s.WindowRounding;
+  s.ScrollbarRounding = s.WindowRounding;
+  s.SeparatorTextBorderSize = 1;
+  s.ItemSpacing = ImVec2(small, small);
+  s.FontSizeBase = body / scale;
+  s.FontScaleMain = scale;
 }
 } // namespace
 int main(int argc, char **argv) {
@@ -344,8 +391,8 @@ int main(int argc, char **argv) {
         auto visible = [&](const char *id) { return !hidden.contains(id); };
         if (visible("scene")) {
           ImGui::Begin("Scene");
-          ImGui::TextDisabled("SCENE COLLECTION");
-          if (ImGui::Button("+ Create entity")) {
+          lyko::panel_heading(lyko::Icon::entity, "SCENE COLLECTION");
+          if (lyko::icon_button(lyko::Icon::add, "Create entity")) {
             request("entity.create", O{{"name", "New entity"}});
           }
           create_center = ImVec2(
@@ -393,7 +440,7 @@ int main(int argc, char **argv) {
         }
         if (visible("inspector")) {
           ImGui::Begin("Inspector");
-          ImGui::TextDisabled("ENTITY PROPERTIES");
+          lyko::panel_heading(lyko::Icon::properties, "ENTITY PROPERTIES");
           ImGui::Separator();
           const auto &entity = frame.at("selection").at("entity");
           if (std::holds_alternative<std::nullptr_t>(entity.value)) {
@@ -417,7 +464,7 @@ int main(int argc, char **argv) {
             name_center = ImVec2(
                 (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * 0.5f,
                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * 0.5f);
-            if (ImGui::Button("Apply name")) {
+            if (lyko::icon_button(lyko::Icon::check, "Apply name")) {
               request("entity.rename",
                       O{{"id", id}, {"name", std::string(rename.data())}});
             }
@@ -433,7 +480,8 @@ int main(int argc, char **argv) {
           ImGui::Begin("Viewport");
           bool playing =
               frame.at("scene").at("runtime").at("playing").as<bool>();
-          if (ImGui::Button(playing ? "Stop" : "Play")) {
+          if (lyko::icon_button(playing ? lyko::Icon::stop : lyko::Icon::play,
+                                playing ? "Stop" : "Play")) {
             request(playing ? "play.stop" : "play.start");
           }
           lyko::command_tooltip(hints, playing ? "play.stop" : "play.start");
@@ -453,7 +501,7 @@ int main(int argc, char **argv) {
         }
         if (visible("console")) {
           ImGui::Begin("Console");
-          ImGui::TextDisabled("RUNTIME LOGS");
+          lyko::panel_heading(lyko::Icon::console, "RUNTIME LOGS");
           for (const auto &message : frame.at("logs").at("messages").as<A>()) {
             ImGui::TextUnformatted(message.as<std::string>().c_str());
           }
@@ -463,15 +511,16 @@ int main(int argc, char **argv) {
         }
         if (visible("history")) {
           ImGui::Begin("History");
+          lyko::panel_heading(lyko::Icon::history, "TRANSACTION HISTORY");
           ImGui::BeginDisabled(!frame.at("history").at("can_undo").as<bool>());
-          if (ImGui::Button("Undo")) {
+          if (lyko::icon_button(lyko::Icon::undo, "Undo")) {
             request("history.undo");
           }
           ImGui::EndDisabled();
           lyko::command_tooltip(hints, "history.undo");
           ImGui::SameLine();
           ImGui::BeginDisabled(!frame.at("history").at("can_redo").as<bool>());
-          if (ImGui::Button("Redo")) {
+          if (lyko::icon_button(lyko::Icon::redo, "Redo")) {
             request("history.redo");
           }
           ImGui::EndDisabled();

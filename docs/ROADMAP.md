@@ -37,6 +37,9 @@ Rename now improve command discoverability. Bindings still use the shared bus.
 Layout object forms now expose split/tab/panel controls with explicit JSON import
 and draft validation. A general recursive schema renderer remains future work.
 
-Next: icons/fonts/visual polish, broader object schemas, Windows and target
+The first visual polish pass adds embedded Apache-2.0 Roboto, a consistent original
+vector icon set, token-sized controls and matching interactive surface colours.
+
+Next: inline command feedback, broader object schemas, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

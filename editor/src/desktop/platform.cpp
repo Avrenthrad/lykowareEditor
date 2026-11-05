@@ -1,6 +1,7 @@
 #include "platform.hpp"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include "roboto_regular.hpp"
 #include <SDL3/SDL.h>
 #include <array>
 #include <cstdint>
@@ -28,6 +29,13 @@ DesktopPlatform::DesktopPlatform() {
     io.ConfigFlags |=
         ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigDpiScaleFonts = true;
+    ImFontConfig font;
+    font.FontDataOwnedByAtlas = false;
+    if (!io.Fonts->AddFontFromMemoryTTF(
+            roboto_regular, static_cast<int>(sizeof(roboto_regular)), 15.0f,
+            &font)) {
+      throw std::runtime_error("Embedded Roboto font could not be loaded");
+    }
     io.IniFilename = nullptr;
     io.LogFilename = nullptr;
     sdl_backend_ = ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);

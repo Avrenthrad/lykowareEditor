@@ -15,6 +15,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-transactions | codex/standalone-editor-docking | Typed atomic batch builder, row validation and desktop interaction tests |
 | codex/standalone-editor-shortcuts | codex/standalone-editor-transactions | Searchable shortcut browser, binding edit links, live action hints and rebinding interaction tests |
 | codex/standalone-editor-layout-forms | codex/standalone-editor-shortcuts | Typed layout object drafts, JSON import gating and model/native interaction tests |
+| codex/standalone-editor-visual-polish | codex/standalone-editor-layout-forms | Embedded Apache-2.0 Roboto, original vector icons and token-driven visual polish |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.

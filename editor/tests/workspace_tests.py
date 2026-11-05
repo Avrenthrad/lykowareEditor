@@ -34,12 +34,12 @@ check(all(x['ok'] for x in r), r)
 check(r[0]['data']['panels']['viewport'] == 'center' and r[0]['revision'] == 0, r[0])
 check({x['name'] for x in r[2]['data']} == {x['name'] for x in r[3]['data']}, 'all commands discoverable')
 check(next(x for x in r[3]['data'] if x['name'] == 'palette.search')['shortcut'] == 'Ctrl+K', 'default palette shortcut')
-check(r[5]['data']['typography']['body_px'] == 28 and r[5]['data']['motion']['transition_ms'] == 0, 'scaled and reduced motion tokens')
+check(r[5]['data']['typography']['body_px'] == 30 and r[5]['data']['motion']['transition_ms'] == 0, 'scaled and reduced motion tokens')
 check(r[7]['data'] == r[0]['data'] and r[9]['data']['scale_percent'] == 200, 'settings undo/redo')
 for tokens, target in [(r[1]['data'], 4.5), (r[5]['data'], 7)]:
     colors = tokens['colors']
     for text in ('text', 'muted_text'):
-        for background in ('background', 'surface'):
+        for background in ('background', 'surface', 'surface_hover', 'surface_active'):
             check(contrast(colors[text], colors[background]) >= target, ('contrast', text, background))
 
 r = run([req('entity.create', name='Player'), req('selection.set', id=1), req('selection.query'),

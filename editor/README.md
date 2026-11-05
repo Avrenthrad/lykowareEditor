@@ -156,8 +156,8 @@ Dockspace resizing, splitting, merging, tab reordering and active tabs share
 undo/redo with CLI/MCP layout.replace. Workspace exports write TOML v2 and read
 v1/v2. Floating-window drops restore the confirmed layout with an inline error.
 Legacy panel.dock/layout.resize commands reset custom trees to starter presets.
-No font/icon
-polish, hardware frame-rate or full accessibility claim is made yet.
+A first font/icon polish pass is implemented; hardware frame-rate and full
+accessibility claims remain unverified.
 
 Opt-in test harnesses (not production capture commands):
 
@@ -219,3 +219,13 @@ layout widget, not a general recursive JSON Schema form renderer.
 
 `--smoke-layout-form` checks typed percentage editing, explicit submission,
 undo/redo and invalid JSON import/discard through native SDL events.
+
+The desktop embeds pinned Apache-2.0 Roboto Regular (version 2.001047) and uses
+original vector icons alongside text labels. The optional font resource wrapper
+checks the vendored font checksum and generates an embedded header in the build
+directory; no font files are fetched at build/runtime or loaded from the source
+checkout. See third_party/README.md for provenance and the bundled licence.
+Body text starts at 15px and follows UI scaling. Standard controls use the 32px
+height token; this does not claim every small control meets a touch-target size.
+Surface, hover/active, border and focus colours follow the design tokens in both
+themes. Full Unicode glyph coverage and screen-reader support remain future work.
