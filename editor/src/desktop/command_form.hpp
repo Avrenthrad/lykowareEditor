@@ -80,6 +80,11 @@ public:
         if (ImGui::Checkbox(title.c_str(), &checked)) {
           form_.set(name, checked);
         }
+      } else if (type == "number") {
+        auto number = json_number(form_.value(name));
+        if (ImGui::InputDouble(title.c_str(), &number, 0, 0, "%.6g")) {
+          form_.set(name, number);
+        }
       } else if (type == "integer") {
         ImU64 number =
             static_cast<ImU64>(form_.value(name).as<std::uint64_t>());

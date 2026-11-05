@@ -1,5 +1,6 @@
 #include "command_service.hpp"
 #include "scene_io.hpp"
+#include "transform_json.hpp"
 #include "text_file.hpp"
 #include "software_preview.hpp"
 #include "ui/design_tokens.hpp"
@@ -14,7 +15,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -49,6 +50,8 @@ const std::vector<Entry>& registry() {
         {"entity.duplicate", "Duplicate an entity under a new stable ID and select the copy atomically.", {{"id", "integer", {{"title","Source entity ID"},{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"name", "string", {{"default","Entity copy"}}}}, [](const Json& a) -> Mutation { return DuplicateEntity{a.at("id").as<std::uint64_t>(), a.at("name").as<std::string>()}; }},
         {"entity.reparent", "Move an entity under another entity, or parent zero for scene root; reject cycles and depth over 64.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation { return ReparentEntity{a.at("id").as<std::uint64_t>(),a.at("parent").as<std::uint64_t>()}; }},
         {"scene.tree", "Read a deterministic parent-first scene tree with parent IDs and depths.", {}, {}, Action::tree},
+        {"transform.set", "Set local position, intrinsic XYZ Euler degrees and nonzero signed scale atomically; authoring only.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}, {"px","number",{{"title","Position X"},{"default",0.0}}}, {"py","number",{{"title","Position Y"},{"default",0.0}}}, {"pz","number",{{"title","Position Z"},{"default",0.0}}}, {"rx","number",{{"title","Rotation X (degrees)"},{"default",0.0}}}, {"ry","number",{{"title","Rotation Y (degrees)"},{"default",0.0}}}, {"rz","number",{{"title","Rotation Z (degrees)"},{"default",0.0}}}, {"sx","number",{{"title","Scale X"},{"default",1.0}}}, {"sy","number",{{"title","Scale Y"},{"default",1.0}}}, {"sz","number",{{"title","Scale Z"},{"default",1.0}}}}, [](const Json& a)->Mutation { O values=a.as<O>();values.erase("id");return SetTransform{a.at("id").as<std::uint64_t>(),parse_transform(values)}; }},
+        {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"play.start", "Start the simulated runtime.", {}, [](const Json&) -> Mutation { return Play{}; }},
         {"play.stop", "Stop the simulated runtime.", {}, [](const Json&) -> Mutation { return Stop{}; }},
         {"play.input", "Record simulated input while playing.", {{"value", "string"}}, [](const Json& a) -> Mutation { return SendInput{a.at("value").as<std::string>()}; }},
@@ -84,6 +87,7 @@ void validate(const Entry& entry, const Json& args) {
         names.push_back(field.name);
         const auto& value = args.at(field.name);
         if (field.type == "string") { const auto& text=value.as<std::string>(); if(!json_detail::valid_utf8(text)){throw std::invalid_argument("Field "+field.name+" must be valid UTF-8");} }
+        else if (field.type == "number") { if(!std::isfinite(json_number(value))){throw std::invalid_argument("Number must be finite.");} }
         else if (field.type == "integer") { (void)value.as<std::uint64_t>(); }
         else if (field.type == "boolean") { (void)value.as<bool>(); }
         else if (field.type == "object") { (void)value.as<O>(); }
@@ -174,6 +178,11 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
+        else if (entry.action == Action::transform) {
+            const auto document=bus_.snapshot().first;const auto id=args.at("id").as<std::uint64_t>();
+            if(!document.entities.contains(id)){return error_json(revision,"not_found","id","Entity does not exist.");}
+            data=transform_json(document.transforms.contains(id)?document.transforms.at(id):Transform{});
+        }
         else if (entry.action == Action::tree) { data = scene_tree_json(bus_.snapshot().first); }
         else if (entry.action == Action::history) { data = history_json(bus_.history_snapshot()); }
         else if (entry.action == Action::snapshot) {
@@ -181,7 +190,7 @@ Json CommandService::call(const Json& request) {
             data = O{{"schema_version", std::uint64_t{1}}, {"mock", true}, {"scene", document_json(state.document)},
                      {"workspace", workspace_json(state.document.workspace)}, {"selection", selection_json(state.document)},
                      {"tokens", design_tokens(state.document.workspace)}, {"logs", logs_json(state.document.runtime)},
-                     {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
+                     {"transforms", transforms_json(state.document)}, {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
             result.revision = state.revision;
         }
         else if (entry.action == Action::tokens) { data = design_tokens(bus_.snapshot().first.workspace); }

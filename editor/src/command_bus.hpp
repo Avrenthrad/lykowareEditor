@@ -1,6 +1,7 @@
 #pragma once
 #include "backend/engine_bridge.hpp"
 #include "ui/workspace.hpp"
+#include "transform.hpp"
 #include <cstdint>
 #include <map>
 #include <mutex>
@@ -12,6 +13,7 @@
 namespace lyko {
 using EntityId = std::uint64_t;
 struct CreateEntity { std::string name; };
+struct SetTransform { EntityId id; Transform transform; };
 struct ReparentEntity { EntityId id; EntityId parent; };
 struct DeleteEntity { EntityId id; };
 struct DuplicateEntity { EntityId id; std::string name; };
@@ -22,6 +24,7 @@ struct SendInput { std::string value; };
 struct Document {
     std::map<EntityId, std::string> entities;
     std::map<EntityId, EntityId> parents; // Sparse: absence means scene root.
+    std::map<EntityId, Transform> transforms; // Nonidentity local authoring values.
     EntityId next_id = 1;
     RuntimeState runtime;
     Workspace workspace;
@@ -48,7 +51,7 @@ struct ResizeDock { std::string dock; std::uint64_t percent; };
 struct BindShortcut { std::string command; std::string shortcut; };
 struct SelectEntity { EntityId id; }; // Zero clears selection.
 struct ReplaceScene { Document document; };
-using Mutation = std::variant<CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, ReparentEntity, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
+using Mutation = std::variant<CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, ReparentEntity, SetTransform, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
 struct Error { std::string code; std::string field; std::string message; };
 struct Result {
     std::uint64_t revision;

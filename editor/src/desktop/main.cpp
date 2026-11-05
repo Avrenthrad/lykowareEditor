@@ -214,6 +214,22 @@ int main(int argc, char **argv) {
           }
         }
       }
+      if (ready && (name == "transform.set" || name == "transform.query")) {
+        const auto &entity = frame.at("selection").at("entity");
+        if (std::holds_alternative<O>(entity.value)) {
+          const auto id = entity.at("id");
+          current.emplace("id", id);
+          if (name == "transform.set") {
+            const auto key = std::to_string(id.as<std::uint64_t>());
+            const auto values = frame.at("transforms").contains(key)
+                                    ? frame.at("transforms").at(key)
+                                    : lyko::transform_json(lyko::Transform{});
+            for (const auto &[field, value] : values.as<O>()) {
+              current.emplace(field, value);
+            }
+          }
+        }
+      }
       if (ready && name == "layout.replace") {
         current.emplace("layout", frame.at("workspace").at("layout"));
       }
@@ -517,6 +533,21 @@ int main(int argc, char **argv) {
                       O{{"id", id}, {"name", std::string(rename.data())}});
             }
             lyko::command_tooltip(hints, "entity.rename");
+            ImGui::Separator();
+            const auto transform_key = std::to_string(id);
+            const auto local =
+                frame.at("transforms").contains(transform_key)
+                    ? lyko::parse_transform(
+                          frame.at("transforms").at(transform_key))
+                    : lyko::Transform{};
+            const auto &v = local.values;
+            ImGui::Text("Position  %.4g  %.4g  %.4g", v[0], v[1], v[2]);
+            ImGui::Text("Rotation  %.4g  %.4g  %.4g deg", v[3], v[4], v[5]);
+            ImGui::Text("Scale     %.4g  %.4g  %.4g", v[6], v[7], v[8]);
+            if (ImGui::Button("Edit local transform...")) {
+              open_form("transform.set", O{{"id", id}});
+            }
+            lyko::command_tooltip(hints, "transform.set");
             const auto undo_key = key_for("history.undo");
             ImGui::TextDisabled("Enter to apply / Undo: %s",
                                 undo_key.empty() ? "Unbound"

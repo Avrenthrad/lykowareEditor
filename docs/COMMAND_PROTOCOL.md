@@ -278,3 +278,20 @@ Scene files read versions 1 and 2. V1 means all entities are roots. Files with
 parent links write v2 with a parent field on every entity (0 for roots); flat files
 continue to write v1. Root-only v2 input therefore normalizes to v1 on export.
 Invalid or excessive-depth hierarchy loads leave scene/history unchanged.
+
+## Local authoring transforms
+
+transform.set requires id and nine numeric components: px/py/pz (position),
+rx/ry/rz (intrinsic XYZ Euler degrees), sx/sy/sz (signed scale). All values must
+be finite; scale components must be nonzero. JSON integers/fractions convert to
+IEEE-754 doubles for components; entity IDs remain exact unsigned integers.
+transform.query takes id and returns the nine components, defaulting to identity.
+Both require an existing entity. Sets participate in revisions/batches/undo.
+Snapshots expose sparse nonidentity values in transforms, keyed by entity ID.
+
+Duplicate copies the local transform; Delete removes it. Reparent and parent
+removal preserve local values, without computing or preserving world transforms.
+These values are authoring-only; the mock renderer/runtime does not interpret them.
+Scene JSON v3 includes parent and transform on each entity. V1/v2 input supplies
+identity transforms. Export uses v3 only when nonidentity transforms exist,
+otherwise the previous v1/v2 rules apply. Invalid loads preserve scene/history.

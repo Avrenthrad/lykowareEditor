@@ -314,6 +314,24 @@
 - Added hierarchy graph/history/persistence tests and ADR 0014. Spatial transforms,
   component parenting and runtime integration remain future work.
 
+## Local authoring transforms
+
+- Added validated sparse local position/XYZ Euler-degree rotation/signed-scale
+  data, transform.set/query and snapshot transform metadata. Changes use atomic
+  candidate validation, optimistic revisions, batching and undo/redo.
+- Added finite signed/fractional number fields to shared form drafts and desktop
+  controls. Inspector opens a prefilled transform form for the selected entity.
+- Duplicate copies local values; Delete removes them; reparent preserves local
+  values. World composition and mock-preview/runtime interpretation are deferred.
+- Added scene JSON v3 for nonidentity transforms; v1/v2 load as identity. Export
+  retains earlier schemas when possible. Invalid loads preserve state/history.
+- All 22 desktop checks and all 16 sanitizer groups pass (the transform test
+  passed on rerun after correcting a test-file indentation error). Local leak
+  detection remains disabled as documented. Clang-tidy reports no project-code
+  findings. X11 Inspector updates through MCP were captured and inspected.
+- Added transform persistence/history/rollback/CLI-MCP parity and numeric draft
+  tests. ADR 0015 records authoring semantics and remaining integration decisions.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

@@ -4,6 +4,7 @@
 #include "ui/transaction_form.hpp"
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 
 using J = lyko::Json;
 using O = J::Object;
@@ -244,6 +245,15 @@ int main() {
         "unbound hint is explicit");
   check(hints.shortcut("unknown.command").empty(),
         "unknown names have no phantom bindings");
+  lyko::CommandForm transform(descriptor("transform.set").at("inputSchema"));
+  transform.set("px", -12.25);
+  check(transform.errors().empty(), "signed fractional number draft accepted");
+  transform.set("px", true);
+  check(transform.errors().contains("px"),
+        "boolean is not a numeric coordinate");
+  transform.set("px", std::numeric_limits<double>::infinity());
+  check(transform.errors().contains("px"),
+        "nonfinite number blocked before submission");
   std::cout << "Passed schema defaults, typed limits/enums, UTF-8 bounds, "
                "exact IDs and authoritative dispatch\n";
 }

@@ -46,6 +46,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                     const auto id = candidate.next_id++;
                     candidate.entities.emplace(id, command.name);
                     if (candidate.parents.contains(command.id)) { candidate.parents.emplace(id, candidate.parents.at(command.id)); }
+                    if (candidate.transforms.contains(command.id)) { candidate.transforms.emplace(id, candidate.transforms.at(command.id)); }
                     candidate.workspace.selection = id;
                 } else {
                     auto entity = candidate.entities.find(command.id);
@@ -54,9 +55,15 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 }
             } else if constexpr (std::is_same_v<T, DeleteEntity>) {
                 if (!candidate.entities.erase(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
+                candidate.transforms.erase(command.id);
                 candidate.parents.erase(command.id);
                 std::erase_if(candidate.parents, [&](const auto& edge) { return edge.second == command.id; });
                 if (candidate.workspace.selection == command.id) { candidate.workspace.selection.reset(); }
+            } else if constexpr (std::is_same_v<T, SetTransform>) {
+                if (!candidate.entities.contains(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
+                if (auto issue=transform_error(command.transform)) { return Error{"invalid_transform", "transform", *issue}; }
+                if (command.transform == Transform{}) { candidate.transforms.erase(command.id); }
+                else { candidate.transforms.insert_or_assign(command.id, command.transform); }
             } else if constexpr (std::is_same_v<T, ReparentEntity>) {
                 if (!candidate.entities.contains(command.id)) { return Error{"not_found", "id", "Entity does not exist."}; }
                 if (command.parent == 0) { candidate.parents.erase(command.id); }
@@ -64,6 +71,10 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 if (auto issue = hierarchy_error(candidate)) { return Error{"invalid_hierarchy", "parent", *issue}; }
             } else if constexpr (std::is_same_v<T, ReplaceScene>) {
                 if (auto issue = hierarchy_error(command.document)) { return Error{"invalid_hierarchy", "parents", *issue}; }
+                for(const auto& [id, transform]:command.document.transforms){
+                    if(!command.document.entities.contains(id)){return Error{"invalid_transform","id","Transform references a missing entity."};}
+                    if(auto issue=transform_error(transform)){return Error{"invalid_transform","transform",*issue};}
+                }
                 if (command.document.next_id == 0) { return Error{"invalid_scene", "next_id", "Next ID must be positive."}; }
                 for (const auto& [id, name] : command.document.entities) {
                     if (id == 0 || id >= command.document.next_id || name.empty() || name.size() > 128) {
@@ -75,6 +86,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 }
                 candidate.entities = command.document.entities;
                 candidate.parents = command.document.parents;
+                candidate.transforms = command.document.transforms;
                 candidate.next_id = command.document.next_id;
                 candidate.runtime = command.document.runtime;
                 candidate.workspace.selection.reset();

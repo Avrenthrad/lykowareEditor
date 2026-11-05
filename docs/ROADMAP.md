@@ -49,6 +49,9 @@ across desktop, CLI and MCP.
 Authoring hierarchy now supports validated reparenting and deterministic scene-tree
 queries with v1/v2 text persistence. Spatial transforms remain future work.
 
+Local authoring transform commands, numeric forms and JSON v3 persistence now
+provide position/rotation/scale data. World composition remains future work.
+
 Next: broader object schemas, further usability polish, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

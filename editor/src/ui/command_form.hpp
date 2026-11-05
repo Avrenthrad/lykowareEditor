@@ -1,5 +1,6 @@
 #pragma once
 #include "json.hpp"
+#include "transform_json.hpp"
 #include <algorithm>
 
 namespace lyko {
@@ -20,6 +21,8 @@ public:
         values_.emplace(name, spec.contains("minimum")
                                   ? spec.at("minimum")
                                   : Json(std::uint64_t{0}));
+      } else if (type == "number") {
+        values_.emplace(name, 0.0);
       } else if (type == "boolean") {
         values_.emplace(name, false);
       } else if (type == "array") {
@@ -68,6 +71,14 @@ public:
         if (spec.contains("x-maxBytes") &&
             text->size() > spec.at("x-maxBytes").as<std::uint64_t>()) {
           errors[name] = "Text exceeds the UTF-8 byte limit.";
+        }
+      } else if (type == "number") {
+        try {
+          if (!std::isfinite(json_number(value))) {
+            errors[name] = "Enter a finite number.";
+          }
+        } catch (const std::invalid_argument &) {
+          errors[name] = "Enter a number.";
         }
       } else if (type == "integer") {
         const auto *number = std::get_if<std::uint64_t>(&value.value);

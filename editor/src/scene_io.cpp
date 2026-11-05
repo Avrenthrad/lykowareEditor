@@ -1,5 +1,6 @@
 #include "scene_io.hpp"
 #include "text_file.hpp"
+#include "transform_json.hpp"
 #include <stdexcept>
 
 namespace lyko {
@@ -13,30 +14,34 @@ void exact_keys(const Json& json, std::initializer_list<std::string> names) {
 }
 Json scene_json(const Document& document) {
     if (auto issue = hierarchy_error(document)) { throw std::invalid_argument(*issue); }
+    for(const auto& [id, transform]:document.transforms){if(!document.entities.contains(id)){throw std::invalid_argument("Transform references a missing entity.");} if(auto issue=transform_error(transform)){throw std::invalid_argument(*issue);}}
     A entities;
     for (const auto& [id, name] : document.entities) {
         O entity{{"id", id}, {"name", name}};
-        if (!document.parents.empty()) { entity.emplace("parent", document.parents.contains(id) ? document.parents.at(id) : EntityId{0}); }
+        if (!document.parents.empty() || !document.transforms.empty()) { entity.emplace("parent", document.parents.contains(id) ? document.parents.at(id) : EntityId{0}); }
+        if(!document.transforms.empty()){entity.emplace("transform", transform_json(document.transforms.contains(id)?document.transforms.at(id):Transform{}));}
         entities.emplace_back(std::move(entity));
     }
-    return O{{"schema_version", std::uint64_t{document.parents.empty() ? 1U : 2U}}, {"next_id", document.next_id}, {"entities", std::move(entities)}};
+    return O{{"schema_version", std::uint64_t{!document.transforms.empty() ? 3U : (document.parents.empty() ? 1U : 2U)}}, {"next_id", document.next_id}, {"entities", std::move(entities)}};
 }
 Document parse_scene(const Json& json) {
     exact_keys(json, {"schema_version", "next_id", "entities"});
     const auto version = json.at("schema_version").as<std::uint64_t>();
-    if (version != 1 && version != 2) { throw std::invalid_argument("Unsupported scene schema version"); }
+    if (version != 1 && version != 2 && version != 3) { throw std::invalid_argument("Unsupported scene schema version"); }
     Document document;
     document.next_id = json.at("next_id").as<std::uint64_t>();
     if (document.next_id == 0) { throw std::invalid_argument("next_id must be positive"); }
     for (const auto& entity : json.at("entities").as<A>()) {
         if (version == 1) { exact_keys(entity, {"id", "name"}); }
-        else { exact_keys(entity, {"id", "name", "parent"}); }
+        else if(version==2) { exact_keys(entity, {"id", "name", "parent"}); }
+        else {exact_keys(entity,{"id","name","parent","transform"});}
         auto id = entity.at("id").as<std::uint64_t>();
         auto name = entity.at("name").as<std::string>();
         if (id == 0 || id >= document.next_id || name.empty() || name.size() > 128) {
             throw std::invalid_argument("Invalid entity identifier or name");
         }
-        if (version == 2) { const auto parent = entity.at("parent").as<std::uint64_t>(); if (parent) { document.parents.emplace(id, parent); } }
+        if (version >= 2) { const auto parent = entity.at("parent").as<std::uint64_t>(); if (parent) { document.parents.emplace(id, parent); } }
+        if(version==3){auto transform=parse_transform(entity.at("transform"));if(transform!=Transform{}){document.transforms.emplace(id,transform);}}
         if (!document.entities.emplace(id, std::move(name)).second) { throw std::invalid_argument("Duplicate entity identifier"); }
     }
     if (auto issue = hierarchy_error(document)) { throw std::invalid_argument(*issue); }

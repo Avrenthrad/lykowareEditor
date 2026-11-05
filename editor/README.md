@@ -256,3 +256,11 @@ promotes direct children to root; duplicate remains beside its source and copies
 no descendants. Undo restores hierarchy and selection atomically. Scenes with
 parent links save as JSON v2; v1 still loads and flat scenes still export as v1.
 No transforms, runtime parenting or engine integration are implemented yet.
+
+Select an entity and choose Edit local transform in Inspector to open typed
+position, Euler-degree rotation and scale fields. Execute submits one atomic
+transform.set; transform.query reads the same values through CLI/MCP. Signed
+fractional numbers are supported, nonfinite values and zero scale are rejected.
+Duplicate/Delete and undo/redo include local transforms. Reparent keeps local
+values; world composition and mock-preview transformation are not implemented.
+Scenes with nonidentity transforms save as JSON v3; v1/v2 scenes still load.

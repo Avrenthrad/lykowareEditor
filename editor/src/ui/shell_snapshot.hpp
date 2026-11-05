@@ -1,10 +1,12 @@
 #pragma once
 #include "command_bus.hpp"
+#include "transform_json.hpp"
 #include "json.hpp"
 #include "ui/design_tokens.hpp"
 #include "ui/dock_layout_json.hpp"
 
 namespace lyko {
+inline Json transforms_json(const Document& document){Json::Object values;for(const auto& [id, transform]:document.transforms){values.emplace(std::to_string(id),transform_json(transform));}return values;}
 inline Json scene_tree_json(const Document& document) {
     std::map<EntityId, std::vector<EntityId>> children;
     for (const auto& [id, name] : document.entities) { (void)name; children[document.parents.contains(id) ? document.parents.at(id) : EntityId{0}].push_back(id); }

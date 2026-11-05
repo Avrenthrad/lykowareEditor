@@ -15,3 +15,7 @@ Until integration is approved, implement and test these contracts with the mock.
 
 - Future integration must define parent/root semantics, cycle/depth validation,
   and transform preservation when reparenting; current hierarchy is authoring-only.
+
+- Local transform interchange needs agreed units/basis, Euler conversion, world
+  composition and reparent world-preservation semantics. Current values are
+  authoring-only and must not be assumed to drive the mock runtime/preview.
