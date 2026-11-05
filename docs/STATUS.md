@@ -127,6 +127,16 @@
   /workspace/.lyko-system. Network works with approved unsandboxed execution; prior
   proxy-failure diagnoses were incorrect. No environment restart was needed.
 
+## Review and environment handover
+
+- Pushed the five private codex/standalone-editor-* review branches; see
+  docs/REVIEW_STACK.md for the intended PR bases. Main is untouched.
+- Draft PR creation is blocked by api.github.com network policy (CONNECT 403).
+  Added this domain to the environment configuration draft, preserving existing
+  rules/presets. It is not applied or published; API authentication is untested.
+- install_script/start_skill are saved in the same draft. Current-instance setup
+  and repeatability are verified; fresh-task restoration/publication are not.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

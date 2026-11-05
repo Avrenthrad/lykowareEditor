@@ -8,6 +8,7 @@ a real game runtime are future work.
 - [Build, test and run](editor/README.md)
 - [Command protocol](docs/COMMAND_PROTOCOL.md)
 - [Status and limitations](docs/STATUS.md)
+- [Private review stack](docs/REVIEW_STACK.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture](docs/adr/0001-editor-architecture.md)
 
