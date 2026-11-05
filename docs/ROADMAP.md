@@ -28,7 +28,10 @@ Transaction-backed split/tab docking, active tabs, undo/redo and TOML v2 layout
 persistence are implemented; v1 settings migrate on load. Floating windows remain
 a future extension.
 
-Next: a nested transaction builder and more shortcut discoverability,
+Typed transaction rows with add/remove/reorder and atomic submission are now
+implemented and covered by model and native SDL interaction tests.
+
+Next: more shortcut discoverability, richer nested object widgets,
 icons/fonts/visual polish, Windows and target
 hardware validation. Prefab/asset schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

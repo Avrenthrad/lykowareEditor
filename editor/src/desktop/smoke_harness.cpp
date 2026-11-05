@@ -104,6 +104,59 @@ void DesktopSmokeHarness::step(unsigned frames, const SmokeContext &context) {
           "Interaction smoke: typed form did not apply settings");
     }
   }
+  if (smoke_input) {
+    if (frames == 210 || frames == 211) {
+      platform.test_pointer(search_center, frames == 210);
+    }
+    if (frames == 214) {
+      platform.test_key('a', true);
+    }
+    if (frames == 216) {
+      platform.test_text("transaction.execute");
+    }
+    if (frames == 230 || frames == 231) {
+      platform.test_pointer(settings_center, frames == 230);
+    }
+    auto *batch = context.transaction_form;
+    if (frames == 238 && !batch) {
+      throw std::runtime_error(
+          "Interaction smoke: transaction builder did not open");
+    }
+    if (frames == 240 || frames == 241 || frames == 254 || frames == 255) {
+      platform.test_pointer(batch->test_add_center(),
+                            frames == 240 || frames == 254);
+    }
+    if (frames == 246 || frames == 247 || frames == 260 || frames == 261) {
+      platform.test_pointer(batch->test_choice_center("entity.create"),
+                            frames == 246 || frames == 260);
+    }
+    if (frames == 280 || frames == 281) {
+      platform.test_pointer(batch->test_execute_center(), frames == 280);
+    }
+    if (frames == 300 && frame.at("scene").at("entities").as<A>().size() != 5) {
+      throw std::runtime_error(
+          "Interaction smoke: transaction form did not commit both rows: " +
+          status);
+    }
+    if (frames == 305) {
+      platform.test_key('k', true);
+    }
+    if (frames == 310 || frames == 355) {
+      platform.test_key('z', true);
+    }
+    if (frames == 330 || frames == 375) {
+      if (frame.at("scene").at("entities").as<A>().size() != 3) {
+        throw std::runtime_error(
+            "Interaction smoke: batch undo was not atomic");
+      }
+    }
+    if (frames == 335) {
+      platform.test_key('z', true, true);
+    }
+    if (frames == 350 && frame.at("scene").at("entities").as<A>().size() != 5) {
+      throw std::runtime_error("Interaction smoke: batch redo was not atomic");
+    }
+  }
   if (smoke_docking && ready) {
     const auto merged = [&]() {
       for (const auto &[id, node] :

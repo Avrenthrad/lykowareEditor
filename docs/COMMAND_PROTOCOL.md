@@ -183,3 +183,16 @@ root. Equivalent replacements create no history record. Save/load includes tab
 order, active tabs and hidden panels; arbitrary floating windows are unsupported.
 Desktop gestures preview locally and submit one revision-guarded replacement;
 rejection restores confirmed state. Other clients use the same commands.
+
+## Desktop transaction drafts
+
+The palette's transaction.execute form derives batchable choices from command
+discovery (`mutation: true`, excluding transaction.execute itself). Each row uses
+the same argument controls as a standalone command. Add/remove/reorder only edit
+the draft. Execute submits the ordered commands array through the existing queue
+with the current instance and expected revision. Child rows never execute alone.
+The GUI limits batches to 64 rows; this is a local draft bound, not a new CLI/MCP
+protocol limit. Queries, history operations, exports and recursive transactions
+are excluded. Primitive validation is advisory; cross-row/domain validation and
+atomic rollback belong to the shared service. Nested layout objects still use
+advanced JSON. A stale revision returns the existing structured service error.

@@ -2,6 +2,7 @@
 #include "docking.hpp"
 #include "platform.hpp"
 #include "smoke_harness.hpp"
+#include "transaction_form.hpp"
 #include "transport/mcp_stream.hpp"
 #include "ui/command_queue.hpp"
 #include <array>
@@ -110,6 +111,7 @@ int main(int argc, char **argv) {
     std::map<std::uint64_t, std::string> pending;
     std::array<char, 256> search{}, rename{};
     std::optional<lyko::DesktopCommandForm> command_form;
+    std::optional<lyko::DesktopTransactionForm> transaction_form;
     auto request = [&](const std::string &name, J args = O{},
                        bool mutation = true) {
       if (outgoing.size() >= 64) {
@@ -145,7 +147,13 @@ int main(int argc, char **argv) {
       if (ready && name == "layout.replace") {
         current.emplace("layout", frame.at("workspace").at("layout"));
       }
-      command_form.emplace(item, current);
+      transaction_form.reset();
+      command_form.reset();
+      if (name == "transaction.execute") {
+        transaction_form.emplace(catalog);
+      } else {
+        command_form.emplace(item, current);
+      }
     };
     request("commands.list", O{}, false);
     if (smoke) {
@@ -286,6 +294,7 @@ int main(int argc, char **argv) {
           focus_search = true;
           active.clear();
           command_form.reset();
+          transaction_form.reset();
           request("palette.search", O{{"query", std::string(search.data())}},
                   false);
         }
@@ -436,6 +445,7 @@ int main(int argc, char **argv) {
         } else {
           active.clear();
           command_form.reset();
+          transaction_form.reset();
         }
       }
       if (palette_open) {
@@ -453,6 +463,7 @@ int main(int argc, char **argv) {
                                      ImGuiInputTextFlags_AutoSelectAll)) {
           active.clear();
           command_form.reset();
+          transaction_form.reset();
           request("palette.search", O{{"query", std::string(search.data())}},
                   false);
         }
@@ -467,7 +478,8 @@ int main(int argc, char **argv) {
                         .c_str())) {
               choose_command(item);
             }
-            if (name == "workspace.configure") {
+            if (name == "workspace.configure" ||
+                name == "transaction.execute") {
               settings_center = ImVec2(
                   (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) *
                       0.5f,
@@ -481,7 +493,11 @@ int main(int argc, char **argv) {
           }
         } else {
           ImGui::TextUnformatted(active.c_str());
-          if (command_form) {
+          if (transaction_form) {
+            if (auto arguments = transaction_form->draw()) {
+              request(active, *arguments);
+            }
+          } else if (command_form) {
             if (auto arguments = command_form->draw()) {
               request(active, *arguments);
             }
@@ -490,6 +506,7 @@ int main(int argc, char **argv) {
           if (ImGui::Button("Back")) {
             active.clear();
             command_form.reset();
+            transaction_form.reset();
             focus_search = true;
           }
         }
@@ -534,6 +551,7 @@ int main(int argc, char **argv) {
         harness.step(frames, {platform, root, frame, revision, create_center,
                               name_center, search_center, settings_center,
                               command_form ? &*command_form : nullptr,
+                              transaction_form ? &*transaction_form : nullptr,
                               palette_open, status});
       }
       ++frames;

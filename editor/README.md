@@ -148,7 +148,10 @@ transport, not the window. Different process instances still have separate state
 The first shell supports entity creation/selection/rename, play/stop, preview,
 history, theme and command-driven panel placement. Ctrl+K browses all commands;
 primitive arguments use generated fields, dropdowns and checkboxes with inline
-validation. Nested objects and transaction arrays use an advanced JSON editor.
+validation. transaction.execute opens a typed batch builder: add registered
+mutations, edit fields, reorder/remove rows, then execute once. A batch failure
+leaves all rows unapplied; undo/redo acts on the whole batch. The GUI allows up
+to 64 rows. Layout objects retain an advanced JSON editor.
 Dockspace resizing, splitting, merging, tab reordering and active tabs share
 undo/redo with CLI/MCP layout.replace. Workspace exports write TOML v2 and read
 v1/v2. Floating-window drops restore the confirmed layout with an inline error.
@@ -185,3 +188,7 @@ motion with SDL mouse events and checks that submission updates the workspace.
 
 `--smoke-docking` exercises native resize, merge, tab reorder/selection, split,
 undo/redo and unsupported floating-drop rollback through synthetic SDL input.
+
+The --smoke-input scenario also opens the batch builder through palette search,
+adds two entity.create rows and checks atomic submission, undo and redo. Drafts
+are transient; Back or a new search discards them without a command.

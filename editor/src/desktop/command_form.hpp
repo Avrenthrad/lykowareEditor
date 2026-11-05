@@ -27,7 +27,7 @@ public:
     }
   }
   // Returns validated arguments only when the user presses Execute.
-  std::optional<Json> draw() {
+  std::optional<Json> draw(bool show_execute = true) {
     using O = Json::Object;
     using A = Json::Array;
     const auto label = [](std::string text) {
@@ -122,6 +122,9 @@ public:
       }
       ImGui::PopID();
     }
+    if (!show_execute) {
+      return draft_arguments();
+    }
     const bool invalid = !form_.errors().empty() || !parse_errors_.empty();
     ImGui::BeginDisabled(invalid);
     const bool execute = ImGui::Button("Execute command");
@@ -133,6 +136,13 @@ public:
       return form_.arguments();
     }
     return {};
+  }
+
+  std::optional<Json> draft_arguments() const {
+    if (!form_.errors().empty() || !parse_errors_.empty()) {
+      return {};
+    }
+    return form_.arguments();
   }
 
   ImVec2 test_center(const std::string &name) const {

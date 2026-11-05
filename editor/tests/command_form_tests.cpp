@@ -1,5 +1,6 @@
 #include "command_service.hpp"
 #include "ui/command_form.hpp"
+#include "ui/transaction_form.hpp"
 #include <cstdlib>
 #include <iostream>
 
@@ -128,6 +129,71 @@ int main() {
   const auto unchanged = service.call(request("workspace.query"));
   check(unchanged.at("revision").as<std::uint64_t>() == 2,
         "draft edits do not mutate document or history");
+  lyko::TransactionForm builder(all);
+  check(builder.choices().contains("entity.create") &&
+            !builder.choices().contains("scene.query") &&
+            !builder.choices().contains("transaction.execute") &&
+            !builder.choices().contains("history.undo") &&
+            !builder.choices().contains("scene.save"),
+        "builder offers only batchable mutations");
+  const auto rejected_batch = [&](const J::Array &rows) {
+    try {
+      (void)builder.arguments(rows);
+    } catch (const std::invalid_argument &) {
+      return true;
+    }
+    return false;
+  };
+  check(rejected_batch({}), "empty batch blocked");
+  check(rejected_batch({O{{"command", "scene.query"}, {"arguments", O{}}}}),
+        "queries cannot enter builder");
+  check(rejected_batch({O{{"command", "entity.rename"},
+                          {"arguments", O{{"id", std::uint64_t{1}}}}}}),
+        "missing fields rejected instead of silently defaulted");
+  check(rejected_batch(
+            {O{{"command", "entity.create"}, {"arguments", O{{"name", ""}}}}}),
+        "invalid child draft blocked");
+  J::Array rows{
+      O{{"command", "entity.create"}, {"arguments", O{{"name", "First"}}}},
+      O{{"command", "entity.create"}, {"arguments", O{{"name", "Second"}}}}};
+  check(rejected_batch(J::Array(65, rows.front())),
+        "builder row bound enforced");
+  std::swap(rows[0], rows[1]);
+  const auto draft = builder.arguments(rows);
+  check(
+      service.call(request("scene.query")).at("revision").as<std::uint64_t>() ==
+          2,
+      "assembling and reordering does not commit");
+  check(service.call(request("transaction.execute", draft)).at("ok").as<bool>(),
+        "assembled batch commits through shared service");
+  auto entities = service.call(request("scene.query"))
+                      .at("data")
+                      .at("entities")
+                      .as<J::Array>();
+  check(entities.size() == 3 &&
+            entities[1].at("name").as<std::string>() == "Second" &&
+            entities[2].at("name").as<std::string>() == "First",
+        "batch preserves user row order");
+  check(service.call(request("history.undo")).at("ok").as<bool>() &&
+            service.call(request("scene.query"))
+                    .at("data")
+                    .at("entities")
+                    .as<J::Array>()
+                    .size() == 1,
+        "one undo removes entire assembled batch");
+  check(service.call(request("history.redo")).at("ok").as<bool>(),
+        "batch redo succeeds");
+  rows.erase(rows.begin());
+  rows.emplace_back(
+      O{{"command", "entity.rename"},
+        {"arguments", O{{"id", std::uint64_t{9999}}, {"name", "Missing"}}}});
+  const auto before_failure = service.call(request("editor.snapshot"));
+  check(!service.call(request("transaction.execute", builder.arguments(rows)))
+             .at("ok")
+             .as<bool>(),
+        "domain errors remain authoritative on bus");
+  check(service.call(request("editor.snapshot")) == before_failure,
+        "failed assembled batch preserves state and history");
   std::cout << "Passed schema defaults, typed limits/enums, UTF-8 bounds, "
                "exact IDs and authoritative dispatch\n";
 }

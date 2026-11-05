@@ -169,6 +169,24 @@
   for the remaining frame budget. Hardware performance remains unmeasured.
 - ADR 0007 documents the model and migration. No engine integration occurred.
 
+## Typed transaction builder
+
+- Added a palette builder for transaction.execute with registry-derived mutation
+  choices, typed child fields, row reordering/removal and one atomic submission.
+  Queries, undo/redo, exports and nested transactions are excluded from choices.
+- Added toolkit-independent batch draft validation with numbered row errors and
+  a 64-row GUI limit. The command service remains authoritative for scene/domain
+  constraints; no draft changes state or history.
+- Model checks cover exclusions, missing/invalid fields, row bounds/order,
+  single-step undo/redo and full rollback after a later row fails.
+- Extended SDL interaction coverage: search/open builder, add two mutation rows,
+  submit, undo both rows together, redo both, then undo again.
+- All 15 desktop checks pass; form tests also pass under ASan/UBSan with the
+  documented local leak-check limitation. The batch interaction sequence passes
+  in X11/Xvfb. Clang-tidy emits no project-code findings.
+- ADR 0008 records the scope. Layout objects retain advanced JSON controls;
+  recursive transactions remain disallowed by the shared service.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -177,8 +195,8 @@
 - This is a starter shell. Dockspace split/tab layouts are supported; floating
   windows are rejected and restored. Legacy panel.dock/layout.resize commands
   explicitly reset custom layouts to starter presets.
-  Primitive palette parameters use generated controls; transaction arrays still
-  use advanced JSON. A nested transaction builder remains future work.
+  Primitive palette parameters and batch rows use generated controls. Layout
+  objects retain advanced JSON; richer nested object widgets remain future work.
 - Icons/font refinement, final polish, prefab/asset schemas, glTF import and binary
   cooking remain outstanding. The software preview is explicitly simulated.
 - Scene/workspace exports preserve existing files; in-place replacement and
@@ -191,5 +209,5 @@ Use only this repository and the existing isolated checkout; no worktree unless
 explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Continue with
-deeper form widgets, shortcut discoverability, visual polish and
+shortcut discoverability, richer object widgets, visual polish and
 Windows verification. Keep docs/STATUS.md current. Joshua merges.
