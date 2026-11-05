@@ -121,6 +121,8 @@
   Queue tests also pass under ThreadSanitizer. Clang-tidy reports no project-code
   findings. Windows and remote CI have not run.
 - Added tested, repeatable rootless cloud setup under editor/tools/setup-cloud.sh.
+  The environment install_script and start_skill are saved as a review draft;
+  publication and restoration in a fresh task have not been verified.
   Tools/system packages live outside the checkout in /workspace/.lyko-tools and
   /workspace/.lyko-system. Network works with approved unsandboxed execution; prior
   proxy-failure diagnoses were incorrect. No environment restart was needed.
