@@ -6,6 +6,7 @@
 #include "platform.hpp"
 #include "shortcut_browser.hpp"
 #include "smoke_harness.hpp"
+#include "source_audit.hpp"
 #include "transaction_form.hpp"
 #include "transport/mcp_stream.hpp"
 #include "ui/command_queue.hpp"
@@ -158,6 +159,7 @@ int main(int argc, char **argv) {
     lyko::DockingAdapter docking;
     lyko::ShortcutBrowser shortcuts;
     lyko::AssetBrowser assets;
+    lyko::SourceAuditView source_audit;
     bool focus_palette = false;
     lyko::DesktopSmokeHarness harness(smoke_input, smoke_docking,
                                       smoke_layout_form, smoke_feedback,
@@ -733,6 +735,19 @@ int main(int argc, char **argv) {
           }
           lyko::draw_form_feedback(feedback);
           std::optional<std::pair<std::string, O>> next_source_form;
+          if (active == "asset.audit" && feedback.result() &&
+              feedback.result()->at("ok").as<bool>() && command_form) {
+            const auto draft = command_form->draft_arguments();
+            if (draft) {
+              if (const auto action =
+                      source_audit.draw(feedback.result()->at("data"),
+                                        draft->at("root").as<std::string>(),
+                                        feedback.generation())) {
+                next_source_form =
+                    std::pair{action->command, action->arguments};
+              }
+            }
+          }
           if ((active == "asset.validate" || active == "asset.check") &&
               feedback.result() && feedback.result()->at("ok").as<bool>() &&
               command_form) {

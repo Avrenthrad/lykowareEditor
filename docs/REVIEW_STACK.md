@@ -28,6 +28,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-asset-instantiation | codex/standalone-editor-source-validation | Registered prefab instantiation, captured source/candidate metadata guards and browser action |
 | codex/standalone-editor-source-fingerprints | codex/standalone-editor-asset-instantiation | Exact-byte SHA-256, source comparisons and checked instantiation |
 | codex/standalone-editor-source-audit | codex/standalone-editor-source-fingerprints | Read-only catalogue-wide source reports, explicit skips and desktop summary |
+| codex/standalone-editor-audit-reports | codex/standalone-editor-source-audit | Full searchable audit report table and guarded source form navigation |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -36,9 +37,9 @@ it has not been applied to the running policy. API authentication remains untest
 No token values are requested or stored. After relevant settings are applied,
 retry the API check before requesting credentials or creating duplicate PRs.
 
-Local validation: desktop preset 32/32 (including 25 headless/model groups),
-ASan/UBSan preset 25/25 with
+Local validation: desktop preset 34/34 (including 26 headless/model groups),
+ASan/UBSan preset 26/26 with
 local leak-check limitation, queue ThreadSanitizer check, clang-tidy with no
-project-code findings, and prior-slice X11 interaction/capture inspection. The new
-audit controls have not been inspected on X11. Windows and remote
+project-code findings, and X11 interaction/capture inspection of the audit report
+diagnostic view. Windows and remote
 CI remain unrun. Joshua reviews and merges.

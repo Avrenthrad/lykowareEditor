@@ -449,3 +449,10 @@ error, including for empty catalogues. Target/revision and schema validation run
 before filesystem access. The query preserves revision/history and is rejected
 inside transaction.execute. Files are checked sequentially with existing bounds;
 this is an observation, not an atomic filesystem snapshot or persistent baseline.
+
+
+Desktop audit reports retain all response rows beyond the generic 4 KiB JSON
+preview. Status/search/row selection only navigate the returned report. Source
+actions open existing asset.validate/asset.instantiate_checked forms with captured
+ID/root/digest arguments; they do not bypass command validation or implicitly run
+commands. There is no new protocol/schema or persistent audit state.

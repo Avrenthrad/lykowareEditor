@@ -471,6 +471,22 @@
   the documented local leak-check limitation. Clang-tidy has no project findings.
   Windows and the new audit controls on a real display remain unverified.
 
+## Full desktop audit reports
+
+- Added a searchable, status-filtered source audit table with clipped rows, full
+  diagnostic details and selectable fingerprints. All returned entries remain
+  reachable beyond the generic result preview's 4 KiB bound.
+- Selected-row actions prefill existing validate/checked-instantiate forms using
+  the report root, ID and observed digest. They never bypass the shared service.
+- Draft edits clear obsolete reports; form generations reset transient view state.
+  Replacement results re-resolve selected IDs and refresh action eligibility.
+- Added model/lifecycle and native SDL tests using 4096 rows. The same native
+  scenario passes under X11/Xvfb; its diagnostic view was visually inspected.
+- ADR 0024 records report navigation, transient lifetime and existing source guards.
+- All 34 desktop test groups and all 26 ASan/UBSan headless groups pass, with
+  the documented local leak-check limitation. The final table-width adjustment
+  also passes targeted model/native tests. Clang-tidy reports no project findings.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

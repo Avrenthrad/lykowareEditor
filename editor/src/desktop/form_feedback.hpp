@@ -62,8 +62,8 @@ inline void draw_form_feedback(const FormFeedback &feedback) {
             static_cast<unsigned long long>(
                 data.at("skipped").as<std::uint64_t>()));
         ImGui::TextWrapped(
-            "Skipped kinds have no content validator. Full audit "
-            "reports are available through CLI/MCP.");
+            "Skipped kinds have no content validator. Select a source below "
+            "to inspect its diagnostics or fingerprint.");
       }
       if (feedback.preview() != "{}" && ImGui::TreeNode("Result data")) {
         ImGui::TextWrapped("%s", feedback.preview().c_str());

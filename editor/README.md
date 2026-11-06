@@ -345,3 +345,12 @@ invalid entries; inspect the counts. Desktop feedback shows the summary and a
 bounded detail preview; CLI/MCP return all rows. No files, catalogue state or undo
 history change. Large audits run on the worker and occupy its command queue until
 finished. Sources are observed sequentially rather than as one filesystem snapshot.
+
+
+The desktop audit form now includes the full report as a searchable table. Filter
+by status, then select a row to inspect diagnostics or its exact-byte fingerprint.
+**Validate current source...** opens the shared validation form; a valid prefab
+also offers **Instantiate audited bytes...**, which preloads checked instantiation
+with the report's digest. Commands still validate current data when submitted.
+Changing the root clears obsolete feedback. Report navigation opens another form;
+reports are transient observations and are not saved or automatically refreshed.

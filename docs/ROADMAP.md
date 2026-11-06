@@ -47,7 +47,7 @@ Basic entity Duplicate/Delete actions now share atomic selection/history behavio
 across desktop, CLI and MCP.
 
 Authoring hierarchy now supports validated reparenting and deterministic scene-tree
-queries with v1/v2 text persistence. Spatial transforms remain future work.
+queries with v1/v2 text persistence.
 
 Local authoring transform commands, numeric forms and JSON v3 persistence now
 provide position/rotation/scale data. Read-only world matrix composition now
@@ -73,6 +73,9 @@ instantiation. Persistent source tracking/watchers remain future work.
 
 Read-only catalogue-wide source audits now collect deterministic per-ID validation
 reports, including explicit unsupported-kind skips.
+
+Full desktop audit tables now expose all returned rows, searchable diagnostics
+and source command navigation beyond the bounded generic preview.
 
 Next: broader object schemas, further usability polish, Windows and target
 hardware validation. Linked prefabs, import/dependency schemas, procedural graphs, glTF import and binary
