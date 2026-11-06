@@ -524,6 +524,22 @@
 - Continuing independent standalone manifest slices on private branches follows
   the user's request; this does not assert Joshua's approval or merge anything.
 
+## Project manifest v1
+
+- Added editor-owned ProjectManifest, narrow versioned TOML syntax, supplied stable
+  identity/name, default/override directory roles and cache/source separation.
+- Shared project.manifest.validate/write commands support palette/CLI/MCP without
+  activating a project. Writes preserve existing files and create no directories;
+  reads reject nonregular sources and are bounded. No dependency was added.
+- ADR 0025 and command/user documentation record syntax and external-file effects.
+- Tests cover Python tomllib compatibility, Unicode/escaping, typed-model errors,
+  defaults/nesting, malformed/duplicate/unknown content, size/path limits, unchanged
+  editor state/history, instance/revision checks and CLI/MCP parity.
+- All 36 desktop test groups and all 28 ASan/UBSan groups pass, with the
+  documented local leak-check limitation. Clang-tidy reports no project findings.
+- Step 8 is implemented locally; project lifecycle, active roots, ID generation and
+  dirty/recovery/save-overwrite behavior remain later tasks. Windows is unverified.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

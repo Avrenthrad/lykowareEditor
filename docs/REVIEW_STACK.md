@@ -32,6 +32,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-delivery-checklist | codex/standalone-editor-audit-reports | Maintained 93-step delivery checklist, prominent links and handover instructions |
 | codex/standalone-editor-delivery-milestones | codex/standalone-editor-delivery-checklist | Checklist step 2: milestone acceptance criteria, dependencies and maintained work board |
 | codex/standalone-editor-core-utf8 | codex/standalone-editor-delivery-milestones | Targeted foundation review and typed-bus UTF-8 entity-name validation |
+| codex/standalone-editor-project-manifest | codex/standalone-editor-core-utf8 | Checklist step 8: versioned TOML project metadata, validated export/read commands and contract tests |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -40,8 +41,8 @@ it has not been applied to the running policy. API authentication remains untest
 No token values are requested or stored. After relevant settings are applied,
 retry the API check before requesting credentials or creating duplicate PRs.
 
-Local validation: desktop preset 34/34 (including 26 headless/model groups),
-ASan/UBSan preset 26/26 with
+Local validation: desktop preset 36/36 (including 28 headless/model groups),
+ASan/UBSan preset 28/28 with
 local leak-check limitation, queue ThreadSanitizer check, clang-tidy with no
 project-code findings, and X11 interaction/capture inspection of the audit report
 diagnostic view. Windows and remote

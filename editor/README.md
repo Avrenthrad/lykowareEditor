@@ -34,7 +34,7 @@ From the repository root, the verified fallback is:
 
 ```
 mkdir -p /tmp/lyko-build
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/tests/command_bus_tests.cpp -o /tmp/lyko-build/tests
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -Ieditor/src editor/tests/json_tests.cpp -o /tmp/lyko-build/json-tests
 /tmp/lyko-build/tests
@@ -120,7 +120,7 @@ them, but a measured frame-rate target has not yet been verified. See ADR 0004 f
 The deterministic queue test can also be built directly from the repository root:
 
 ```
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
 /tmp/lyko-build/queue-tests
 ```
 
@@ -354,3 +354,28 @@ also offers **Instantiate audited bytes...**, which preloads checked instantiati
 with the report's digest. Commands still validate current data when submitted.
 Changing the root clears obsolete feedback. Report navigation opens another form;
 reports are transient observations and are not saved or automatically refreshed.
+
+
+### Project manifest foundation
+
+Search the palette for `project.manifest.write` or `project.manifest.validate`.
+The same commands work headlessly and through MCP:
+
+```json
+{"instance":"studio","command":"project.manifest.write","arguments":{"path":"/project/lykoware.toml","project_id":"0123456789abcdef0123456789abcdef","name":"My Game","directories":{}}}
+{"instance":"studio","command":"project.manifest.validate","arguments":{"path":"/project/lykoware.toml"}}
+```
+
+The parent directory must already exist and the destination must be new. Use your
+own stable 32-character lowercase hexadecimal identity; the example is illustrative.
+Directory settings default to assets, scenes, scripts, graphs and .lyko/cache.
+Override roles in the directories object; paths are portable and project-relative,
+and generated cache directories cannot overlap source directories. Configuration
+does not create those folders, import files or activate a project. Active project
+creation/open/close is the next lifecycle slice.
+
+The conventional manifest is `lykoware.toml`, schema version 1. Supported syntax is
+single-line basic/literal strings, bare known keys, comments, LF/CRLF and one optional
+[directories] table. Unicode scalar escapes are supported; unknown/duplicate keys,
+unsupported versions and other TOML constructs fail explicitly. Generated files
+are compatible with Python tomllib and deterministic; no new library is required.

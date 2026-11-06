@@ -9,15 +9,16 @@ Last updated: 2026-11-06. Owner/reviewer: Joshua, Lykoleon Studios.
 - Foundation already implemented: shared command bus, atomic history, headless CLI,
   instance-targeted MCP, desktop shell, hierarchy/transforms, detached prefabs,
   catalogue/source validation and full desktop audit reports.
-- Latest code checkpoint: `2bfbccd`; 34 desktop test groups and 26 ASan/UBSan
+- Latest code checkpoints: `98b9732` plus the project-manifest slice; 36 desktop test groups and 28 ASan/UBSan
   headless groups passed. See [STATUS](STATUS.md) for evidence and limitations.
-- **Remaining checklist: 1/93 complete.** This counts the remaining delivery steps,
+- **Remaining checklist: 2/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
   Review/merge remains with Joshua; the wider foundation milestone is incomplete.
-- Recommended next feature: step 8, project manifest, after review-stack
-  consolidation. Windows/CI validation should progress as infrastructure permits.
+- Step 8 is implemented locally; reusable fixture coverage (3) and project
+  lifecycle (9) are next. Full foundation review and Joshua decisions remain open.
+  Windows/CI validation should progress as infrastructure permits.
 - Steps 56–65 require Joshua's integration decision. This plan does not authorize
   engine repository access. Steps 83–93 are the later content-suite finish line.
 
@@ -52,7 +53,8 @@ public release without approval. See [review stack](REVIEW_STACK.md).
 
 ## B. Make projects safe and practical — steps 8–16
 
-- [ ] 8. Add a versioned TOML project manifest with project identity, settings and directory conventions.
+- [x] 8. Add a versioned TOML project manifest with project identity, settings and directory conventions.
+  Evidence: ADR 0025, ProjectManifest model/persistence and shared validate/write commands; Python tomllib compatibility, direct model and CLI/MCP tests. Desktop 36/36 and ASan/UBSan 28/28 pass with the documented leak-check limitation. Private branch codex/standalone-editor-project-manifest; not merged.
 - [ ] 9. Add project creation, opening, closing and recent-project workflows through shared commands.
 - [ ] 10. Resolve asset paths against the active project so users need not repeatedly enter its root.
 - [ ] 11. Add dirty-state tracking for scenes, project settings and other editable documents.
@@ -180,3 +182,7 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-06: Completed step 2 locally: milestone acceptance criteria, dependency
   gates and an active work board. Count is now 1/93; this is not an effort-weighted
   project percentage. Review-stack consolidation remains open.
+
+- 2026-11-06: Step 8 implemented locally after targeted core review/fix R001.
+  Remaining checklist is 2/93 complete; step 1 remains partial pending full review
+  and Joshua decisions. Next: reusable fixture projects and project lifecycle.

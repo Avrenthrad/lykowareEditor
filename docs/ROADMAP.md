@@ -109,7 +109,10 @@ reports, including explicit unsupported-kind skips.
 Full desktop audit tables now expose all returned rows, searchable diagnostics
 and source command navigation beyond the bounded generic preview.
 
-Next: consolidate the review stack, then deliver the project manifest and lifecycle
-(steps 8–10). See WORK_BOARD.md for bounded tasks and completion evidence. Windows
+Project manifest v1 and shared validation/no-overwrite export commands are now
+implemented locally (step 8).
+
+Next: continue foundation review and fixture coverage, then project lifecycle and
+active-root resolution (steps 9–10). See WORK_BOARD.md for bounded tasks and completion evidence. Windows
 and target hardware validation remain outstanding. CI is manual/self-hosted and
 has not been run.

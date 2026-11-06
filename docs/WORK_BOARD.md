@@ -26,21 +26,22 @@ near-term queue, not a second copy of all 93 steps.
 | Task | Checklist ID | State | Dependencies / completion evidence |
 | --- | --- | --- | --- |
 | Milestones, acceptance criteria and maintained board | 2 | Implemented (awaiting review) | ROADMAP defines all ten milestone ranges, observable exit criteria and dependencies; this board defines states, completion policy and bounded next slices. Checklist/links/coverage checked. Private branch: codex/standalone-editor-delivery-milestones. |
-| Review foundation stack and proposed ADRs | 1 | In progress | Start at REVIEW_STACK in base order; record findings and fixes against immutable commits; Joshua records review/merge decisions. Do not merge. GitHub API policy currently prevents automated PR creation; private branches and the local review index remain available. |
+| Review foundation stack and proposed ADRs | 1 | Ready | Start at REVIEW_STACK in base order; record findings and fixes against immutable commits; Joshua records review/merge decisions. Do not merge. GitHub API policy currently prevents automated PR creation; private branches and the local review index remain available. |
 | Representative fixture projects | 3 | Ready | Inventory existing test-generated examples; add reusable small/large/malformed/migration fixtures with reproducible expectations. Full completion requires supported formats and migration coverage, not only today's scenes. |
 | Numerical performance budgets | 7 | Ready | Specify representative workloads, agreed numerical targets and repeatable measurement methods. Distinguish local software/mock measurements from RTX 4070/MSI Claw results. |
 | Windows compilation and runtime validation | 4 | Blocked | Requires a Windows environment; no successful Windows result is recorded. Do not infer success from Linux or CMake portability. |
 | Approved cross-platform CI execution | 5 | Blocked | Requires approved available runners. Existing manual CI configuration is not evidence of a run. No paid jobs or artifact storage without Joshua's approval. |
 | Real MCP client interoperability | 6 | Ready | Select available actual clients; record versions and results for negotiation/tools/errors, shared-instance concurrency and instance isolation. Existing transport tests alone do not complete this task. |
-| Project manifest contract and ADR | 8a (part of 8) | In progress | Define TOML version, project identity/name, root and relative directory conventions, defaults, unknown-field policy, validation, migration boundary and file-effect semantics. No runtime/engine dependency. |
-| Project manifest model and bounded persistence | 8b (part of 8) | Blocked | Requires 8a. Implement agreed value model/parser/writer using existing wrappers or an approved pinned permissive dependency. Round-trip valid Unicode/settings; reject malformed/unsupported/path-invalid/oversized data without state changes; protect existing files according to the agreed save contract. |
-| Manifest tests and documentation | 8c (part of 8) | Blocked | Requires 8b. Verify round trips, deterministic output, invalid candidate rejection and filesystem errors on available platforms. Record remaining Windows limits; update protocol/docs/STATUS/checklist. Tick step 8 only after all its agreed requirements are met. |
+| Project manifest contract and ADR | 8a (part of 8) | Implemented (awaiting review) | ADR 0025 and project.manifest.validate/write implemented on codex/standalone-editor-project-manifest. Defines TOML version, project identity/name, root and relative directory conventions, defaults, unknown-field policy, validation, migration boundary and file-effect semantics. No runtime/engine dependency. |
+| Project manifest model and bounded persistence | 8b (part of 8) | Implemented (awaiting review) | Implemented model, bounded parser and no-overwrite writer with shared commands. Uses existing helpers without a new dependency. Planned acceptance: implement value model/parser/writer using existing wrappers or an approved pinned permissive dependency. Round-trip valid Unicode/settings; reject malformed/unsupported/path-invalid/oversized data without state changes; protect existing files according to the agreed save contract. |
+| Manifest tests and documentation | 8c (part of 8) | Implemented (awaiting review) | Python tomllib interoperability, direct typed-model tests and CLI/MCP parity pass. Full validation evidence is in STATUS.md. Planned acceptance: verify round trips, deterministic output, invalid candidate rejection and filesystem errors on available platforms. Record remaining Windows limits; update protocol/docs/STATUS/checklist. Tick step 8 only after all its agreed requirements are met. |
 | Project lifecycle commands | 9 | Blocked | Requires 8. Specify create/open/close/recent-project state and atomic boundaries, then implement shared UI/CLI/MCP access. Reject invalid projects without replacing current state; do not silently discard dirty work. |
 | Active-project asset root resolution | 10 | Blocked | Requires 9. Resolve source operations against the active project; preserve validation, revision and fingerprint guards; document explicit-root compatibility; verify frontend parity and no active-project error behavior. |
 
-Active slice: scoped core review against 1b38fb2 and a direct-bus UTF-8 validation
-fix. Continue reversible manifest slices on the private stack as the user requested;
-Joshua's review/merge remains outstanding and is not treated as permission to merge.
+Core review R001 fixed on 98b9732; the full review and Joshua's decisions remain
+open. Manifest slice 8 is implemented locally; next independent work is reusable
+fixture projects (3), followed by project lifecycle (9). Private stacked work
+continues at the user's request without asserting review approval or merging.
 Step 2's completion does not imply milestone A is complete or that code is merged.
 
 ## Decision and access gates

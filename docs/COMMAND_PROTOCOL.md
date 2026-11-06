@@ -456,3 +456,29 @@ preview. Status/search/row selection only navigate the returned report. Source
 actions open existing asset.validate/asset.instantiate_checked forms with captured
 ID/root/digest arguments; they do not bypass command validation or implicitly run
 commands. There is no new protocol/schema or persistent audit state.
+
+
+## Project manifest v1
+
+`project.manifest.validate` takes `path` and returns normalized
+`{schema_version: 1, project_id, name, directories}` metadata. It reads a regular
+TOML file, validates the entire candidate and preserves editor state/history.
+It does not activate a project or resolve scene/catalogue state.
+
+`project.manifest.write` takes `path`, `project_id`, `name` and `directories`.
+Supply `{}` for default directories, or override any assets/scenes/scripts/graphs/
+cache roles. Identity is exactly 32 lowercase hexadecimal characters, supplied by
+the caller. Names contain 1–128 UTF-8 bytes without ASCII controls/DEL. Directory
+values obey existing portable project-relative path rules; source roles may nest,
+but cache/source overlap is rejected ignoring ASCII case. Normalized defaults are
+assets, scenes, scripts, graphs and .lyko/cache. Unknown directory roles fail.
+The result is `{saved: true, manifest: <normalized metadata>}`.
+
+Writing is a `filesystem_export`, not undoable, and requires a new destination.
+It creates no directories or active project state. Both operations are rejected
+inside transaction.execute. Target/revision/schema preconditions run before file
+access. Manifest/model/file failures return `invalid_project_manifest` with an
+offending field, `manifest` for syntax/encoding errors or `path` for file failures;
+ordinary malformed command schemas retain `invalid_request`. Reads are bounded to
+1 MiB; unsupported publication filesystems fail safely. See ADR 0025 for the
+supported narrow TOML syntax and no-overwrite/power-loss limitations.

@@ -3,6 +3,7 @@
 #include "prefab.hpp"
 #include "asset_source.hpp"
 #include "content_hash.hpp"
+#include "project_manifest.hpp"
 #include "transform_json.hpp"
 #include "world_transform.hpp"
 #include "text_file.hpp"
@@ -19,7 +20,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -60,6 +61,8 @@ const std::vector<Entry>& registry() {
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"prefab.export", "Export an authoring subtree to a NEW JSON prefab path; local placement is retained and export is not undoable.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string"}}, {}, Action::prefab_export},
         {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
+        {"project.manifest.validate", "Validate a TOML v1 project manifest and return normalized metadata without activating a project.", {{"path","string"}}, {}, Action::manifest_validate},
+        {"project.manifest.write", "Validate and export a NEW TOML project manifest; does not activate a project, create directories or change history.", {{"path","string"},{"project_id","string",{{"title","Project identity (32 lowercase hex characters)"},{"minLength",std::uint64_t{32}},{"maxLength",std::uint64_t{32}}}},{"name","string"},{"directories","object",{{"default",O{}},{"description","Optional assets/scenes/scripts/graphs/cache directory overrides; omitted roles use defaults."},{"additionalProperties",false},{"properties",O{{"assets",O{{"type","string"}}},{"scenes",O{{"type","string"}}},{"scripts",O{{"type","string"}}},{"graphs",O{{"type","string"}}},{"cache",O{{"type","string"}}}}}}}}, {}, Action::manifest_write},
         {"asset.audit", "Read-only catalogue-wide scene/prefab source validation in ID order; unsupported kinds are skipped and source failures are reported per entry.", {{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory for this audit. Files are observed sequentially, not as an atomic filesystem snapshot."}}}}, {}, Action::asset_audit},
         {"asset.check", "Validate a scene/prefab and compare its exact byte SHA-256 with a previous observation; read-only.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"}}},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_check},
         {"asset.instantiate_checked", "Instantiate a registered prefab only if the captured source bytes match the expected SHA-256.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"}}},{"parent","integer",{{"default",std::uint64_t{0}}}},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_instantiate_checked},
@@ -172,7 +175,7 @@ Json CommandService::descriptors() const {
     for (const auto& entry : registry()) {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
-                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save) ? "filesystem_export" :
+                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save || entry.action == Action::manifest_write) ? "filesystem_export" :
                                 (is_mutation(entry) || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
                             {"undoable", is_mutation(entry) || entry.action == Action::transaction},
                             {"mutation", is_mutation(entry) || entry.action == Action::transaction}});
@@ -217,6 +220,20 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
+        else if(entry.action==Action::manifest_validate || entry.action==Action::manifest_write){
+            std::filesystem::path path;
+            try {path=path_from_utf8(args.at("path").as<std::string>());}
+            catch(const std::invalid_argument& error){throw ProjectManifestError("path",error.what());}
+            if(entry.action==Action::manifest_validate){data=project_manifest_json(load_project_manifest(path));}
+            else {
+                ProjectManifest manifest;manifest.project_id=args.at("project_id").as<std::string>();manifest.name=args.at("name").as<std::string>();
+                for(const auto& [key,value]:args.at("directories").as<O>()){
+                    try {manifest.directories.insert_or_assign(key,value.as<std::string>());}
+                    catch(const std::invalid_argument& error){throw ProjectManifestError("directories."+key,error.what());}
+                }
+                save_project_manifest(path,manifest);data=O{{"saved",true},{"manifest",project_manifest_json(manifest)}};
+            }
+        }
         else if(entry.action==Action::asset_audit){
             try {data=audit_asset_sources(bus_.snapshot().first.assets,path_from_utf8(args.at("root").as<std::string>()));}
             catch(const std::invalid_argument& error){return error_json(revision,"invalid_asset_source","root",error.what());}
@@ -301,6 +318,7 @@ Json CommandService::call(const Json& request) {
         }
         else if (entry.action == Action::scene) { data = document_json(bus_.snapshot().first); }
         return response(result, std::move(data));
+    } catch(const ProjectManifestError& e){return error_json(revision,"invalid_project_manifest",e.field(),e.what());
     } catch(const DecodeError& e){return error_json(revision,e.code,e.field,e.what());
     } catch(const AssetSourceError& e){return error_json(revision,"invalid_asset_source",e.field(),e.what());
     } catch (const std::invalid_argument& e) {
