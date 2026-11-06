@@ -33,6 +33,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-delivery-milestones | codex/standalone-editor-delivery-checklist | Checklist step 2: milestone acceptance criteria, dependencies and maintained work board |
 | codex/standalone-editor-core-utf8 | codex/standalone-editor-delivery-milestones | Targeted foundation review and typed-bus UTF-8 entity-name validation |
 | codex/standalone-editor-project-manifest | codex/standalone-editor-core-utf8 | Checklist step 8: versioned TOML project metadata, validated export/read commands and contract tests |
+| codex/standalone-editor-project-fixtures | codex/standalone-editor-project-manifest | Checklist step 3: reusable project/legacy/malformed fixtures and deterministic large workloads |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -46,4 +47,5 @@ ASan/UBSan preset 28/28 with
 local leak-check limitation, queue ThreadSanitizer check, clang-tidy with no
 project-code findings, and X11 interaction/capture inspection of the audit report
 diagnostic view. Windows and remote
-CI remain unrun. Joshua reviews and merges.
+CI remain unrun. The added fixture_projects group also passes in both builds
+(total registered groups now 37 desktop / 29 headless). Joshua reviews and merges.

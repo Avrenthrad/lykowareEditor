@@ -379,3 +379,14 @@ single-line basic/literal strings, bare known keys, comments, LF/CRLF and one op
 [directories] table. Unicode scalar escapes are supported; unknown/duplicate keys,
 unsupported versions and other TOML constructs fail explicitly. Generated files
 are compatible with Python tomllib and deterministic; no new library is required.
+
+
+### Reusable project fixtures
+
+[Fixture data and expectations](tests/fixtures/README.md) cover all currently
+supported persisted formats: scene v1/v2/v3, workspace v1/v2, prefab v1, catalogue
+v1 and project manifest v1. The `fixture_projects` CTest group exercises CLI/MCP
+parity, invalid-candidate rollback, scene promotion and workspace migration.
+An offline generator provides a 1000-entity scene and a full 4096-entry catalogue
+in a fresh temporary directory. These are correctness workloads, not hardware
+performance results. No engine files or runtime resource import are involved.

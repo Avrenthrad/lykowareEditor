@@ -540,6 +540,21 @@
 - Step 8 is implemented locally; project lifecycle, active roots, ID generation and
   dirty/recovery/save-overwrite behavior remain later tasks. Windows is unverified.
 
+## Reusable project fixtures
+
+- Completed checklist step 3 for all currently supported persisted formats: scene
+  v1/v2/v3, workspace v1/v2, prefab v1, catalogue v1 and project manifest v1.
+- Added original small project data and malformed inputs; deterministic offline
+  generator supplies a 1000-entity scene and full 4096-entry mesh catalogue without
+  real imported resources. Fixture expectations and use are documented.
+- The new fixture_projects group passes on desktop and ASan/UBSan (documented
+  local leak-check limitation). It checks source preservation, CLI/MCP parity,
+  invalid-input rollback, scene promotion, workspace migration and generated data.
+- Runtime code is unchanged since the full 36/28 test run. There are now 37 desktop
+  and 29 headless groups registered; the new group was run separately on both.
+- Checklist is 3/93 complete locally. New formats/migrations must extend fixtures;
+  correctness workloads are not performance or real runtime validation claims.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "next_id": 3,
+  "entities": [
+    {
+      "id": 1,
+      "name": "Root"
+    },
+    {
+      "id": 2,
+      "name": "Child"
+    }
+  ]
+}

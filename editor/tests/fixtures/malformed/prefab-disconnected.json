@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "type": "lykoware.prefab",
+  "root": 1,
+  "scene": {
+    "schema_version": 1,
+    "next_id": 3,
+    "entities": [
+      {
+        "id": 1,
+        "name": "A"
+      },
+      {
+        "id": 2,
+        "name": "B"
+      }
+    ]
+  }
+}

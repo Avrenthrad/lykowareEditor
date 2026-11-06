@@ -1,0 +1,22 @@
+{
+  "schema_version": 3,
+  "next_id": 2,
+  "entities": [
+    {
+      "id": 1,
+      "name": "Invalid",
+      "parent": 0,
+      "transform": {
+        "px": 0,
+        "py": 0,
+        "pz": 0,
+        "rx": 0,
+        "ry": 0,
+        "rz": 0,
+        "sx": 0,
+        "sy": 1,
+        "sz": 1
+      }
+    }
+  ]
+}

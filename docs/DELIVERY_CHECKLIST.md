@@ -11,7 +11,7 @@ Last updated: 2026-11-06. Owner/reviewer: Joshua, Lykoleon Studios.
   catalogue/source validation and full desktop audit reports.
 - Latest code checkpoints: `98b9732` plus the project-manifest slice; 36 desktop test groups and 28 ASan/UBSan
   headless groups passed. See [STATUS](STATUS.md) for evidence and limitations.
-- **Remaining checklist: 2/93 complete.** This counts the remaining delivery steps,
+- **Remaining checklist: 3/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
@@ -45,7 +45,8 @@ public release without approval. See [review stack](REVIEW_STACK.md).
   Progress: targeted core pass against 1b38fb2 recorded in FOUNDATION_REVIEW.md; direct-bus UTF-8 persistence defect fixed and regression-tested. Full stack/ADR review and Joshua decisions remain open.
 - [x] 2. Replace the short roadmap with milestones, acceptance criteria and a maintained work board.
   Evidence: ROADMAP.md covers milestones A–J with observable exit criteria and dependencies; WORK_BOARD.md defines the queue, task states and next slices. Documentation links, stable IDs and milestone coverage checked. Implemented locally on codex/standalone-editor-delivery-milestones; awaiting Joshua review/merge.
-- [ ] 3. Establish representative test projects: small, large, malformed and migration fixtures.
+- [x] 3. Establish representative test projects: small, large, malformed and migration fixtures.
+  Evidence: editor/tests/fixtures covers scene 1/2/3, workspace 1/2, prefab/catalogue/project 1; deterministic generator supplies 1000 entities and 4096 catalogue entries. fixture_projects passes in desktop and ASan/UBSan builds; source fixtures stay unchanged. Private branch codex/standalone-editor-project-fixtures; not merged.
 - [ ] 4. Verify Windows builds and fix platform-specific problems.
 - [ ] 5. Run Linux/Windows CI on approved infrastructure, including sanitizers and clang-tidy.
 - [ ] 6. Validate compatibility with actual MCP clients and multiple editor instances.
@@ -186,3 +187,6 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-06: Step 8 implemented locally after targeted core review/fix R001.
   Remaining checklist is 2/93 complete; step 1 remains partial pending full review
   and Joshua decisions. Next: reusable fixture projects and project lifecycle.
+
+- 2026-11-06: Step 3 implemented locally with reusable fixture bundles and migration/
+  failure/large-workload checks. Count is 3/93; future formats must add fixtures.
