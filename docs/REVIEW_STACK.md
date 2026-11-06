@@ -29,6 +29,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-source-fingerprints | codex/standalone-editor-asset-instantiation | Exact-byte SHA-256, source comparisons and checked instantiation |
 | codex/standalone-editor-source-audit | codex/standalone-editor-source-fingerprints | Read-only catalogue-wide source reports, explicit skips and desktop summary |
 | codex/standalone-editor-audit-reports | codex/standalone-editor-source-audit | Full searchable audit report table and guarded source form navigation |
+| codex/standalone-editor-delivery-checklist | codex/standalone-editor-audit-reports | Maintained 93-step delivery checklist, prominent links and handover instructions |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.

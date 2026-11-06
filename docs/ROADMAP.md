@@ -1,5 +1,8 @@
 # Editor roadmap
 
+**Maintained delivery checklist:** [All remaining steps and progress](DELIVERY_CHECKLIST.md).
+Use its stable step IDs for task tracking; this file summarizes milestones and history.
+
 1. Review ADR 0001 and establish standalone C++20/CMake presets and test harness.
 2. Implement typed command registry, structured errors, atomic transactions,
    undo/redo, EngineBridge and deterministic mock. Add headless CLI and tests.

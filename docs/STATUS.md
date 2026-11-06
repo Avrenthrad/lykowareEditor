@@ -487,6 +487,18 @@
   the documented local leak-check limitation. The final table-width adjustment
   also passes targeted model/native tests. Clang-tidy reports no project findings.
 
+## Delivery checklist reference
+
+- Saved the agreed 93 remaining steps in docs/DELIVERY_CHECKLIST.md and placed
+  prominent reference links in README.md and ROADMAP.md.
+- Recorded completed foundations separately from remaining work: 0/93 remaining
+  steps fully completed, with step 2 partial. This is not a project percentage.
+- Added AGENTS.md instructions to update the checklist and status after each task,
+  retain evidence and distinguish completed implementation from Joshua's merges.
+- Recommended next feature remains project manifest (step 8), after review-stack
+  consolidation. Engine integration remains gated on Joshua's separate decision.
+- Documentation-only task; checked numbered IDs, progress count and local links.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

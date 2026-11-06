@@ -1,5 +1,7 @@
 # Lykoware Editor
 
+**Project checklist:** [Remaining steps and progress](docs/DELIVERY_CHECKLIST.md)
+
 Standalone, command-driven editor for Lykoleon Studios. The current implementation
 provides a standalone ImGui/SDL3 desktop, headless JSON CLI, shared-instance stdio
 MCP, transactional editing and a deterministic mock backend. Final UI polish and
