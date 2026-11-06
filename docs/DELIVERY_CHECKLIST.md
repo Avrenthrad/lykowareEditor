@@ -190,3 +190,4 @@ These are release gates, not a reason to defer usability or validation until the
 
 - 2026-11-06: Step 3 implemented locally with reusable fixture bundles and migration/
   failure/large-workload checks. Count is 3/93; future formats must add fixtures.
+  Generated Python bytecode is excluded from version control.

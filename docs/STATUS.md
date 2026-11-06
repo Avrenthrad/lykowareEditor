@@ -550,6 +550,8 @@
 - The new fixture_projects group passes on desktop and ASan/UBSan (documented
   local leak-check limitation). It checks source preservation, CLI/MCP parity,
   invalid-input rollback, scene promotion, workspace migration and generated data.
+- Removed an inadvertently staged generated Python cache and added test-directory
+  ignore rules; fixture tests suppress bytecode generation when importing helpers.
 - Runtime code is unchanged since the full 36/28 test run. There are now 37 desktop
   and 29 headless groups registered; the new group was run separately on both.
 - Checklist is 3/93 complete locally. New formats/migrations must extend fixtures;
