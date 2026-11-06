@@ -71,6 +71,9 @@ resolution, with atomic history and explicit staged-catalogue guards.
 Exact-byte fingerprints now support explicit source rechecks and guarded prefab
 instantiation. Persistent source tracking/watchers remain future work.
 
+Read-only catalogue-wide source audits now collect deterministic per-ID validation
+reports, including explicit unsupported-kind skips.
+
 Next: broader object schemas, further usability polish, Windows and target
 hardware validation. Linked prefabs, import/dependency schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

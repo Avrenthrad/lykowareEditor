@@ -328,3 +328,20 @@ review. Exact file bytes are hashed, including whitespace. Checked
 instantiation remains a detached copy; redo never rereads the source.
 PicoSHA2 v1.0.1 is vendored under MIT behind the content_hash wrapper; see
 third_party/README.md. Fingerprints are observations, not signatures or file locks.
+
+
+### Audit registered sources
+
+Choose **Audit sources...** in the Assets browser, or send:
+
+```json
+{"instance":"studio","command":"asset.audit","arguments":{"root":"/absolute/project"}}
+```
+
+The same command is available through MCP. Reports list catalogue entries by ID,
+with valid/invalid/skipped counts and per-entry diagnostics or exact-byte hashes.
+Unsupported kinds are skipped without reading them. A completed report can contain
+invalid entries; inspect the counts. Desktop feedback shows the summary and a
+bounded detail preview; CLI/MCP return all rows. No files, catalogue state or undo
+history change. Large audits run on the worker and occupy its command queue until
+finished. Sources are observed sequentially rather than as one filesystem snapshot.

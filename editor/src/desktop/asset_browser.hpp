@@ -32,6 +32,9 @@ public:
       if (ImGui::Button("Save catalogue...")) {
         action = AssetAction{"asset.catalog.save", {}};
       }
+      if (ImGui::Button("Audit sources...")) {
+        action = AssetAction{"asset.audit", {}};
+      }
       ImGui::InputTextWithHint("##filter", "Search paths or kinds...",
                                query_.data(), query_.size());
       const auto query = asset_fold(query_.data());

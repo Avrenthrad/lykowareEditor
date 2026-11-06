@@ -47,6 +47,24 @@ inline void draw_form_feedback(const FormFeedback &feedback) {
                   : "Source bytes have changed.");
         }
       }
+      if (std::holds_alternative<Json::Object>(data.value) &&
+          data.contains("entries") && data.contains("total") &&
+          data.contains("valid") && data.contains("invalid") &&
+          data.contains("skipped")) {
+        ImGui::TextWrapped(
+            "Sources: %llu total / %llu valid / %llu invalid / %llu skipped",
+            static_cast<unsigned long long>(
+                data.at("total").as<std::uint64_t>()),
+            static_cast<unsigned long long>(
+                data.at("valid").as<std::uint64_t>()),
+            static_cast<unsigned long long>(
+                data.at("invalid").as<std::uint64_t>()),
+            static_cast<unsigned long long>(
+                data.at("skipped").as<std::uint64_t>()));
+        ImGui::TextWrapped(
+            "Skipped kinds have no content validator. Full audit "
+            "reports are available through CLI/MCP.");
+      }
       if (feedback.preview() != "{}" && ImGui::TreeNode("Result data")) {
         ImGui::TextWrapped("%s", feedback.preview().c_str());
         ImGui::TreePop();

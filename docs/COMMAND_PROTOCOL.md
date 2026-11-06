@@ -430,3 +430,22 @@ atomic allocation/history and captured redo semantics from asset.instantiate.
 Malformed JSON can fail source reading before digest comparison. Equal bytes do
 not guarantee future path identity; normal-project-tree resolution limits remain.
 Neither query changes catalogue/history. Hashes are not stored in manifests/scenes.
+
+
+## Catalogue source audit
+
+`asset.audit` accepts `{ "root": "/absolute/project/directory" }`. It captures the
+committed catalogue and checks scene/prefab sources in ascending asset-ID order.
+The response data contains integer `total`, `valid`, `invalid`, `skipped` counts
+and an `entries` array. Every row has `id`, `path`, `kind` and `status`:
+
+- `valid`: existing validation metadata (`valid: true`, `bytes`, `sha256`, `entities`).
+- `invalid`: `error: {code: "invalid_asset_source", field, message}`.
+- `skipped`: `reason: "unsupported_asset_kind"`; no source file is read.
+
+A report with invalid entries still returns `ok: true`: callers must inspect its
+counts/statuses. Invalid roots return a top-level `invalid_asset_source`/`root`
+error, including for empty catalogues. Target/revision and schema validation run
+before filesystem access. The query preserves revision/history and is rejected
+inside transaction.execute. Files are checked sequentially with existing bounds;
+this is an observation, not an atomic filesystem snapshot or persistent baseline.

@@ -19,7 +19,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -60,6 +60,7 @@ const std::vector<Entry>& registry() {
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"prefab.export", "Export an authoring subtree to a NEW JSON prefab path; local placement is retained and export is not undoable.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string"}}, {}, Action::prefab_export},
         {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
+        {"asset.audit", "Read-only catalogue-wide scene/prefab source validation in ID order; unsupported kinds are skipped and source failures are reported per entry.", {{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory for this audit. Files are observed sequentially, not as an atomic filesystem snapshot."}}}}, {}, Action::asset_audit},
         {"asset.check", "Validate a scene/prefab and compare its exact byte SHA-256 with a previous observation; read-only.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"}}},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_check},
         {"asset.instantiate_checked", "Instantiate a registered prefab only if the captured source bytes match the expected SHA-256.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"}}},{"parent","integer",{{"default",std::uint64_t{0}}}},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_instantiate_checked},
         {"asset.instantiate", "Instantiate a registered prefab beneath an explicit project root as an undoable detached copy; catalogue edits must commit first.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory used for this source read."}}},{"parent","integer",{{"default",std::uint64_t{0}}}}}, {}, Action::asset_instantiate},
@@ -216,6 +217,10 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
+        else if(entry.action==Action::asset_audit){
+            try {data=audit_asset_sources(bus_.snapshot().first.assets,path_from_utf8(args.at("root").as<std::string>()));}
+            catch(const std::invalid_argument& error){return error_json(revision,"invalid_asset_source","root",error.what());}
+        }
         else if(entry.action==Action::asset_validate || entry.action==Action::asset_check){
             if(entry.action==Action::asset_check&&!valid_sha256(args.at("sha256").as<std::string>())){return error_json(revision,"invalid_fingerprint","sha256","Use 64 lowercase hexadecimal SHA-256 characters.");}
             const auto catalog=bus_.snapshot().first.assets;const auto id=args.at("id").as<std::uint64_t>();

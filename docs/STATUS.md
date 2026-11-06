@@ -458,6 +458,19 @@
 - ADR 0022 records scope. No persistent hash baseline, watcher/cache, signature,
   file lock, hostile-filesystem guarantee or scene/catalogue schema change is added.
 
+## Catalogue source audit
+
+- Added read-only asset.audit with an explicit root, stable ID ordering, per-source
+  diagnostics, exact-byte hashes and valid/invalid/skipped summary counts.
+- Reuses existing scene/prefab validators; unsupported kinds are skipped without
+  source reads. Root failures remain top-level errors, even for empty catalogues.
+- Assets browser opens the common command form; feedback shows counts and bounded
+  details. CLI/MCP expose full reports. No persistence or undo/history changes.
+- ADR 0023 records sequential filesystem observation and serialized-worker limits.
+- All 32 desktop test groups and all 25 ASan/UBSan headless groups pass, with
+  the documented local leak-check limitation. Clang-tidy has no project findings.
+  Windows and the new audit controls on a real display remain unverified.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
