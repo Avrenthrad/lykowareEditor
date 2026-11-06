@@ -26,6 +26,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-assets | codex/standalone-editor-prefabs | Stable catalogue metadata, validated relative paths, independent persistence and browser |
 | codex/standalone-editor-source-validation | codex/standalone-editor-assets | Read-only project-root scene/prefab validation and structured source diagnostics |
 | codex/standalone-editor-asset-instantiation | codex/standalone-editor-source-validation | Registered prefab instantiation, captured source/candidate metadata guards and browser action |
+| codex/standalone-editor-source-fingerprints | codex/standalone-editor-asset-instantiation | Exact-byte SHA-256, source comparisons and checked instantiation |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -34,8 +35,8 @@ it has not been applied to the running policy. API authentication remains untest
 No token values are requested or stored. After relevant settings are applied,
 retry the API check before requesting credentials or creating duplicate PRs.
 
-Local validation: desktop preset 29/29 (including 22 headless/model groups),
-ASan/UBSan preset 22/22 with
+Local validation: desktop preset 31/31 (including 24 headless/model groups),
+ASan/UBSan preset 24/24 with
 local leak-check limitation, queue ThreadSanitizer check, clang-tidy with no
 project-code findings, and X11 interaction/capture inspection. Windows and remote
 CI remain unrun. Joshua reviews and merges.

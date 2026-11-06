@@ -1,4 +1,5 @@
 #include "asset_source.hpp"
+#include "content_hash.hpp"
 #include "prefab.hpp"
 #include "text_file.hpp"
 namespace lyko {
@@ -43,7 +44,8 @@ AssetSource read_asset_source(const Asset &asset,
   try {
     const auto text = read_text_file(source);
     return AssetSource{Json::parse(text),
-                       static_cast<std::uint64_t>(text.size())};
+                       static_cast<std::uint64_t>(text.size()),
+                       content_sha256(text)};
   } catch (const std::exception &error) {
     throw AssetSourceError("path", error.what());
   }
@@ -61,6 +63,7 @@ Json validate_asset_source(std::uint64_t id, const Asset &asset,
         {"kind", asset.kind},
         {"valid", true},
         {"bytes", source.bytes},
+        {"sha256", source.sha256},
         {"entities", static_cast<std::uint64_t>(document.entities.size())}};
   } catch (const std::exception &error) {
     throw AssetSourceError("path", error.what());

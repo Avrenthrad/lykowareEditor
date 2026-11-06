@@ -410,3 +410,23 @@ combines registration and an explicit-path copy. Stale revision guards precede
 source reading. Missing IDs return not_found/id; non-prefabs return
 unsupported_asset_kind/kind; source failures return invalid_asset_source/root/path.
 The source-reader containment/concurrent-filesystem limitations remain unchanged.
+
+## Source byte fingerprints
+
+Successful asset.validate responses now include sha256: 64 lowercase hex characters
+computed from the exact file bytes used for JSON parsing. Whitespace, line endings
+and encoding-byte changes therefore alter the token even when authoring data is
+equivalent. No canonical JSON hashing or persistent catalogue baseline is implied.
+
+asset.check takes id/root/sha256, validates the current scene/prefab and returns
+the current digest plus matches (true/false). A valid but changed source is a
+successful query with matches=false; missing/invalid sources remain structured
+errors. Invalid tokens return invalid_fingerprint/sha256 before reading the file.
+
+asset.instantiate_checked takes id/root/parent/sha256. It requires prefab kind,
+compares the captured bytes to the expected token, and returns asset_source_changed/
+sha256 on mismatch before applying any mutation. It retains catalogue guards,
+atomic allocation/history and captured redo semantics from asset.instantiate.
+Malformed JSON can fail source reading before digest comparison. Equal bytes do
+not guarantee future path identity; normal-project-tree resolution limits remain.
+Neither query changes catalogue/history. Hashes are not stored in manifests/scenes.

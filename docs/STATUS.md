@@ -440,6 +440,24 @@
 - ADR 0021 records semantics. Instances remain detached; no source writes, runtime
   resources, persistent provenance or new scene/catalogue format is introduced.
 
+## Source fingerprints and checked instantiation
+
+- Vendored pinned MIT PicoSHA2 v1.0.1 behind a checksum-verified offline CMake/core
+  wrapper. Known SHA-256 vectors, binary inputs and million-byte data are tested.
+- Source reads return SHA-256 of the exact bytes parsed. asset.validate exposes
+  the token; asset.check compares against an explicit expected token read-only.
+- asset.instantiate_checked rejects a changed source before committing, retaining
+  existing catalogue guards, atomic copy/history and captured redo semantics.
+- Successful validation feedback exposes selectable digests and prefilled Recheck/
+  Instantiate-validated-bytes navigation through the same named command forms.
+- Tests compare file hashes to Python hashlib at padding boundaries and the 1 MiB
+  cap, and cover changed bytes, invalid tokens, checked mutations and rollback.
+- All 31 desktop checks and all 24 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings. The
+  hash wrapper also passes a standalone strict-warning compile and vector run.
+- ADR 0022 records scope. No persistent hash baseline, watcher/cache, signature,
+  file lock, hostile-filesystem guarantee or scene/catalogue schema change is added.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

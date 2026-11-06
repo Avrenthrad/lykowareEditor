@@ -1,6 +1,7 @@
 #pragma once
 #include "platform.hpp"
 #include "ui/form_feedback.hpp"
+#include <array>
 namespace lyko {
 inline void draw_form_feedback(const FormFeedback &feedback) {
   if (feedback.busy()) {
@@ -30,6 +31,22 @@ inline void draw_form_feedback(const FormFeedback &feedback) {
       }
     } else {
       ImGui::TextUnformatted("Command completed.");
+      const auto &data = result.at("data");
+      if (std::holds_alternative<Json::Object>(data.value) &&
+          data.contains("sha256")) {
+        std::array<char, 65> digest{};
+        const auto &text = data.at("sha256").as<std::string>();
+        std::copy_n(text.begin(), std::min<std::size_t>(64, text.size()),
+                    digest.begin());
+        ImGui::InputText("SHA-256", digest.data(), digest.size(),
+                         ImGuiInputTextFlags_ReadOnly);
+        if (data.contains("matches")) {
+          ImGui::TextUnformatted(
+              data.at("matches").as<bool>()
+                  ? "Source bytes match the expected version."
+                  : "Source bytes have changed.");
+        }
+      }
       if (feedback.preview() != "{}" && ImGui::TreeNode("Result data")) {
         ImGui::TextWrapped("%s", feedback.preview().c_str());
         ImGui::TreePop();

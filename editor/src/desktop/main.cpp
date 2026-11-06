@@ -732,6 +732,41 @@ int main(int argc, char **argv) {
             feedback.reconcile(command_form->draft_arguments());
           }
           lyko::draw_form_feedback(feedback);
+          std::optional<std::pair<std::string, O>> next_source_form;
+          if ((active == "asset.validate" || active == "asset.check") &&
+              feedback.result() && feedback.result()->at("ok").as<bool>() &&
+              command_form) {
+            const auto draft = command_form->draft_arguments();
+            const auto &data = feedback.result()->at("data");
+            if (draft && data.contains("sha256")) {
+              O values{{"id", draft->at("id")},
+                       {"root", draft->at("root")},
+                       {"sha256", data.at("sha256")}};
+              if (ImGui::Button("Recheck this version")) {
+                next_source_form = std::pair{"asset.check", values};
+              }
+              if (data.at("kind").as<std::string>() == "prefab" &&
+                  ImGui::Button("Instantiate validated bytes...")) {
+                values.emplace("parent", std::uint64_t{0});
+                next_source_form =
+                    std::pair{"asset.instantiate_checked", values};
+              }
+            }
+          }
+          if (active == "asset.instantiate_checked" && feedback.error() &&
+              feedback.error()->at("code").as<std::string>() ==
+                  "asset_source_changed" &&
+              command_form) {
+            const auto draft = command_form->draft_arguments();
+            if (draft && ImGui::Button("Validate current source...")) {
+              next_source_form =
+                  std::pair{"asset.validate", O{{"id", draft->at("id")},
+                                                {"root", draft->at("root")}}};
+            }
+          }
+          if (next_source_form) {
+            open_form(next_source_form->first, next_source_form->second);
+          }
           ImGui::Spacing();
           if (ImGui::Button("Back")) {
             active.clear();

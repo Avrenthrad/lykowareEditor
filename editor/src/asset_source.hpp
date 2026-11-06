@@ -14,6 +14,7 @@ private:
 struct AssetSource {
   Json json;
   std::uint64_t bytes;
+  std::string sha256;
 };
 AssetSource read_asset_source(const Asset &asset,
                               const std::filesystem::path &root);
