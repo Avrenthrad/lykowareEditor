@@ -1,16 +1,7 @@
 #pragma once
-#include "assets.hpp"
+#include "project_model.hpp"
 #include <stdexcept>
 namespace lyko {
-struct ProjectManifest {
-  std::string project_id, name;
-  std::map<std::string, std::string> directories{{"assets", "assets"},
-                                                 {"scenes", "scenes"},
-                                                 {"scripts", "scripts"},
-                                                 {"graphs", "graphs"},
-                                                 {"cache", ".lyko/cache"}};
-  bool operator==(const ProjectManifest &) const = default;
-};
 class ProjectManifestError : public std::invalid_argument {
 public:
   ProjectManifestError(std::string field, std::string message)

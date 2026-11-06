@@ -482,3 +482,30 @@ offending field, `manifest` for syntax/encoding errors or `path` for file failur
 ordinary malformed command schemas retain `invalid_request`. Reads are bounded to
 1 MiB; unsupported publication filesystems fail safely. See ADR 0025 for the
 supported narrow TOML syntax and no-overwrite/power-loss limitations.
+
+
+## Project context (partial lifecycle)
+
+`project.open {path}` validates the manifest, captures its canonical absolute path,
+containing root and normalized metadata, then commits the active context undoably.
+`project.close {}` clears active context without deleting files. `project.query {}`
+returns `{active: null | {path, root, manifest}, recent: [{path, root, manifest}]}`.
+`editor.snapshot.data.project` exposes the same coherent state. Recent entries are
+session-local metadata, most recent first, deduplicated by canonical path, capped
+at 16. `project.recent.clear {}` clears that list undoably, retaining active context.
+
+Open/close/clear use the transaction bus and are allowed in transaction.execute.
+Context switches and closing require a fully reset scene/catalogue and mock runtime;
+otherwise `project_has_content`/`project` preserves the entire state/history.
+A deleted-last-entity scene still has consumed IDs and is not reset. Explicitly
+save work, then reset via intended scene/catalogue loads before switching. These
+commands do not silently load or discard content. Reopening the exact current
+captured context is a no-op, including with content present. It does not reinsert
+recents after clearing them. Invalid captured direct C++ sessions return
+`invalid_project` with the offending field; source errors retain manifest errors.
+
+Undo/redo uses captured metadata without rereading files. Queries do not establish
+that a source still exists. Recent navigation opens the current file again. No
+absolute context paths or recents enter scene/prefab/catalogue/workspace exports.
+This is partial lifecycle support: project directory creation, persistent recent
+settings and dirty-aware switching remain outstanding. See ADR 0026.

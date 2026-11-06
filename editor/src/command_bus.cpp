@@ -33,7 +33,29 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
         try {
         error = std::visit([&](const auto& command) -> std::optional<Error> {
             using T = std::decay_t<decltype(command)>;
-            if constexpr (std::is_same_v<T, AssetMutation>) {
+            if constexpr (std::is_same_v<T, ProjectMutation>) {
+                return std::visit([&](const auto& edit)->std::optional<Error>{
+                    using P=std::decay_t<decltype(edit)>;
+                    if constexpr(std::is_same_v<P,ClearRecentProjects>){candidate.project.recent.clear();return {};}
+                    else {
+                        if constexpr(std::is_same_v<P,OpenProject>){
+                            if(auto issue=project_session_issue(edit.project)){return Error{"invalid_project",issue->field,issue->message};}
+                            if(candidate.project.active==edit.project){return {};}
+                        } else {if(!candidate.project.active){return {};}}
+                        if(!candidate.entities.empty()||candidate.next_id!=1||!candidate.assets.entries.empty()||candidate.assets.next_id!=1||candidate.runtime.playing||!candidate.runtime.inputs.empty()||!candidate.runtime.logs.empty()){
+                            return Error{"project_has_content","project","Project context changes require an empty/reset scene, catalogue and mock runtime; save work before explicitly resetting them."};
+                        }
+                        if constexpr(std::is_same_v<P,OpenProject>){
+                            candidate.project.active=edit.project;
+                            auto& recent=candidate.project.recent;
+                            std::erase_if(recent,[&](const auto& item){return item.path==edit.project.path;});
+                            recent.insert(recent.begin(),edit.project);
+                            if(recent.size()>16){recent.resize(16);}
+                        } else {candidate.project.active.reset();}
+                        return {};
+                    }
+                },command);
+            } else if constexpr (std::is_same_v<T, AssetMutation>) {
                 auto assets=candidate.assets;
                 auto issue=std::visit([&](const auto& edit)->std::optional<Error>{
                     using A=std::decay_t<decltype(edit)>;

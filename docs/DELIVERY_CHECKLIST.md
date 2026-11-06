@@ -9,16 +9,17 @@ Last updated: 2026-11-06. Owner/reviewer: Joshua, Lykoleon Studios.
 - Foundation already implemented: shared command bus, atomic history, headless CLI,
   instance-targeted MCP, desktop shell, hierarchy/transforms, detached prefabs,
   catalogue/source validation and full desktop audit reports.
-- Latest runtime checkpoint: `770f17e`; full runs of 36 desktop test groups and 28 ASan/UBSan
-  headless groups passed; the new fixture group also passes in both builds
-  (37/29 groups now registered). See [STATUS](STATUS.md) for evidence/limitations.
+- Latest runtime checkpoint: project-context slice on private branch
+  codex/standalone-editor-project-context. Full desktop/sanitizer validation is
+  recorded in [STATUS](STATUS.md), alongside hardware/platform limitations.
 - **Remaining checklist: 4/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
   Review/merge remains with Joshua; the wider foundation milestone is incomplete.
 - Steps 3 (fixtures), 7 (performance budgets) and 8 (manifest) are implemented
-  locally. Next feature: project lifecycle (9). Full foundation review and
+  locally. Project context slice 9a is implemented; creation and persistent
+  recents remain within step 9. Full foundation review and
   Joshua decisions remain open.
   Windows/CI validation should progress as infrastructure permits.
 - Steps 56–65 require Joshua's integration decision. This plan does not authorize
@@ -60,6 +61,7 @@ public release without approval. See [review stack](REVIEW_STACK.md).
 - [x] 8. Add a versioned TOML project manifest with project identity, settings and directory conventions.
   Evidence: ADR 0025, ProjectManifest model/persistence and shared validate/write commands; Python tomllib compatibility, direct model and CLI/MCP tests. Desktop 36/36 and ASan/UBSan 28/28 pass with the documented leak-check limitation. Private branch codex/standalone-editor-project-manifest; not merged.
 - [ ] 9. Add project creation, opening, closing and recent-project workflows through shared commands.
+  Progress: undoable project.open/close/query and session-local recent metadata/menu are implemented in the context slice (ADR 0026). Complete directory creation, persistent recent settings and remaining lifecycle workflows are still outstanding; keep this step unchecked.
 - [ ] 10. Resolve asset paths against the active project so users need not repeatedly enter its root.
 - [ ] 11. Add dirty-state tracking for scenes, project settings and other editable documents.
 - [ ] 12. Support safe saving to existing files, including external-change detection and conflict handling.
@@ -198,3 +200,7 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-06: Step 7 defined locally with numerical budgets and reproducible
   procedures/tooling; Release cloud/mock baseline recorded. Count is 4/93.
   Windows, real hardware and production release gates remain unverified.
+
+- 2026-11-06: Added partial step 9 project context: undoable open/close, queries,
+  session-local recent projects and command-driven menu. Step 9 stays unchecked;
+  count remains 4/93 until full lifecycle requirements are implemented/verified.

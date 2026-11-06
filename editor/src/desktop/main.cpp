@@ -4,6 +4,7 @@
 #include "form_feedback.hpp"
 #include "icons.hpp"
 #include "platform.hpp"
+#include "project_menu.hpp"
 #include "shortcut_browser.hpp"
 #include "smoke_harness.hpp"
 #include "source_audit.hpp"
@@ -159,6 +160,7 @@ int main(int argc, char **argv) {
     lyko::DockingAdapter docking;
     lyko::ShortcutBrowser shortcuts;
     lyko::AssetBrowser assets;
+    lyko::ProjectMenu projects;
     lyko::SourceAuditView source_audit;
     bool focus_palette = false;
     lyko::DesktopSmokeHarness harness(smoke_input, smoke_docking,
@@ -381,7 +383,15 @@ int main(int argc, char **argv) {
       if (ImGui::BeginMainMenuBar()) {
         ImGui::TextUnformatted("LYKOWARE");
         ImGui::SameLine();
-        ImGui::TextDisabled("/ Untitled project");
+        ImGui::TextDisabled(ready && frame.at("project").at("active") !=
+                                         J(nullptr)
+                                ? "/ Project open"
+                                : "/ No active project");
+        if (ready) {
+          if (const auto action = projects.draw(frame.at("project"))) {
+            open_form(action->command, action->arguments);
+          }
+        }
         if (ready && ImGui::BeginMenu("Workspace")) {
           const auto &w = frame.at("workspace");
           for (auto choice : {"dark", "high_contrast"}) {

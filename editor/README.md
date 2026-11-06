@@ -34,7 +34,7 @@ From the repository root, the verified fallback is:
 
 ```
 mkdir -p /tmp/lyko-build
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/tests/command_bus_tests.cpp -o /tmp/lyko-build/tests
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -Ieditor/src editor/tests/json_tests.cpp -o /tmp/lyko-build/json-tests
 /tmp/lyko-build/tests
@@ -120,7 +120,7 @@ them, but a measured frame-rate target has not yet been verified. See ADR 0004 f
 The deterministic queue test can also be built directly from the repository root:
 
 ```
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
 /tmp/lyko-build/queue-tests
 ```
 
@@ -399,3 +399,29 @@ acceptance targets, hardware procedures and the local Release/mock baseline.
 `tools/benchmark-headless.py` is opt-in and writes a JSON report to stdout; it does
 not upload artifacts or turn noisy timing measurements into required CI gates.
 Desktop/handheld acceptance requires actual measurements on the target devices.
+
+
+### Open and close project context
+
+The **Project** menu opens shared command forms for manifest export, opening,
+closing, inspecting and clearing recent projects. Recent entries prefill the open
+form; submission revalidates the current file. These commands also work headlessly:
+
+```json
+{"instance":"studio","command":"project.open","arguments":{"path":"/project/lykoware.toml"}}
+{"instance":"studio","command":"project.query","arguments":{}}
+{"instance":"studio","command":"project.close","arguments":{}}
+```
+
+Project context is undoable and can be grouped atomically with authoring edits.
+Opening/closing does not load, save or discard scene/catalogue content. Context
+changes are conservatively blocked unless scene/catalogue IDs and contents, plus
+mock runtime state, are reset. Saving a nonempty scene does not bypass that guard;
+explicit document reset workflows and dirty-state tracking are later work.
+Reopening an unchanged current context is a no-op. Redo restores captured metadata
+even if the manifest has disappeared; new opens always read and validate again.
+
+Recent projects are session-local, capped at 16 and undoable. They are not persisted
+to user settings yet. **Write new manifest...** exports configuration only; it does
+not create a project directory or activate it. Complete project creation, persistent
+recents and active-root asset resolution remain later lifecycle slices.

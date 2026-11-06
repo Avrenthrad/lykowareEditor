@@ -35,6 +35,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-project-manifest | codex/standalone-editor-core-utf8 | Checklist step 8: versioned TOML project metadata, validated export/read commands and contract tests |
 | codex/standalone-editor-project-fixtures | codex/standalone-editor-project-manifest | Checklist step 3: reusable project/legacy/malformed fixtures and deterministic large workloads |
 | codex/standalone-editor-performance-budgets | codex/standalone-editor-project-fixtures | Checklist step 7: numerical performance targets, repeatable procedures and opt-in headless baseline harness |
+| codex/standalone-editor-project-context | codex/standalone-editor-performance-budgets | Partial checklist step 9: undoable context/open/close, conservative content guards and session-local recent project menu |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -43,10 +44,8 @@ it has not been applied to the running policy. API authentication remains untest
 No token values are requested or stored. After relevant settings are applied,
 retry the API check before requesting credentials or creating duplicate PRs.
 
-Local validation: desktop preset 36/36 (including 28 headless/model groups),
-ASan/UBSan preset 28/28 with
-local leak-check limitation, queue ThreadSanitizer check, clang-tidy with no
-project-code findings, and X11 interaction/capture inspection of the audit report
-diagnostic view. Windows and remote
-CI remain unrun. The added fixture_projects group also passes in both builds
-(total registered groups now 37 desktop / 29 headless). Joshua reviews and merges.
+Local validation: desktop preset 39/39 (including 30 headless/model groups),
+ASan/UBSan preset 30/30 with local leak-check limitation, bus-only strict-warning
+compile/run, prior queue ThreadSanitizer check and clang-tidy with no project-code
+findings. Native Project-menu navigation passes in X11/Xvfb and its layout was
+inspected. Windows and remote CI remain unrun. Joshua reviews and merges.

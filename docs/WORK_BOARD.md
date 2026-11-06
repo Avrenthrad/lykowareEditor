@@ -35,12 +35,16 @@ near-term queue, not a second copy of all 93 steps.
 | Project manifest contract and ADR | 8a (part of 8) | Implemented (awaiting review) | ADR 0025 and project.manifest.validate/write implemented on codex/standalone-editor-project-manifest. Defines TOML version, project identity/name, root and relative directory conventions, defaults, unknown-field policy, validation, migration boundary and file-effect semantics. No runtime/engine dependency. |
 | Project manifest model and bounded persistence | 8b (part of 8) | Implemented (awaiting review) | Implemented model, bounded parser and no-overwrite writer with shared commands. Uses existing helpers without a new dependency. Planned acceptance: implement value model/parser/writer using existing wrappers or an approved pinned permissive dependency. Round-trip valid Unicode/settings; reject malformed/unsupported/path-invalid/oversized data without state changes; protect existing files according to the agreed save contract. |
 | Manifest tests and documentation | 8c (part of 8) | Implemented (awaiting review) | Python tomllib interoperability, direct typed-model tests and CLI/MCP parity pass. Full validation evidence is in STATUS.md. Planned acceptance: verify round trips, deterministic output, invalid candidate rejection and filesystem errors on available platforms. Record remaining Windows limits; update protocol/docs/STATUS/checklist. Tick step 8 only after all its agreed requirements are met. |
-| Project lifecycle commands | 9 | Blocked | Requires 8. Specify create/open/close/recent-project state and atomic boundaries, then implement shared UI/CLI/MCP access. Reject invalid projects without replacing current state; do not silently discard dirty work. |
+| Project lifecycle commands | 9 | Ready | Partial lifecycle implemented in 9a; complete project creation and persistent recent settings remain. Do not tick step 9 until all agreed lifecycle outcomes are verified. |
+| Project context, conservative guards and session-local recents | 9a (part of 9) | Implemented (awaiting review) | ADR 0026; shared open/close/query/recent.clear commands, atomic history/candidate protection, canonical MRU metadata and Project-menu form navigation. Branch codex/standalone-editor-project-context. Validation in STATUS.md. |
+| Complete project creation workflow | 9b (part of 9) | Ready | Define supplied/generated identity policy, directory publication/failure semantics and relationship to opening; validate before external effects, preserve existing files and do not discard authoring work. |
+| Persistent user-local recent settings | 9c (part of 9) | Ready | Specify a separate versioned user-local store, explicit loading/saving, privacy and stale/missing-path behavior; do not leak absolute paths into portable project/scene/workspace exports. |
 | Active-project asset root resolution | 10 | Blocked | Requires 9. Resolve source operations against the active project; preserve validation, revision and fingerprint guards; document explicit-root compatibility; verify frontend parity and no active-project error behavior. |
 
 Core review R001 fixed on 98b9732; the full review and Joshua's decisions remain
 open. Manifest (8), fixture projects (3) and numerical budgets (7) are implemented
-locally. The next feature is project lifecycle (9). Private stacked work
+locally. Project context slice 9a is also implemented; complete creation (9b)
+and persistent recent settings (9c) are the next lifecycle work. Private stacked work
 continues at the user's request without asserting review approval or merging.
 Step 2's completion does not imply milestone A is complete or that code is merged.
 
@@ -60,3 +64,6 @@ Step 2's completion does not imply milestone A is complete or that code is merge
 
 - 2026-11-06: Manifest and fixture slices implemented; defined numerical budgets
   with a measured local Release/mock baseline. No target hardware pass is claimed.
+
+- 2026-11-06: Project context slice 9a implemented locally with native/CLI/MCP
+  validation. Step 9 stays partial; checklist count remains 4/93.

@@ -573,6 +573,26 @@
 - Checklist is 4/93 complete locally (2, 3, 7, 8). Next feature is project lifecycle;
   foundation review step 1 remains partial and Joshua has not merged these changes.
 
+## Project context lifecycle slice
+
+- Added pure ProjectState/session models and captured open/close/recent-clear
+  mutations with canonical manifest/root paths, coherent project queries and
+  snapshot metadata. Manifest validation moved into a reusable pure model.
+- Shared project.open/close/query/recent.clear commands support CLI/MCP and a
+  Project menu that opens the common forms. Recent navigation rereads manifests.
+- Context changes reject non-reset scene/catalogue/runtime content, leaving all
+  state/history unchanged. Exact current-context reopen is a no-op; intentional
+  transactions can open then create content atomically.
+- Undo/redo captures project metadata and session-local capped MRU entries without
+  rereading source files. Existing persistence formats exclude machine-local paths.
+- ADR 0026 records conservative guards and limitations. Step 9 stays unchecked:
+  full directory creation, persistent recents and remaining lifecycle work are open.
+- All 39 desktop and all 30 ASan/UBSan test groups pass, with the documented
+  local leak-check limitation. Expanded changed-manifest guard/redo cases pass on
+  both builds. The bus-only strict-warning compile/run passes without IO linkage;
+  clang-tidy reports no project findings. Native menu navigation also passes in
+  X11/Xvfb, and its layout was inspected. Windows/hardware remain unverified.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

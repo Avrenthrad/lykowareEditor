@@ -20,7 +20,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -61,6 +61,10 @@ const std::vector<Entry>& registry() {
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"prefab.export", "Export an authoring subtree to a NEW JSON prefab path; local placement is retained and export is not undoable.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string"}}, {}, Action::prefab_export},
         {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
+        {"project.open", "Validate a manifest and open its canonical project context undoably; context switches require empty/reset authoring state.", {{"path","string"}}, [](const Json& a)->Mutation {return ProjectMutation{OpenProject{load_project_session(path_from_utf8(a.at("path").as<std::string>()))}};}},
+        {"project.close", "Close project context undoably, retaining session-local recent projects; nonempty authoring state blocks closing.", {}, [](const Json&)->Mutation {return ProjectMutation{CloseProject{}};}},
+        {"project.recent.clear", "Clear session-local recent project metadata undoably; never delete files.", {}, [](const Json&)->Mutation {return ProjectMutation{ClearRecentProjects{}};}},
+        {"project.query", "Read the active project and session-local recent metadata; does not read or reopen files.", {}, {}, Action::project_query},
         {"project.manifest.validate", "Validate a TOML v1 project manifest and return normalized metadata without activating a project.", {{"path","string"}}, {}, Action::manifest_validate},
         {"project.manifest.write", "Validate and export a NEW TOML project manifest; does not activate a project, create directories or change history.", {{"path","string"},{"project_id","string",{{"title","Project identity (32 lowercase hex characters)"},{"minLength",std::uint64_t{32}},{"maxLength",std::uint64_t{32}}}},{"name","string"},{"directories","object",{{"default",O{}},{"description","Optional assets/scenes/scripts/graphs/cache directory overrides; omitted roles use defaults."},{"additionalProperties",false},{"properties",O{{"assets",O{{"type","string"}}},{"scenes",O{{"type","string"}}},{"scripts",O{{"type","string"}}},{"graphs",O{{"type","string"}}},{"cache",O{{"type","string"}}}}}}}}, {}, Action::manifest_write},
         {"asset.audit", "Read-only catalogue-wide scene/prefab source validation in ID order; unsupported kinds are skipped and source failures are reported per entry.", {{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory for this audit. Files are observed sequentially, not as an atomic filesystem snapshot."}}}}, {}, Action::asset_audit},
@@ -220,6 +224,7 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
+        else if(entry.action==Action::project_query){data=project_state_json(bus_.snapshot().first.project);}
         else if(entry.action==Action::manifest_validate || entry.action==Action::manifest_write){
             std::filesystem::path path;
             try {path=path_from_utf8(args.at("path").as<std::string>());}
@@ -280,7 +285,7 @@ Json CommandService::call(const Json& request) {
             data = O{{"schema_version", std::uint64_t{1}}, {"mock", true}, {"scene", document_json(state.document)},
                      {"workspace", workspace_json(state.document.workspace)}, {"selection", selection_json(state.document)},
                      {"tokens", design_tokens(state.document.workspace)}, {"logs", logs_json(state.document.runtime)},
-                     {"transforms", transforms_json(state.document)}, {"assets", catalog_json(state.document.assets)}, {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
+                     {"project", project_state_json(state.document.project)}, {"transforms", transforms_json(state.document)}, {"assets", catalog_json(state.document.assets)}, {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
             result.revision = state.revision;
         }
         else if (entry.action == Action::tokens) { data = design_tokens(bus_.snapshot().first.workspace); }

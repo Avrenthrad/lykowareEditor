@@ -116,7 +116,10 @@ Reusable format/migration fixtures (3) and proposed numerical performance budget
 with local headless measurement tooling (7) are implemented locally. Actual hardware
 verification is still open.
 
-Next: continue foundation review, then project lifecycle and
-active-root resolution (steps 9–10). See WORK_BOARD.md for bounded tasks and completion evidence. Windows
+Project context opening/closing and session-local recent navigation now provide
+partial lifecycle support (9a), with conservative content protection.
+
+Next: continue foundation review and complete creation/persistent recent workflows
+within step 9, then active-root resolution (10). See WORK_BOARD.md for bounded tasks and completion evidence. Windows
 and target hardware validation remain outstanding. CI is manual/self-hosted and
 has not been run.

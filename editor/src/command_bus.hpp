@@ -3,6 +3,7 @@
 #include "ui/workspace.hpp"
 #include "transform.hpp"
 #include "assets.hpp"
+#include "project_session.hpp"
 #include <cstdint>
 #include <map>
 #include <mutex>
@@ -27,6 +28,7 @@ struct Document {
     std::map<EntityId, EntityId> parents; // Sparse: absence means scene root.
     std::map<EntityId, Transform> transforms; // Nonidentity local authoring values.
     AssetCatalog assets;
+    ProjectState project;
     EntityId next_id = 1;
     RuntimeState runtime;
     Workspace workspace;
@@ -54,7 +56,7 @@ struct ResizeDock { std::string dock; std::uint64_t percent; };
 struct BindShortcut { std::string command; std::string shortcut; };
 struct SelectEntity { EntityId id; }; // Zero clears selection.
 struct ReplaceScene { Document document; };
-using Mutation = std::variant<AssetMutation, InstantiatePrefab, CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, ReparentEntity, SetTransform, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
+using Mutation = std::variant<ProjectMutation, AssetMutation, InstantiatePrefab, CreateEntity, RenameEntity, DeleteEntity, DuplicateEntity, ReparentEntity, SetTransform, Play, Stop, SendInput, ReplaceScene, ConfigureWorkspace, SetPanelDock, ResizeDock, BindShortcut, SelectEntity, ReplaceWorkspace, ReplaceDockLayout, ResetDockLayout>;
 struct Error { std::string code; std::string field; std::string message; };
 struct Result {
     std::uint64_t revision;
