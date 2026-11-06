@@ -36,7 +36,7 @@ with tempfile.TemporaryDirectory() as temp:
  for before in ([],base,[req('asset.register',path='x.gltf',kind='mesh')]):
   for directory in ('relative',str(root/'absent'),str(scene)):
    r=run(before+[req('editor.snapshot'),req('asset.audit',root=directory),req('editor.snapshot')]);assert r[-2]['error']['field']=='root' and r[-3]==r[-1]
- empty=run([audit])[-1]['data'];assert empty==dict(total=0,valid=0,invalid=0,skipped=0,entries=[])
+ empty=run([audit])[-1]['data'];assert empty==dict(root=root.resolve().as_posix(),total=0,valid=0,invalid=0,skipped=0,entries=[])
  # A deleted catalogue ID is omitted, and unsupported sources need not exist.
  r=run(base+[req('asset.forget',id=2),audit]);assert [x['id'] for x in r[-1]['data']['entries']]==[1,3,4,5,6,7]
  # Failed preconditions stop before filesystem reads; queries cannot be batched as mutations.

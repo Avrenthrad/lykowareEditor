@@ -30,6 +30,14 @@ int main() {
     }
     throw std::invalid_argument("Missing command");
   };
+  lyko::CommandForm source_form(descriptor("asset.validate").at("inputSchema"));
+  check(source_form.errors().empty() &&
+            source_form.arguments().at("root").as<std::string>().empty(),
+        "source form permits default blank active-project root");
+  source_form.set("root", std::string("/explicit/source"));
+  check(source_form.errors().empty() &&
+            source_form.arguments().at("root") == J("/explicit/source"),
+        "source form preserves explicit root override");
   lyko::CommandForm settings(
       descriptor("workspace.configure").at("inputSchema"));
   check(settings.errors().empty(), "settings defaults valid");

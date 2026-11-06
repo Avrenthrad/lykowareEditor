@@ -4,6 +4,15 @@
 #include "text_file.hpp"
 namespace lyko {
 namespace {
+std::string root_text(const std::filesystem::path &path) {
+  const auto encoded = path.generic_u8string();
+  std::string text(encoded.begin(), encoded.end());
+  if (!json_detail::valid_utf8(text)) {
+    throw AssetSourceError(
+        "root", "Resolved project directory is not representable as UTF-8.");
+  }
+  return text;
+}
 std::filesystem::path source_directory(const std::filesystem::path &root) {
   std::filesystem::path directory;
   try {
@@ -31,6 +40,7 @@ AssetSource read_asset_source(const Asset &asset,
         "kind", "No content validator is implemented for this asset kind.");
   }
   const auto directory = source_directory(root);
+  const auto resolved_root = root_text(directory);
   std::filesystem::path source;
   try {
     source = std::filesystem::canonical(directory / path_from_utf8(asset.path));
@@ -51,7 +61,7 @@ AssetSource read_asset_source(const Asset &asset,
     const auto text = read_text_file(source);
     return AssetSource{Json::parse(text),
                        static_cast<std::uint64_t>(text.size()),
-                       content_sha256(text)};
+                       content_sha256(text), resolved_root};
   } catch (const std::exception &error) {
     throw AssetSourceError("path", error.what());
   }
@@ -67,6 +77,7 @@ Json validate_asset_source(std::uint64_t id, const Asset &asset,
         {"id", id},
         {"path", asset.path},
         {"kind", asset.kind},
+        {"root", source.root},
         {"valid", true},
         {"bytes", source.bytes},
         {"sha256", source.sha256},
@@ -78,6 +89,7 @@ Json validate_asset_source(std::uint64_t id, const Asset &asset,
 Json audit_asset_sources(const AssetCatalog &catalog,
                          const std::filesystem::path &root) {
   const auto directory = source_directory(root);
+  const auto resolved_root = root_text(directory);
   Json::Array entries;
   std::uint64_t valid = 0, invalid = 0, skipped = 0;
   for (const auto &[id, asset] : catalog.entries) {
@@ -89,6 +101,7 @@ Json audit_asset_sources(const AssetCatalog &catalog,
     } else {
       try {
         row = validate_asset_source(id, asset, directory).as<Json::Object>();
+        row.erase("root");
         row.emplace("status", "valid");
         ++valid;
       } catch (const AssetSourceError &error) {
@@ -106,6 +119,7 @@ Json audit_asset_sources(const AssetCatalog &catalog,
     entries.emplace_back(std::move(row));
   }
   return Json::Object{
+      {"root", resolved_root},
       {"total", static_cast<std::uint64_t>(catalog.entries.size())},
       {"valid", valid},
       {"invalid", invalid},

@@ -21,7 +21,7 @@ namespace lyko {
 namespace {
 using O = Json::Object;
 using A = Json::Array;
-struct Field { std::string name; std::string type; O constraints = {}; };
+struct Field { std::string name; std::string type; O constraints = {}; bool optional = false; };
 enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query, project_create, recent_save };
 struct Entry {
     std::string name, description;
@@ -72,11 +72,11 @@ const std::vector<Entry>& registry() {
         {"project.manifest.validate", "Validate a TOML v1 project manifest and return normalized metadata without activating a project.", {{"path","string"}}, {}, Action::manifest_validate},
         {"project.create", "Create a NEW project directory and configured folders; publish lykoware.toml last. Explicit filesystem export, not undoable; open separately.", {{"path","string"},{"project_id","string",{{"title","Project identity (blank to generate)"},{"minLength",std::uint64_t{0}},{"default",""},{"maxLength",std::uint64_t{32}}}},{"name","string"},{"directories","object",{{"default",O{}},{"description","Optional assets/scenes/scripts/graphs/cache directory overrides; omitted roles use defaults."},{"additionalProperties",false},{"properties",O{{"assets",O{{"type","string"}}},{"scenes",O{{"type","string"}}},{"scripts",O{{"type","string"}}},{"graphs",O{{"type","string"}}},{"cache",O{{"type","string"}}}}}}}}, {}, Action::project_create},
         {"project.manifest.write", "Validate and export a NEW TOML project manifest; does not activate a project, create directories or change history.", {{"path","string"},{"project_id","string",{{"title","Project identity (32 lowercase hex characters)"},{"minLength",std::uint64_t{32}},{"maxLength",std::uint64_t{32}}}},{"name","string"},{"directories","object",{{"default",O{}},{"description","Optional assets/scenes/scripts/graphs/cache directory overrides; omitted roles use defaults."},{"additionalProperties",false},{"properties",O{{"assets",O{{"type","string"}}},{"scenes",O{{"type","string"}}},{"scripts",O{{"type","string"}}},{"graphs",O{{"type","string"}}},{"cache",O{{"type","string"}}}}}}}}, {}, Action::manifest_write},
-        {"asset.audit", "Read-only catalogue-wide scene/prefab source validation in ID order; unsupported kinds are skipped and source failures are reported per entry.", {{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory for this audit. Files are observed sequentially, not as an atomic filesystem snapshot."}}}}, {}, Action::asset_audit},
-        {"asset.check", "Validate a scene/prefab and compare its exact byte SHA-256 with a previous observation; read-only.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"}}},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_check},
-        {"asset.instantiate_checked", "Instantiate a registered prefab only if the captured source bytes match the expected SHA-256.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"}}},{"parent","integer",{{"default",std::uint64_t{0}}}},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_instantiate_checked},
-        {"asset.instantiate", "Instantiate a registered prefab beneath an explicit project root as an undoable detached copy; catalogue edits must commit first.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory used for this source read."}}},{"parent","integer",{{"default",std::uint64_t{0}}}}}, {}, Action::asset_instantiate},
-        {"asset.validate", "Read and validate a registered scene/prefab beneath an explicit absolute project root; no import or writes.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory, used only for this validation call."}}}}, {}, Action::asset_validate},
+        {"asset.audit", "Read-only catalogue-wide scene/prefab source validation in ID order; unsupported kinds are skipped and source failures are reported per entry.", {{"root","string",{{"title","Root (blank: project)"},{"description","Optional absolute directory override; omitted or blank uses the committed active project."},{"minLength",std::uint64_t{0}},{"default",""}},true}}, {}, Action::asset_audit},
+        {"asset.check", "Validate a scene/prefab and compare its exact byte SHA-256 with a previous observation; read-only.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Root (blank: project)"},{"description","Optional absolute directory override; omitted or blank uses the committed active project."},{"minLength",std::uint64_t{0}},{"default",""}},true},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_check},
+        {"asset.instantiate_checked", "Instantiate a registered prefab only if the captured source bytes match the expected SHA-256.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Root (blank: project)"},{"description","Optional absolute directory override; omitted or blank uses the committed active project."},{"minLength",std::uint64_t{0}},{"default",""}},true},{"parent","integer",{{"default",std::uint64_t{0}}}},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_instantiate_checked},
+        {"asset.instantiate", "Instantiate a registered prefab beneath the active project or explicit root as an undoable detached copy; catalogue edits must commit first.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Root (blank: project)"},{"description","Optional absolute directory override; omitted or blank uses the committed active project."},{"minLength",std::uint64_t{0}},{"default",""}},true},{"parent","integer",{{"default",std::uint64_t{0}}}}}, {}, Action::asset_instantiate},
+        {"asset.validate", "Read and validate a registered scene/prefab beneath the active project or explicit absolute root; no import or writes.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Root (blank: project)"},{"description","Optional absolute directory override; omitted or blank uses the committed active project."},{"minLength",std::uint64_t{0}},{"default",""}},true}}, {}, Action::asset_validate},
         {"asset.register", "Register metadata for a portable project-relative path without reading or importing the file.", {{"path","string",{{"description","Portable project-relative metadata path; does not read or move a file."},{"maxLength",std::uint64_t{512}},{"x-maxBytes",std::uint64_t{512}}}},{"kind","string",{{"enum",A{"scene","prefab","mesh","texture","script","graph"}},{"default","prefab"}}}}, [](const Json& a)->Mutation{return AssetMutation{RegisterAsset{a.at("path").as<std::string>(),a.at("kind").as<std::string>()}};}},
         {"asset.relocate", "Change a catalog path while preserving its stable ID; does not move a file.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string",{{"description","Portable project-relative metadata path; does not read or move a file."},{"maxLength",std::uint64_t{512}},{"x-maxBytes",std::uint64_t{512}}}}}, [](const Json& a)->Mutation{return AssetMutation{RelocateAsset{a.at("id").as<std::uint64_t>(),a.at("path").as<std::string>()}};}},
         {"asset.forget", "Remove catalog metadata undoably; never delete the source file.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, [](const Json& a)->Mutation{return AssetMutation{ForgetAsset{a.at("id").as<std::uint64_t>()}};}},
@@ -109,20 +109,29 @@ const Entry& lookup(const std::string& name) {
 }
 bool is_mutation(const Entry& entry){return static_cast<bool>(entry.decode)||(entry.action==Action::asset_instantiate||entry.action==Action::asset_instantiate_checked);}
 struct DecodeError : std::runtime_error {std::string code,field;DecodeError(std::string c,std::string f,std::string message):std::runtime_error(std::move(message)),code(std::move(c)),field(std::move(f)){} };
+struct ResolvedAssetRoot { std::filesystem::path path; std::optional<ProjectSession> project; };
+ResolvedAssetRoot resolve_asset_root(const Json& args,const Document& document){
+    const auto text=args.contains("root")?args.at("root").as<std::string>():std::string{};
+    if(text.empty()){
+        if(!document.project.active){throw DecodeError("no_active_project","root","Open a project or provide an explicit absolute source root.");}
+        return {path_from_utf8(document.project.active->root),document.project.active};
+    }
+    try{return {path_from_utf8(text),{}};}
+    catch(const std::invalid_argument& error){throw AssetSourceError("root",error.what());}
+}
 Mutation decode_mutation(const Entry& entry,const Json& args,CommandBus& bus){
     if(entry.action!=Action::asset_instantiate && entry.action!=Action::asset_instantiate_checked){return entry.decode(args);}
     if(entry.action==Action::asset_instantiate_checked && !valid_sha256(args.at("sha256").as<std::string>())){throw DecodeError("invalid_fingerprint","sha256","Use 64 lowercase hexadecimal SHA-256 characters.");}
-    const auto catalog=bus.snapshot().first.assets;const auto id=args.at("id").as<std::uint64_t>();const auto found=catalog.entries.find(id);
+    const auto document=bus.snapshot().first;const auto& catalog=document.assets;const auto id=args.at("id").as<std::uint64_t>();const auto found=catalog.entries.find(id);
     if(found==catalog.entries.end()){throw DecodeError("not_found","id","Asset does not exist in the committed catalogue; commit registration before instantiating.");}
     const auto asset=found->second;
     if(asset.kind!="prefab"){throw DecodeError("unsupported_asset_kind","kind","Only registered prefabs can be instantiated.");}
-    std::filesystem::path root;
-    try{root=path_from_utf8(args.at("root").as<std::string>());}catch(const std::invalid_argument& error){throw AssetSourceError("root",error.what());}
-    const auto source=read_asset_source(asset,root);
+    const auto root=resolve_asset_root(args,document);
+    const auto source=read_asset_source(asset,root.path);
     if(entry.action==Action::asset_instantiate_checked && source.sha256!=args.at("sha256").as<std::string>()){throw DecodeError("asset_source_changed","sha256","Source bytes changed; validate and review the new version before instantiating.");}
     try{
         auto prefab=parse_prefab(source.json);
-        return InstantiatePrefab{std::move(prefab.scene),prefab.root,args.at("parent").as<std::uint64_t>(),std::pair{id,asset}};
+        return InstantiatePrefab{std::move(prefab.scene),prefab.root,args.at("parent").as<std::uint64_t>(),std::pair{id,asset},root.project};
     }catch(const std::invalid_argument& error){throw AssetSourceError("path",error.what());}
 }
 void keys(const Json& j, const std::vector<std::string>& allowed) {
@@ -135,6 +144,7 @@ void validate(const Entry& entry, const Json& args) {
     std::vector<std::string> names;
     for (const auto& field : entry.fields) {
         names.push_back(field.name);
+        if(field.optional&&!args.contains(field.name)){continue;}
         const auto& value = args.at(field.name);
         if (field.type == "string") { const auto& text=value.as<std::string>(); if(!json_detail::valid_utf8(text)){throw std::invalid_argument("Field "+field.name+" must be valid UTF-8");} }
         else if (field.type == "number") { if(!std::isfinite(json_number(value))){throw std::invalid_argument("Number must be finite.");} }
@@ -157,7 +167,7 @@ Json schema(const Entry& entry) {
         for(const auto& [key,value]:field.constraints){spec.insert_or_assign(key,value);}
         if(field.name=="path"){spec.emplace("description","Path to a local file. Saving requires a new destination.");}
         if(field.name=="command" && entry.name=="keymap.bind") { A names; for(const auto& command:registry()){names.emplace_back(command.name);} spec.emplace("enum",std::move(names)); }
-        properties.emplace(field.name, std::move(spec)); required.emplace_back(field.name);
+        properties.emplace(field.name, std::move(spec)); if(!field.optional){required.emplace_back(field.name);}
     }
     return O{{"type", "object"}, {"properties", std::move(properties)},
              {"required", std::move(required)}, {"additionalProperties", false}};
@@ -250,16 +260,16 @@ Json CommandService::call(const Json& request) {
             }
         }
         else if(entry.action==Action::asset_audit){
-            try {data=audit_asset_sources(bus_.snapshot().first.assets,path_from_utf8(args.at("root").as<std::string>()));}
+            try {const auto document=bus_.snapshot().first;data=audit_asset_sources(document.assets,resolve_asset_root(args,document).path);}
             catch(const std::invalid_argument& error){return error_json(revision,"invalid_asset_source","root",error.what());}
         }
         else if(entry.action==Action::asset_validate || entry.action==Action::asset_check){
             if(entry.action==Action::asset_check&&!valid_sha256(args.at("sha256").as<std::string>())){return error_json(revision,"invalid_fingerprint","sha256","Use 64 lowercase hexadecimal SHA-256 characters.");}
-            const auto catalog=bus_.snapshot().first.assets;const auto id=args.at("id").as<std::uint64_t>();
+            const auto document=bus_.snapshot().first;const auto& catalog=document.assets;const auto id=args.at("id").as<std::uint64_t>();
             if(!catalog.entries.contains(id)){return error_json(revision,"not_found","id","Asset does not exist.");}
             const auto& asset=catalog.entries.at(id);
             if(asset.kind!="scene"&&asset.kind!="prefab"){return error_json(revision,"unsupported_asset_kind","kind","No content validator is implemented for this asset kind.");}
-            try {data=validate_asset_source(id,asset,path_from_utf8(args.at("root").as<std::string>()));
+            try {data=validate_asset_source(id,asset,resolve_asset_root(args,document).path);
                 if(entry.action==Action::asset_check){auto object=data.as<O>();object.emplace("matches",data.at("sha256")==args.at("sha256"));data=std::move(object);}
             }
             catch(const AssetSourceError& error){return error_json(revision,"invalid_asset_source",error.field(),error.what());}

@@ -121,6 +121,9 @@ recent-history save/load now complete step 9 locally, with conservative content
 protection and shared CLI/MCP/desktop workflows. Safe replacement/dirty tracking
 remain independent later steps.
 
-Next: continue foundation review and active-project root resolution (10). See WORK_BOARD.md for bounded tasks and completion evidence. Windows
+Active-project source root resolution (10) now avoids repeated roots while
+preserving explicit overrides, observed-root feedback and atomic origin guards.
+
+Next: continue foundation review and dirty-state tracking (11). See WORK_BOARD.md for bounded tasks and completion evidence. Windows
 and target hardware validation remain outstanding. CI is manual/self-hosted and
 has not been run.

@@ -761,7 +761,10 @@ int main(int argc, char **argv) {
             if (draft) {
               if (const auto action =
                       source_audit.draw(feedback.result()->at("data"),
-                                        draft->at("root").as<std::string>(),
+                                        feedback.result()
+                                            ->at("data")
+                                            .at("root")
+                                            .as<std::string>(),
                                         feedback.generation())) {
                 next_source_form =
                     std::pair{action->command, action->arguments};
@@ -775,7 +778,7 @@ int main(int argc, char **argv) {
             const auto &data = feedback.result()->at("data");
             if (draft && data.contains("sha256")) {
               O values{{"id", draft->at("id")},
-                       {"root", draft->at("root")},
+                       {"root", data.at("root")},
                        {"sha256", data.at("sha256")}};
               if (ImGui::Button("Recheck this version")) {
                 next_source_form = std::pair{"asset.check", values};

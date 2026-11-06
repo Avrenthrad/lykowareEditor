@@ -462,3 +462,26 @@ support is later work. Loading is undoable and changes only the recent list. It 
 not open projects or inspect their folders, so stale/moved entries can be restored.
 Selecting one still opens the normal form and validates its current manifest.
 Malformed imports preserve your active project, authored work and undo history.
+
+
+### Use the active project for source operations
+
+Once a project is open, Validate/Instantiate/Audit forms can leave **Project root**
+blank. Headless/MCP callers can omit it:
+
+```json
+{"instance":"studio","command":"asset.validate","arguments":{"id":1}}
+{"instance":"studio","command":"asset.audit","arguments":{}}
+{"instance":"studio","command":"asset.instantiate","arguments":{"id":1,"parent":0}}
+```
+
+Catalogue paths are relative to the project's root, not implicitly inside its
+configured assets folder. A nonempty root still explicitly overrides active context.
+Without an open project, supply an explicit absolute root or receive no_active_project.
+Validation/check/audit responses show the concrete root used. Follow-up actions keep
+that observed root so they do not silently follow a later context switch.
+
+Commit a project change before consuming assets through an implicit root. A staged
+open does not supply it, and changing context within a transaction before consuming
+captured source bytes is rejected atomically. Explicit overrides, fingerprint checks,
+catalogue guards and undo/redo behavior remain available.

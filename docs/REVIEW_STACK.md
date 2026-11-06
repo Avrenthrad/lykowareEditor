@@ -38,6 +38,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-project-context | codex/standalone-editor-performance-budgets | Partial checklist step 9: undoable context/open/close, conservative content guards and session-local recent project menu |
 | codex/standalone-editor-project-creation | codex/standalone-editor-project-context | Step 9b: explicit new-directory creation, supplied/generated identity, manifest-last readiness and failure cleanup |
 | codex/standalone-editor-project-recents | codex/standalone-editor-project-creation | Step 9c: explicit user-local recent-history persistence, undoable replacement and native menu workflows |
+| codex/standalone-editor-active-roots | codex/standalone-editor-project-recents | Step 10: optional active source roots, explicit overrides, concrete observations and staged-context guards |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
@@ -46,8 +47,8 @@ it has not been applied to the running policy. API authentication remains untest
 No token values are requested or stored. After relevant settings are applied,
 retry the API check before requesting credentials or creating duplicate PRs.
 
-Local validation: desktop preset 41/41 (including 32 headless/model groups),
-ASan/UBSan preset 32/32 with local leak-check limitation, prior queue ThreadSanitizer
-check and clang-tidy with no project-code findings. Expanded Project-menu navigation
-passes in X11/Xvfb and its layout was inspected. Windows and remote CI remain unrun.
-Joshua reviews and merges.
+Local validation: desktop preset 42/42 (including 33 headless/model groups),
+ASan/UBSan preset 33/33 with local leak-check limitation and clang-tidy with no
+project-code findings. Prior queue ThreadSanitizer and native Project-menu X11
+checks remain recorded. New source-root controls have not been inspected on a real
+display. Windows and remote CI remain unrun. Joshua reviews and merges.

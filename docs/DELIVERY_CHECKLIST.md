@@ -9,17 +9,16 @@ Last updated: 2026-11-07. Owner/reviewer: Joshua, Lykoleon Studios.
 - Foundation already implemented: shared command bus, atomic history, headless CLI,
   instance-targeted MCP, desktop shell, hierarchy/transforms, detached prefabs,
   catalogue/source validation and full desktop audit reports.
-- Latest runtime checkpoint: project lifecycle with creation and recent history on
-  private branches codex/standalone-editor-project-creation and
-  codex/standalone-editor-project-recents. Full desktop/sanitizer validation is
+- Latest runtime checkpoint: active-project source roots on private branch
+  codex/standalone-editor-active-roots. Full desktop/sanitizer validation is
   recorded in [STATUS](STATUS.md), alongside hardware/platform limitations.
-- **Remaining checklist: 5/93 complete.** This counts the remaining delivery steps,
+- **Remaining checklist: 6/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
   Review/merge remains with Joshua; the wider foundation milestone is incomplete.
-- Steps 2, 3, 7, 8 and 9 are implemented locally. Next: active-project source root
-  resolution (10). Foundation review and Joshua decisions remain open.
+- Steps 2, 3, 7, 8, 9 and 10 are implemented locally. Next: dirty-state tracking
+  (11). Foundation review and Joshua decisions remain open.
   Windows/CI validation should progress as infrastructure permits.
 - Steps 56–65 require Joshua's integration decision. This plan does not authorize
   engine repository access. Steps 83–93 are the later content-suite finish line.
@@ -61,7 +60,8 @@ public release without approval. See [review stack](REVIEW_STACK.md).
   Evidence: ADR 0025, ProjectManifest model/persistence and shared validate/write commands; Python tomllib compatibility, direct model and CLI/MCP tests. Desktop 36/36 and ASan/UBSan 28/28 pass with the documented leak-check limitation. Private branch codex/standalone-editor-project-manifest; not merged.
 - [x] 9. Add project creation, opening, closing and recent-project workflows through shared commands.
   Evidence: ADRs 0026–0028; undoable context/open/close and recent replacement, explicit new-directory creation with supplied/generated identity, and user-local history save/load across sessions. Shared CLI/MCP/native menu workflows, content guards, cleanup and source validation pass. Full desktop 41/41 and ASan/UBSan 32/32; private review branches, not merged. Safe in-place saves and dirty-aware switching remain steps 11–12.
-- [ ] 10. Resolve asset paths against the active project so users need not repeatedly enter its root.
+- [x] 10. Resolve asset paths against the active project so users need not repeatedly enter its root.
+  Evidence: ADR 0029; omitted/blank roots resolve committed active context across validate/check/audit/instantiate commands; explicit overrides remain. Registry/palette/CLI/MCP parity, concrete observed-root feedback, staged project/catalogue guards and rollback pass. Full desktop 42/42 and ASan/UBSan 33/33; private branch codex/standalone-editor-active-roots, not merged.
 - [ ] 11. Add dirty-state tracking for scenes, project settings and other editable documents.
 - [ ] 12. Support safe saving to existing files, including external-change detection and conflict handling.
 - [ ] 13. Add autosave, recovery snapshots and crash-recovery workflows.
@@ -211,3 +211,7 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-07: Completed step 9 locally with explicit persistent recent-history
   save/load. Combined creation/context/recent workflows pass 41 desktop and 32
   sanitizer groups; checklist now 5/93. Next is active-project root resolution.
+
+- 2026-11-07: Step 10 implemented locally with active-root resolution, concrete
+  source observations and candidate project-origin guards. Checklist is 6/93;
+  next is dirty-state tracking (11). Windows/hardware checks remain open.

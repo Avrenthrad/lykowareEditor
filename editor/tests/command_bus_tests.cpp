@@ -96,6 +96,11 @@ int main() {
     check(!rejected_recents&&rejected_recents.error->code=="invalid_project_recents"&&projects.snapshot()==before_recents,"direct recent replacement rejects duplicate paths before commit");
     check(static_cast<bool>(projects.execute("projects",{}, {lyko::CreateEntity{"Untitled"},lyko::ProjectMutation{lyko::ReplaceRecentProjects{{session}}}})),"recent import groups with authored state");
     check(!projects.snapshot().first.project.active&&projects.snapshot().first.project.recent.size()==1,"recent replacement never activates a project");
+    lyko::Document root_prefab;root_prefab.entities.emplace(1,"Prefab");root_prefab.next_id=2;
+    lyko::CommandBus root_context("root-context",backend);
+    const auto rejected_origin=root_context.execute("root-context",{}, {lyko::InstantiatePrefab{root_prefab,1,0,{},session}});
+    check(!rejected_origin&&rejected_origin.error->code=="project_context_changed"&&root_context.snapshot().first.entities.empty(),"typed implicit-root origin is checked before allocation");
+    check(static_cast<bool>(root_context.execute("root-context",{}, {lyko::ProjectMutation{lyko::OpenProject{session}},lyko::InstantiatePrefab{root_prefab,1,0,{},session}})),"matching typed project origin permits atomic copy");
     FailingBridge failing;
     lyko::CommandBus broken("test", failing);
     auto failure = broken.execute("test", {}, {lyko::CreateEntity{"A"}, lyko::Play{}});

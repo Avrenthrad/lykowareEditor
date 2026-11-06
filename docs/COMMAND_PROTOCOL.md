@@ -376,7 +376,8 @@ not embed catalogue state. editor.snapshot includes assets with the same payload
 
 ## Registered source validation
 
-asset.validate takes id and root (an explicit absolute existing project directory).
+asset.validate takes id and optional root (omit/empty for the active project,
+otherwise an explicit absolute existing directory).
 It resolves the registered relative path, checks canonical containment component by
 component, requires a regular file, and validates scene/prefab contents through the
 existing authoring parsers. Results include id/path/kind, valid=true, byte count and
@@ -393,7 +394,7 @@ handles, source fingerprints and import transactions remain future work.
 
 ## Instantiate by catalogue ID
 
-asset.instantiate takes id (a registered prefab), root (absolute project directory)
+asset.instantiate takes id (a registered prefab), optional root (active project or explicit absolute directory)
 and parent (entity ID, 0 for scene root). It uses the shared observed-containment,
 regular-file and bounded JSON reader, validates a prefab, then submits the existing
 typed instantiation mutation with captured source data and catalogue metadata.
@@ -418,7 +419,7 @@ computed from the exact file bytes used for JSON parsing. Whitespace, line endin
 and encoding-byte changes therefore alter the token even when authoring data is
 equivalent. No canonical JSON hashing or persistent catalogue baseline is implied.
 
-asset.check takes id/root/sha256, validates the current scene/prefab and returns
+asset.check takes id/sha256 and optional root, validates the current scene/prefab and returns
 the current digest plus matches (true/false). A valid but changed source is a
 successful query with matches=false; missing/invalid sources remain structured
 errors. Invalid tokens return invalid_fingerprint/sha256 before reading the file.
@@ -556,3 +557,27 @@ entries remain historical metadata; project.open rereads the selected current
 manifest. Undo/redo uses captured imports without rereading the store. No implicit
 home-directory reads, startup loading or autosaving is added. Persistence across
 processes uses these explicit save/load commands, also in the Project menu.
+
+
+## Active-project source roots
+
+For asset.validate/check/audit/instantiate/instantiate_checked, `root` is now an
+optional string. Omit it or pass "" to use the committed active project's root.
+With no active project this returns `no_active_project` / `root`. Other input fields
+retain their existing requirements. Nonempty roots are explicit absolute overrides;
+invalid overrides are errors, with no fallback to active context or working directory.
+Catalogue paths remain project-root-relative, not automatically prefixed by the
+manifest's assets/scenes/etc directory settings.
+
+Validation/check results add `root`, the canonical UTF-8 root captured with the
+source bytes. Audit reports add `root` once at report level. Follow-up desktop forms
+use that concrete observation for explicit rechecks/consumption. Schema discovery
+marks root optional with default "", including in MCP; palette forms explain it.
+
+Implicit prefab consumption captures the committed ProjectSession as well as its
+catalogue origin. A staged context change before consumption fails atomically as
+`project_context_changed` / `root`, even if the catalogue ID/path/kind is recreated
+identically. Staged opens do not supply an implicit root before commit. Explicit
+root overrides retain their prior independent-source behavior. Revision checks,
+content hashes, catalogue guards, source containment and no-reread redo remain.
+See ADR 0029 for scope and filesystem limitations.

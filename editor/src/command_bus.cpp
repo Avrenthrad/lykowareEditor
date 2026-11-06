@@ -76,6 +76,8 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 },command);
                 if(issue){return issue;}candidate.assets=std::move(assets);
             } else if constexpr (std::is_same_v<T, InstantiatePrefab>) {
+                if(command.project_origin && candidate.project.active!=command.project_origin){return Error{"project_context_changed","root","Active project changed in this transaction; commit that change before resolving an implicit source root."};}
+
                 if(command.asset_origin){const auto& [id,asset]=*command.asset_origin;const auto found=candidate.assets.entries.find(id);
                     if(found==candidate.assets.entries.end()||found->second!=asset){return Error{"asset_reference_changed","id","Catalogue entry changed in this transaction; commit the catalogue edit before instantiating."};}
                 }

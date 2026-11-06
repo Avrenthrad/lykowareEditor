@@ -636,6 +636,28 @@
 - Checklist step 9 is implemented locally; count is now 5/93. Next is active-project
   root resolution (10). Joshua's review/merge and the full foundation review remain open.
 
+## Active-project source root resolution
+
+- Source validate/check/audit/instantiate commands now accept omitted/blank roots
+  using the committed active project. Explicit nonempty roots retain independent
+  behavior; invalid roots never fall back. No-active errors identify the root field.
+- Registry optional-field metadata matches CLI/MCP behavior and default palette
+  controls. Other argument requirements remain unchanged. Catalogue paths remain
+  relative to the project root rather than an implicit assets-folder prefix.
+- Implicit prefab reads capture project origin; the bus checks candidate context
+  before allocation, including transactions recreating identical catalogue origins.
+- Validation/check and audit results report their captured canonical root. Desktop
+  feedback and follow-up forms retain that concrete observation. ADR 0029 records
+  source guards, transaction ordering and normal filesystem limitations.
+- New tests cover overrides, omitted/blank fields, no-active errors, source metadata,
+  context/catalogue guards, staged-open behavior, rollback and CLI/MCP parity.
+- Full desktop 42/42 and ASan/UBSan 33/33 groups pass, with the documented
+  leak-check limitation. Clang-tidy reports no project-code findings, and the
+  bus-only strict-warning compile/run passes without IO linkage. The final
+  shorter root label is checked with targeted form/render/feedback tests.
+- Step 10 is implemented locally; checklist is 6/93. Windows and the new source
+  root controls on a real display remain unverified. Next is dirty-state tracking.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -661,6 +683,6 @@ explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Read
 docs/WORK_BOARD.md for active tasks and docs/ROADMAP.md for milestone acceptance.
-Continue with active-project source root resolution (step 10) and the partial
+Continue with dirty-state tracking (step 11) and the partial
 foundation review; do not treat local review as Joshua's merge approval. Keep
 docs/STATUS.md and docs/DELIVERY_CHECKLIST.md current. Joshua merges.

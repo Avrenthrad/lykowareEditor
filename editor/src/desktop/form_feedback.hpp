@@ -65,6 +65,11 @@ inline void draw_form_feedback(const FormFeedback &feedback) {
             "Skipped kinds have no content validator. Select a source below "
             "to inspect its diagnostics or fingerprint.");
       }
+      if (std::holds_alternative<Json::Object>(data.value) &&
+          data.contains("root") && !data.contains("entries")) {
+        ImGui::TextWrapped("Source root: %s",
+                           data.at("root").as<std::string>().c_str());
+      }
       if (feedback.preview() != "{}" && ImGui::TreeNode("Result data")) {
         ImGui::TextWrapped("%s", feedback.preview().c_str());
         ImGui::TreePop();
