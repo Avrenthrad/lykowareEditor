@@ -1,6 +1,6 @@
 # Editor work board
 
-Last updated: 2026-11-06. Work only in this repository; Joshua reviews and merges.
+Last updated: 2026-11-07. Work only in this repository; Joshua reviews and merges.
 
 [Delivery checklist](DELIVERY_CHECKLIST.md) · [Milestones and acceptance criteria](ROADMAP.md)
 · [Implementation status](STATUS.md) · [Private review stack](REVIEW_STACK.md)
@@ -37,8 +37,8 @@ near-term queue, not a second copy of all 93 steps.
 | Manifest tests and documentation | 8c (part of 8) | Implemented (awaiting review) | Python tomllib interoperability, direct typed-model tests and CLI/MCP parity pass. Full validation evidence is in STATUS.md. Planned acceptance: verify round trips, deterministic output, invalid candidate rejection and filesystem errors on available platforms. Record remaining Windows limits; update protocol/docs/STATUS/checklist. Tick step 8 only after all its agreed requirements are met. |
 | Project lifecycle commands | 9 | Ready | Partial lifecycle implemented in 9a; complete project creation and persistent recent settings remain. Do not tick step 9 until all agreed lifecycle outcomes are verified. |
 | Project context, conservative guards and session-local recents | 9a (part of 9) | Implemented (awaiting review) | ADR 0026; shared open/close/query/recent.clear commands, atomic history/candidate protection, canonical MRU metadata and Project-menu form navigation. Branch codex/standalone-editor-project-context. Validation in STATUS.md. |
-| Complete project creation workflow | 9b (part of 9) | Ready | Define supplied/generated identity policy, directory publication/failure semantics and relationship to opening; validate before external effects, preserve existing files and do not discard authoring work. |
-| Persistent user-local recent settings | 9c (part of 9) | Ready | Specify a separate versioned user-local store, explicit loading/saving, privacy and stale/missing-path behavior; do not leak absolute paths into portable project/scene/workspace exports. |
+| Complete project creation workflow | 9b (part of 9) | Implemented (awaiting review) | ADR 0027: supplied or generated identity, new-root reservation, configured folders, manifest-last publication and cleanup. Project menu/create-result navigation shares commands. Full 40/31 checks plus targeted generation tests; branch codex/standalone-editor-project-creation. |
+| Persistent user-local recent settings | 9c (part of 9) | In progress | Specify a separate versioned user-local store, explicit loading/saving, privacy and stale/missing-path behavior; do not leak absolute paths into portable project/scene/workspace exports. |
 | Active-project asset root resolution | 10 | Blocked | Requires 9. Resolve source operations against the active project; preserve validation, revision and fingerprint guards; document explicit-root compatibility; verify frontend parity and no active-project error behavior. |
 
 Core review R001 fixed on 98b9732; the full review and Joshua's decisions remain

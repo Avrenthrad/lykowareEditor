@@ -509,3 +509,25 @@ that a source still exists. Recent navigation opens the current file again. No
 absolute context paths or recents enter scene/prefab/catalogue/workspace exports.
 This is partial lifecycle support: project directory creation, persistent recent
 settings and dirty-aware switching remain outstanding. See ADR 0026.
+
+
+## Project directory creation
+
+`project.create {path, project_id, name, directories}` creates a NEW root directory
+beneath an existing parent, using manifest identity/name/directory rules. All four
+arguments are required; use directories={} for defaults and project_id="" to
+generate an opaque 128-bit identity. Supplied identities are preserved. Root basename must obey
+portable path-segment rules; directory roles cannot occupy lykoware.toml or its
+subtree. Existing file/directory/symlink roots are preserved. Missing parents are
+not created implicitly. Return `{created:true, project:{path,root,manifest}}`.
+
+The root is atomically reserved, folders populated, then the no-overwrite manifest
+is published last as readiness marker. Population failure attempts cleanup of the
+reserved root only; project_creation_failed/path explains filesystem failures and
+any cleanup failure. Crashes may leave an incomplete reserved directory. There is
+no hostile-filesystem guarantee or atomic whole-directory publication.
+
+Creation is a filesystem_export, not undoable or a transaction mutation. It never
+activates a project or changes scene/catalogue/history/revision. Explicitly submit
+project.open afterward; normal context/content guards remain authoritative. Target,
+revision, schema and manifest validation precede filesystem mutation. See ADR 0027.

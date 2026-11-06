@@ -42,6 +42,13 @@ int main(int argc, char **argv) {
   frame();
   click(menu.test_menu_center());
   frame();
+  click(menu.test_create_center());
+  check(action && action->command == "project.create" &&
+            action->arguments.empty(),
+        "create item navigates shared form");
+  action.reset();
+  click(menu.test_menu_center());
+  frame();
   click(menu.test_open_center());
   check(action && action->command == "project.open" &&
             action->arguments.empty(),

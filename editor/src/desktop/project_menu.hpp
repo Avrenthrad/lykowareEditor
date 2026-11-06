@@ -13,6 +13,10 @@ public:
     const bool expanded = ImGui::BeginMenu("Project");
     menu_center_ = center();
     if (expanded) {
+      if (ImGui::MenuItem("Create project...")) {
+        action = ProjectMenuAction{"project.create", {}};
+      }
+      create_center_ = center();
       if (ImGui::MenuItem("Write new manifest...")) {
         action = ProjectMenuAction{"project.manifest.write", {}};
       }
@@ -62,6 +66,7 @@ public:
     }
     return action;
   }
+  ImVec2 test_create_center() const { return create_center_; }
   ImVec2 test_menu_center() const { return menu_center_; }
   ImVec2 test_open_center() const { return open_center_; }
   ImVec2 test_recent_center() const { return recent_center_; }
@@ -71,6 +76,6 @@ private:
     const auto a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
     return ImVec2((a.x + b.x) * .5f, (a.y + b.y) * .5f);
   }
-  ImVec2 menu_center_{}, open_center_{}, recent_center_{};
+  ImVec2 menu_center_{}, create_center_{}, open_center_{}, recent_center_{};
 };
 } // namespace lyko

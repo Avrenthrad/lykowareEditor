@@ -593,6 +593,25 @@
   clang-tidy reports no project findings. Native menu navigation also passes in
   X11/Xvfb, and its layout was inspected. Windows/hardware remain unverified.
 
+## Project directory creation
+
+- Added project.create through the shared registry, CLI/MCP and Project menu. It
+  validates supplied identity/configuration, reserves a new root, creates configured
+  folders and publishes lykoware.toml last as the readiness marker.
+- Existing roots are never adopted or removed. Population failures attempt cleanup
+  only of the newly reserved root; cleanup failures are explicit. ADR 0027 records
+  normal-filesystem race/crash limits and the absence of whole-directory atomicity.
+- Creation is an explicit non-undoable export with unchanged active context/history.
+  Result feedback opens the common project.open form; content guards still apply.
+- Contract tests cover concurrent reservation, existing files/empty roots/symlinks,
+  namespace conflicts, real OS failure cleanup, Unicode folders, state isolation,
+  transaction exclusion and CLI/MCP parity. Native Create navigation passes.
+- Full desktop 40/40 and ASan/UBSan 31/31 groups pass, with the documented
+  leak-check limitation. The subsequent blank-identity generation option passes
+  targeted creation/native tests; final combined validation follows in slice 9c.
+- Step 9 stays partial until persistent recent-project storage is implemented.
+  Windows remains unverified.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

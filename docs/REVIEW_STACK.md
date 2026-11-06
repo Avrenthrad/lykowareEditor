@@ -36,6 +36,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-project-fixtures | codex/standalone-editor-project-manifest | Checklist step 3: reusable project/legacy/malformed fixtures and deterministic large workloads |
 | codex/standalone-editor-performance-budgets | codex/standalone-editor-project-fixtures | Checklist step 7: numerical performance targets, repeatable procedures and opt-in headless baseline harness |
 | codex/standalone-editor-project-context | codex/standalone-editor-performance-budgets | Partial checklist step 9: undoable context/open/close, conservative content guards and session-local recent project menu |
+| codex/standalone-editor-project-creation | codex/standalone-editor-project-context | Step 9b: explicit new-directory creation, supplied/generated identity, manifest-last readiness and failure cleanup |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.

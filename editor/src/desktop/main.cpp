@@ -745,6 +745,16 @@ int main(int argc, char **argv) {
           }
           lyko::draw_form_feedback(feedback);
           std::optional<std::pair<std::string, O>> next_source_form;
+          if (active == "project.create" && feedback.result() &&
+              feedback.result()->at("ok").as<bool>()) {
+            const auto &project = feedback.result()->at("data").at("project");
+            ImGui::TextWrapped("Project created: %s",
+                               project.at("root").as<std::string>().c_str());
+            if (ImGui::Button("Open created project...")) {
+              next_source_form =
+                  std::pair{"project.open", O{{"path", project.at("path")}}};
+            }
+          }
           if (active == "asset.audit" && feedback.result() &&
               feedback.result()->at("ok").as<bool>() && command_form) {
             const auto draft = command_form->draft_arguments();

@@ -2,7 +2,7 @@
 
 **Project reference — linked at the top of README and ROADMAP.**
 
-Last updated: 2026-11-06. Owner/reviewer: Joshua, Lykoleon Studios.
+Last updated: 2026-11-07. Owner/reviewer: Joshua, Lykoleon Studios.
 
 ## Current position
 
@@ -61,7 +61,7 @@ public release without approval. See [review stack](REVIEW_STACK.md).
 - [x] 8. Add a versioned TOML project manifest with project identity, settings and directory conventions.
   Evidence: ADR 0025, ProjectManifest model/persistence and shared validate/write commands; Python tomllib compatibility, direct model and CLI/MCP tests. Desktop 36/36 and ASan/UBSan 28/28 pass with the documented leak-check limitation. Private branch codex/standalone-editor-project-manifest; not merged.
 - [ ] 9. Add project creation, opening, closing and recent-project workflows through shared commands.
-  Progress: undoable project.open/close/query and session-local recent metadata/menu are implemented in the context slice (ADR 0026). Complete directory creation, persistent recent settings and remaining lifecycle workflows are still outstanding; keep this step unchecked.
+  Progress: undoable project.open/close/query and session-local recent metadata/menu are implemented in the context slice (ADR 0026). New-directory creation is implemented in slice 9b (ADR 0027); persistent recent settings remain outstanding, so keep this step unchecked.
 - [ ] 10. Resolve asset paths against the active project so users need not repeatedly enter its root.
 - [ ] 11. Add dirty-state tracking for scenes, project settings and other editable documents.
 - [ ] 12. Support safe saving to existing files, including external-change detection and conflict handling.
@@ -204,3 +204,7 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-06: Added partial step 9 project context: undoable open/close, queries,
   session-local recent projects and command-driven menu. Step 9 stays unchecked;
   count remains 4/93 until full lifecycle requirements are implemented/verified.
+
+- 2026-11-07: Added project creation slice 9b with new-root reservation, readiness
+  manifest publication, failure cleanup and explicit Open navigation. Step 9 is
+  still partial; checklist remains 4/93 until persistent recent storage is verified.

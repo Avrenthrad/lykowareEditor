@@ -4,6 +4,7 @@
 #include "asset_source.hpp"
 #include "content_hash.hpp"
 #include "project_manifest.hpp"
+#include "project_creation.hpp"
 #include "transform_json.hpp"
 #include "world_transform.hpp"
 #include "text_file.hpp"
@@ -20,7 +21,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query, project_create };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -66,6 +67,7 @@ const std::vector<Entry>& registry() {
         {"project.recent.clear", "Clear session-local recent project metadata undoably; never delete files.", {}, [](const Json&)->Mutation {return ProjectMutation{ClearRecentProjects{}};}},
         {"project.query", "Read the active project and session-local recent metadata; does not read or reopen files.", {}, {}, Action::project_query},
         {"project.manifest.validate", "Validate a TOML v1 project manifest and return normalized metadata without activating a project.", {{"path","string"}}, {}, Action::manifest_validate},
+        {"project.create", "Create a NEW project directory and configured folders; publish lykoware.toml last. Explicit filesystem export, not undoable; open separately.", {{"path","string"},{"project_id","string",{{"title","Project identity (blank to generate)"},{"minLength",std::uint64_t{0}},{"default",""},{"maxLength",std::uint64_t{32}}}},{"name","string"},{"directories","object",{{"default",O{}},{"description","Optional assets/scenes/scripts/graphs/cache directory overrides; omitted roles use defaults."},{"additionalProperties",false},{"properties",O{{"assets",O{{"type","string"}}},{"scenes",O{{"type","string"}}},{"scripts",O{{"type","string"}}},{"graphs",O{{"type","string"}}},{"cache",O{{"type","string"}}}}}}}}, {}, Action::project_create},
         {"project.manifest.write", "Validate and export a NEW TOML project manifest; does not activate a project, create directories or change history.", {{"path","string"},{"project_id","string",{{"title","Project identity (32 lowercase hex characters)"},{"minLength",std::uint64_t{32}},{"maxLength",std::uint64_t{32}}}},{"name","string"},{"directories","object",{{"default",O{}},{"description","Optional assets/scenes/scripts/graphs/cache directory overrides; omitted roles use defaults."},{"additionalProperties",false},{"properties",O{{"assets",O{{"type","string"}}},{"scenes",O{{"type","string"}}},{"scripts",O{{"type","string"}}},{"graphs",O{{"type","string"}}},{"cache",O{{"type","string"}}}}}}}}, {}, Action::manifest_write},
         {"asset.audit", "Read-only catalogue-wide scene/prefab source validation in ID order; unsupported kinds are skipped and source failures are reported per entry.", {{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory for this audit. Files are observed sequentially, not as an atomic filesystem snapshot."}}}}, {}, Action::asset_audit},
         {"asset.check", "Validate a scene/prefab and compare its exact byte SHA-256 with a previous observation; read-only.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"}}},{"sha256","string",{{"title","Expected SHA-256"},{"minLength",std::uint64_t{64}},{"maxLength",std::uint64_t{64}}}}}, {}, Action::asset_check},
@@ -179,7 +181,7 @@ Json CommandService::descriptors() const {
     for (const auto& entry : registry()) {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
-                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save || entry.action == Action::manifest_write) ? "filesystem_export" :
+                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save || entry.action == Action::manifest_write || entry.action == Action::project_create) ? "filesystem_export" :
                                 (is_mutation(entry) || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
                             {"undoable", is_mutation(entry) || entry.action == Action::transaction},
                             {"mutation", is_mutation(entry) || entry.action == Action::transaction}});
@@ -225,7 +227,7 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
         else if(entry.action==Action::project_query){data=project_state_json(bus_.snapshot().first.project);}
-        else if(entry.action==Action::manifest_validate || entry.action==Action::manifest_write){
+        else if(entry.action==Action::manifest_validate || entry.action==Action::manifest_write || entry.action==Action::project_create){
             std::filesystem::path path;
             try {path=path_from_utf8(args.at("path").as<std::string>());}
             catch(const std::invalid_argument& error){throw ProjectManifestError("path",error.what());}
@@ -236,7 +238,11 @@ Json CommandService::call(const Json& request) {
                     try {manifest.directories.insert_or_assign(key,value.as<std::string>());}
                     catch(const std::invalid_argument& error){throw ProjectManifestError("directories."+key,error.what());}
                 }
-                save_project_manifest(path,manifest);data=O{{"saved",true},{"manifest",project_manifest_json(manifest)}};
+                if(entry.action==Action::project_create){
+                    const auto project=create_project_directory(path,manifest);
+                    data=O{{"created",true},{"project",O{{"path",project.path},{"root",project.root},{"manifest",project_manifest_json(project.manifest)}}}};
+                }else{save_project_manifest(path,manifest);data=O{{"saved",true},{"manifest",project_manifest_json(manifest)}};}
+
             }
         }
         else if(entry.action==Action::asset_audit){
@@ -323,6 +329,7 @@ Json CommandService::call(const Json& request) {
         }
         else if (entry.action == Action::scene) { data = document_json(bus_.snapshot().first); }
         return response(result, std::move(data));
+    } catch(const ProjectCreationError& e){return error_json(revision,"project_creation_failed",e.field(),e.what());
     } catch(const ProjectManifestError& e){return error_json(revision,"invalid_project_manifest",e.field(),e.what());
     } catch(const DecodeError& e){return error_json(revision,e.code,e.field,e.what());
     } catch(const AssetSourceError& e){return error_json(revision,"invalid_asset_source",e.field(),e.what());
