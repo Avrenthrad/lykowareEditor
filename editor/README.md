@@ -34,7 +34,7 @@ From the repository root, the verified fallback is:
 
 ```
 mkdir -p /tmp/lyko-build
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_creation.cpp editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_recent.cpp editor/src/project_creation.cpp editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/tests/command_bus_tests.cpp -o /tmp/lyko-build/tests
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -Ieditor/src editor/tests/json_tests.cpp -o /tmp/lyko-build/json-tests
 /tmp/lyko-build/tests
@@ -120,7 +120,7 @@ them, but a measured frame-rate target has not yet been verified. See ADR 0004 f
 The deterministic queue test can also be built directly from the repository root:
 
 ```
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_creation.cpp editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/project_recent.cpp editor/src/project_creation.cpp editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
 /tmp/lyko-build/queue-tests
 ```
 
@@ -371,8 +371,7 @@ own stable 32-character lowercase hexadecimal identity; the example is illustrat
 Directory settings default to assets, scenes, scripts, graphs and .lyko/cache.
 Override roles in the directories object; paths are portable and project-relative,
 and generated cache directories cannot overlap source directories. Configuration
-does not create those folders, import files or activate a project. Active project
-creation/open/close is the next lifecycle slice.
+does not create those folders, import files or activate a project. Use the project.create/project.open workflows below for lifecycle operations.
 
 The conventional manifest is `lykoware.toml`, schema version 1. Supported syntax is
 single-line basic/literal strings, bare known keys, comments, LF/CRLF and one optional
@@ -421,10 +420,10 @@ explicit document reset workflows and dirty-state tracking are later work.
 Reopening an unchanged current context is a no-op. Redo restores captured metadata
 even if the manifest has disappeared; new opens always read and validate again.
 
-Recent projects are session-local, capped at 16 and undoable. They are not persisted
-to user settings yet. **Write new manifest...** exports configuration only; it does
-not create a project directory or activate it. Complete project creation, persistent
-recents and active-root asset resolution remain later lifecycle slices.
+Recent projects are capped at 16 and undoable. Explicitly save/load a separate
+user-local history to carry them across sessions; there are no automatic startup
+reads or autosaves. **Write new manifest...** exports configuration only; it does
+not create a project directory or activate it. Active-root asset resolution and dirty-aware switching remain later slices.
 
 
 ### Create a project directory
@@ -445,3 +444,21 @@ An interrupted process may leave an incomplete directory for manual inspection.
 Creation exports files and is not undone. It does not switch the active project;
 **Open created project...** prefills the shared Open form. Opening is undoable and
 retains authoring-content guards. A later undo never deletes the created files.
+
+
+### Persist recent projects between sessions
+
+Use **Project → Save recent history...** to export a new user-local JSON file, then
+**Load recent history...** in a later session. CLI/MCP use the same commands:
+
+```json
+{"instance":"studio","command":"project.recent.save","arguments":{"path":"/user-local/recent-projects.json"}}
+{"instance":"studio","command":"project.recent.load","arguments":{"path":"/user-local/recent-projects.json"}}
+```
+
+The history contains absolute local paths and observed manifest metadata; keep it
+separate from portable project data. Save requires a new destination; replacement
+support is later work. Loading is undoable and changes only the recent list. It does
+not open projects or inspect their folders, so stale/moved entries can be restored.
+Selecting one still opens the normal form and validates its current manifest.
+Malformed imports preserve your active project, authored work and undo history.

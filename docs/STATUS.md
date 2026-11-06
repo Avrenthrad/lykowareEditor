@@ -612,6 +612,30 @@
 - Step 9 stays partial until persistent recent-project storage is implemented.
   Windows remains unverified.
 
+## Persistent recent-project history
+
+- Added explicit project.recent.save/load and Project-menu forms for versioned
+  user-local JSON session history. Stored absolute paths/observed metadata stay
+  separate from portable project/scene/prefab/workspace/catalogue formats.
+- Save preserves existing destinations and editor state/history. Load validates the
+  whole bounded store and commits an undoable recent-list replacement only; the
+  pure bus also validates direct typed replacements. Active/authored state is kept.
+- Missing/stale project paths are not opened or inspected while loading history;
+  actual Open navigation revalidates them. Undo/redo captures metadata without
+  rereading stores. There are no implicit startup reads or automatic saves.
+- ADR 0028 and generated recent-history fixtures record the new format. Tests
+  cover separate processes, malformed/duplicate/unknown records, bounds, captured
+  redo, state isolation, atomic imports, export safety and CLI/MCP/native parity.
+- All 41 desktop and all 32 ASan/UBSan groups pass, including creation identity
+  generation, expanded fixtures and lifecycle parity. The documented local
+  leak-check limitation remains. Clang-tidy reports no project-code findings;
+  the bus-only strict-warning compile/run also passes without IO linkage.
+- Expanded Project-menu interactions pass under X11/Xvfb and its layout was
+  inspected. Windows and target hardware remain unverified; safe replacement
+  and dirty-aware switching remain steps 11–12, independent of explicit lifecycle.
+- Checklist step 9 is implemented locally; count is now 5/93. Next is active-project
+  root resolution (10). Joshua's review/merge and the full foundation review remain open.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -637,6 +661,6 @@ explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Read
 docs/WORK_BOARD.md for active tasks and docs/ROADMAP.md for milestone acceptance.
-Continue project lifecycle in private slices and continue the partial foundation
-review; do not treat local review as Joshua's merge approval. Keep
+Continue with active-project source root resolution (step 10) and the partial
+foundation review; do not treat local review as Joshua's merge approval. Keep
 docs/STATUS.md and docs/DELIVERY_CHECKLIST.md current. Joshua merges.

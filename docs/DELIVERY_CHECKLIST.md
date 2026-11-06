@@ -9,18 +9,17 @@ Last updated: 2026-11-07. Owner/reviewer: Joshua, Lykoleon Studios.
 - Foundation already implemented: shared command bus, atomic history, headless CLI,
   instance-targeted MCP, desktop shell, hierarchy/transforms, detached prefabs,
   catalogue/source validation and full desktop audit reports.
-- Latest runtime checkpoint: project-context slice on private branch
-  codex/standalone-editor-project-context. Full desktop/sanitizer validation is
+- Latest runtime checkpoint: project lifecycle with creation and recent history on
+  private branches codex/standalone-editor-project-creation and
+  codex/standalone-editor-project-recents. Full desktop/sanitizer validation is
   recorded in [STATUS](STATUS.md), alongside hardware/platform limitations.
-- **Remaining checklist: 4/93 complete.** This counts the remaining delivery steps,
+- **Remaining checklist: 5/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
   Review/merge remains with Joshua; the wider foundation milestone is incomplete.
-- Steps 3 (fixtures), 7 (performance budgets) and 8 (manifest) are implemented
-  locally. Project context slice 9a is implemented; creation and persistent
-  recents remain within step 9. Full foundation review and
-  Joshua decisions remain open.
+- Steps 2, 3, 7, 8 and 9 are implemented locally. Next: active-project source root
+  resolution (10). Foundation review and Joshua decisions remain open.
   Windows/CI validation should progress as infrastructure permits.
 - Steps 56–65 require Joshua's integration decision. This plan does not authorize
   engine repository access. Steps 83–93 are the later content-suite finish line.
@@ -60,8 +59,8 @@ public release without approval. See [review stack](REVIEW_STACK.md).
 
 - [x] 8. Add a versioned TOML project manifest with project identity, settings and directory conventions.
   Evidence: ADR 0025, ProjectManifest model/persistence and shared validate/write commands; Python tomllib compatibility, direct model and CLI/MCP tests. Desktop 36/36 and ASan/UBSan 28/28 pass with the documented leak-check limitation. Private branch codex/standalone-editor-project-manifest; not merged.
-- [ ] 9. Add project creation, opening, closing and recent-project workflows through shared commands.
-  Progress: undoable project.open/close/query and session-local recent metadata/menu are implemented in the context slice (ADR 0026). New-directory creation is implemented in slice 9b (ADR 0027); persistent recent settings remain outstanding, so keep this step unchecked.
+- [x] 9. Add project creation, opening, closing and recent-project workflows through shared commands.
+  Evidence: ADRs 0026–0028; undoable context/open/close and recent replacement, explicit new-directory creation with supplied/generated identity, and user-local history save/load across sessions. Shared CLI/MCP/native menu workflows, content guards, cleanup and source validation pass. Full desktop 41/41 and ASan/UBSan 32/32; private review branches, not merged. Safe in-place saves and dirty-aware switching remain steps 11–12.
 - [ ] 10. Resolve asset paths against the active project so users need not repeatedly enter its root.
 - [ ] 11. Add dirty-state tracking for scenes, project settings and other editable documents.
 - [ ] 12. Support safe saving to existing files, including external-change detection and conflict handling.
@@ -208,3 +207,7 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-07: Added project creation slice 9b with new-root reservation, readiness
   manifest publication, failure cleanup and explicit Open navigation. Step 9 is
   still partial; checklist remains 4/93 until persistent recent storage is verified.
+
+- 2026-11-07: Completed step 9 locally with explicit persistent recent-history
+  save/load. Combined creation/context/recent workflows pass 41 desktop and 32
+  sanitizer groups; checklist now 5/93. Next is active-project root resolution.

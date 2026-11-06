@@ -484,7 +484,7 @@ ordinary malformed command schemas retain `invalid_request`. Reads are bounded t
 supported narrow TOML syntax and no-overwrite/power-loss limitations.
 
 
-## Project context (partial lifecycle)
+## Project context
 
 `project.open {path}` validates the manifest, captures its canonical absolute path,
 containing root and normalized metadata, then commits the active context undoably.
@@ -507,8 +507,9 @@ recents after clearing them. Invalid captured direct C++ sessions return
 Undo/redo uses captured metadata without rereading files. Queries do not establish
 that a source still exists. Recent navigation opens the current file again. No
 absolute context paths or recents enter scene/prefab/catalogue/workspace exports.
-This is partial lifecycle support: project directory creation, persistent recent
-settings and dirty-aware switching remain outstanding. See ADR 0026.
+Project directory creation and explicit persistent recent-history commands are
+documented below (ADRs 0027–0028). Dirty-aware switching remains separate work.
+See ADR 0026 for context/history semantics.
 
 
 ## Project directory creation
@@ -531,3 +532,27 @@ Creation is a filesystem_export, not undoable or a transaction mutation. It neve
 activates a project or changes scene/catalogue/history/revision. Explicitly submit
 project.open afterward; normal context/content guards remain authoritative. Target,
 revision, schema and manifest validation precede filesystem mutation. See ADR 0027.
+
+
+## Persistent recent-project history
+
+`project.recent.save {path}` exports `{schema_version:1,recent:[{path,root,manifest}]}`
+as machine-local JSON session history. It preserves MRU ordering and last-observed
+manifest metadata, including absolute paths. Choose a user-local destination;
+portable scene/project/workspace exports remain unchanged. Existing destinations
+are preserved: this is an explicit non-undoable filesystem_export, excluded from
+transaction.execute. Safe in-place replacement remains later work.
+
+`project.recent.load {path}` reads a regular bounded store and replaces only the
+recent list as one undoable mutation. It can be grouped in transaction.execute.
+Unknown/duplicate fields/entries, unsupported versions, more than 16 entries,
+invalid manifest metadata or invalid absolute/root paths are rejected before
+commit as invalid_project_recents with a field. Bad command schemas retain normal
+invalid_request behavior. Source files are limited to 1 MiB; malformed imports
+preserve active context, authored content, revision and history.
+
+Loading does not stat/open any stored project path or activate a project. Stale
+entries remain historical metadata; project.open rereads the selected current
+manifest. Undo/redo uses captured imports without rereading the store. No implicit
+home-directory reads, startup loading or autosaving is added. Persistence across
+processes uses these explicit save/load commands, also in the Project menu.

@@ -91,6 +91,11 @@ int main() {
     const auto blocked_close=projects.execute("projects",{}, {lyko::ProjectMutation{lyko::CloseProject{}}});
     check(!blocked_close&&blocked_close.error->code=="project_has_content"&&projects.snapshot()==project_before,"direct close cannot discard authoring content");
     check(static_cast<bool>(projects.undo("projects"))&&!projects.snapshot().first.project.active&&projects.snapshot().first.entities.empty(),"context/authoring undo together");
+    const auto before_recents=projects.snapshot();
+    const auto rejected_recents=projects.execute("projects",{}, {lyko::ProjectMutation{lyko::ReplaceRecentProjects{{session,session}}}});
+    check(!rejected_recents&&rejected_recents.error->code=="invalid_project_recents"&&projects.snapshot()==before_recents,"direct recent replacement rejects duplicate paths before commit");
+    check(static_cast<bool>(projects.execute("projects",{}, {lyko::CreateEntity{"Untitled"},lyko::ProjectMutation{lyko::ReplaceRecentProjects{{session}}}})),"recent import groups with authored state");
+    check(!projects.snapshot().first.project.active&&projects.snapshot().first.project.recent.size()==1,"recent replacement never activates a project");
     FailingBridge failing;
     lyko::CommandBus broken("test", failing);
     auto failure = broken.execute("test", {}, {lyko::CreateEntity{"A"}, lyko::Play{}});

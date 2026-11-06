@@ -17,8 +17,12 @@ struct OpenProject {
 };
 struct CloseProject {};
 struct ClearRecentProjects {};
+struct ReplaceRecentProjects {
+  std::vector<ProjectSession> recent;
+};
 using ProjectMutation =
-    std::variant<OpenProject, CloseProject, ClearRecentProjects>;
+    std::variant<OpenProject, CloseProject, ClearRecentProjects,
+                 ReplaceRecentProjects>;
 inline std::optional<ProjectIssue>
 project_session_issue(const ProjectSession &session) {
   if (auto issue = project_manifest_issue(session.manifest)) {
@@ -42,6 +46,23 @@ project_session_issue(const ProjectSession &session) {
       path.parent_path() != root) {
     return ProjectIssue{"path", "Manifest must be an absolute normalized file "
                                 "path beneath its containing root."};
+  }
+  return {};
+}
+inline std::optional<ProjectIssue>
+recent_projects_issue(const std::vector<ProjectSession> &recent) {
+  if (recent.size() > 16) {
+    return ProjectIssue{"recent",
+                        "Recent project history supports at most 16 entries."};
+  }
+  std::set<std::string> paths;
+  for (const auto &entry : recent) {
+    if (auto issue = project_session_issue(entry)) {
+      return ProjectIssue{"recent." + issue->field, issue->message};
+    }
+    if (!paths.insert(entry.path).second) {
+      return ProjectIssue{"recent", "Duplicate project paths are not allowed."};
+    }
   }
   return {};
 }

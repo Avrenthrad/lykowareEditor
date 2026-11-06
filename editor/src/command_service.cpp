@@ -5,6 +5,7 @@
 #include "content_hash.hpp"
 #include "project_manifest.hpp"
 #include "project_creation.hpp"
+#include "project_recent.hpp"
 #include "transform_json.hpp"
 #include "world_transform.hpp"
 #include "text_file.hpp"
@@ -21,7 +22,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query, project_create };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query, project_create, recent_save };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -64,6 +65,8 @@ const std::vector<Entry>& registry() {
         {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
         {"project.open", "Validate a manifest and open its canonical project context undoably; context switches require empty/reset authoring state.", {{"path","string"}}, [](const Json& a)->Mutation {return ProjectMutation{OpenProject{load_project_session(path_from_utf8(a.at("path").as<std::string>()))}};}},
         {"project.close", "Close project context undoably, retaining session-local recent projects; nonempty authoring state blocks closing.", {}, [](const Json&)->Mutation {return ProjectMutation{CloseProject{}};}},
+        {"project.recent.load", "Validate a user-local JSON recent-project history and replace recents undoably; never open or inspect its stored project paths.", {{"path","string"}}, [](const Json& a)->Mutation {return ProjectMutation{ReplaceRecentProjects{load_recent_projects(path_from_utf8(a.at("path").as<std::string>()))}};}},
+        {"project.recent.save", "Export recent-project history to a NEW user-local JSON path; contains absolute local paths, not portable project data. Not undoable.", {{"path","string"}}, {}, Action::recent_save},
         {"project.recent.clear", "Clear session-local recent project metadata undoably; never delete files.", {}, [](const Json&)->Mutation {return ProjectMutation{ClearRecentProjects{}};}},
         {"project.query", "Read the active project and session-local recent metadata; does not read or reopen files.", {}, {}, Action::project_query},
         {"project.manifest.validate", "Validate a TOML v1 project manifest and return normalized metadata without activating a project.", {{"path","string"}}, {}, Action::manifest_validate},
@@ -181,7 +184,7 @@ Json CommandService::descriptors() const {
     for (const auto& entry : registry()) {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
-                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save || entry.action == Action::manifest_write || entry.action == Action::project_create) ? "filesystem_export" :
+                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save || entry.action == Action::manifest_write || entry.action == Action::project_create || entry.action == Action::recent_save) ? "filesystem_export" :
                                 (is_mutation(entry) || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
                             {"undoable", is_mutation(entry) || entry.action == Action::transaction},
                             {"mutation", is_mutation(entry) || entry.action == Action::transaction}});
@@ -226,6 +229,7 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
+        else if(entry.action==Action::recent_save){save_recent_projects(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.project.recent);data=O{{"saved",true}};}
         else if(entry.action==Action::project_query){data=project_state_json(bus_.snapshot().first.project);}
         else if(entry.action==Action::manifest_validate || entry.action==Action::manifest_write || entry.action==Action::project_create){
             std::filesystem::path path;
@@ -329,6 +333,7 @@ Json CommandService::call(const Json& request) {
         }
         else if (entry.action == Action::scene) { data = document_json(bus_.snapshot().first); }
         return response(result, std::move(data));
+    } catch(const ProjectRecentError& e){return error_json(revision,"invalid_project_recents",e.field(),e.what());
     } catch(const ProjectCreationError& e){return error_json(revision,"project_creation_failed",e.field(),e.what());
     } catch(const ProjectManifestError& e){return error_json(revision,"invalid_project_manifest",e.field(),e.what());
     } catch(const DecodeError& e){return error_json(revision,e.code,e.field,e.what());

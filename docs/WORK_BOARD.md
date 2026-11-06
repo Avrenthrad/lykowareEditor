@@ -35,16 +35,16 @@ near-term queue, not a second copy of all 93 steps.
 | Project manifest contract and ADR | 8a (part of 8) | Implemented (awaiting review) | ADR 0025 and project.manifest.validate/write implemented on codex/standalone-editor-project-manifest. Defines TOML version, project identity/name, root and relative directory conventions, defaults, unknown-field policy, validation, migration boundary and file-effect semantics. No runtime/engine dependency. |
 | Project manifest model and bounded persistence | 8b (part of 8) | Implemented (awaiting review) | Implemented model, bounded parser and no-overwrite writer with shared commands. Uses existing helpers without a new dependency. Planned acceptance: implement value model/parser/writer using existing wrappers or an approved pinned permissive dependency. Round-trip valid Unicode/settings; reject malformed/unsupported/path-invalid/oversized data without state changes; protect existing files according to the agreed save contract. |
 | Manifest tests and documentation | 8c (part of 8) | Implemented (awaiting review) | Python tomllib interoperability, direct typed-model tests and CLI/MCP parity pass. Full validation evidence is in STATUS.md. Planned acceptance: verify round trips, deterministic output, invalid candidate rejection and filesystem errors on available platforms. Record remaining Windows limits; update protocol/docs/STATUS/checklist. Tick step 8 only after all its agreed requirements are met. |
-| Project lifecycle commands | 9 | Ready | Partial lifecycle implemented in 9a; complete project creation and persistent recent settings remain. Do not tick step 9 until all agreed lifecycle outcomes are verified. |
+| Project lifecycle commands | 9 | Implemented (awaiting review) | Context (9a), creation (9b), and explicit persistent recent history (9c) implemented. Full 41 desktop / 32 sanitizer checks and native X11 navigation pass. Safe in-place saves and dirty-state tracking remain separate steps 11–12. |
 | Project context, conservative guards and session-local recents | 9a (part of 9) | Implemented (awaiting review) | ADR 0026; shared open/close/query/recent.clear commands, atomic history/candidate protection, canonical MRU metadata and Project-menu form navigation. Branch codex/standalone-editor-project-context. Validation in STATUS.md. |
 | Complete project creation workflow | 9b (part of 9) | Implemented (awaiting review) | ADR 0027: supplied or generated identity, new-root reservation, configured folders, manifest-last publication and cleanup. Project menu/create-result navigation shares commands. Full 40/31 checks plus targeted generation tests; branch codex/standalone-editor-project-creation. |
-| Persistent user-local recent settings | 9c (part of 9) | In progress | Specify a separate versioned user-local store, explicit loading/saving, privacy and stale/missing-path behavior; do not leak absolute paths into portable project/scene/workspace exports. |
-| Active-project asset root resolution | 10 | Blocked | Requires 9. Resolve source operations against the active project; preserve validation, revision and fingerprint guards; document explicit-root compatibility; verify frontend parity and no active-project error behavior. |
+| Persistent user-local recent settings | 9c (part of 9) | Implemented (awaiting review) | ADR 0028: user-local versioned JSON session history, explicit no-overwrite export, undoable import, stale metadata without activation and no portable-format path leakage. Branch codex/standalone-editor-project-recents. |
+| Active-project asset root resolution | 10 | Ready | Lifecycle dependency implemented. Resolve source operations against the active project; preserve validation, revision and fingerprint guards; document explicit-root compatibility; verify frontend parity and no active-project error behavior. |
 
 Core review R001 fixed on 98b9732; the full review and Joshua's decisions remain
 open. Manifest (8), fixture projects (3) and numerical budgets (7) are implemented
-locally. Project context slice 9a is also implemented; complete creation (9b)
-and persistent recent settings (9c) are the next lifecycle work. Private stacked work
+locally. Context, creation and persistent recent history complete the explicit
+lifecycle workflows in step 9; active-project root resolution (10) is next. Private stacked work
 continues at the user's request without asserting review approval or merging.
 Step 2's completion does not imply milestone A is complete or that code is merged.
 
@@ -67,3 +67,6 @@ Step 2's completion does not imply milestone A is complete or that code is merge
 
 - 2026-11-06: Project context slice 9a implemented locally with native/CLI/MCP
   validation. Step 9 stays partial; checklist count remains 4/93.
+
+- 2026-11-07: Lifecycle step 9 implemented locally across context/creation/recent
+  slices. Full 41/32 checks pass; count 5/93. No merge or platform claims are implied.

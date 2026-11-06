@@ -47,5 +47,8 @@ with tempfile.TemporaryDirectory() as temp:
  try:large.generate(root/'large')
  except FileExistsError:pass
  else:raise AssertionError('large generator overwrote existing fixture')
+ spec=importlib.util.spec_from_file_location('recent_fixture',fixtures/'generate_recent.py');recent_fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(recent_fixture)
+ recent_store=root/'recent-history.json';entry=recent_fixture.generate(recent_store,root/'missing-project')
+ r=run([req('project.recent.load',path=str(recent_store)),req('project.query')]);assert all(row['ok'] for row in r) and r[-1]['data']==dict(active=None,recent=[entry])
 assert all(p.read_bytes()==content for p,content in original.items()),'fixture mutation'
 print('Passed reusable small/large/malformed fixtures, scene/workspace migrations, identity/reference preservation and CLI/MCP parity')

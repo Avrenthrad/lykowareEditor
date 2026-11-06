@@ -60,6 +60,18 @@ int main(int argc, char **argv) {
   check(action && action->command == "project.open" &&
             action->arguments.at("path") == J(session.path),
         "recent item passes captured path to authoritative open form");
+  action.reset();
+  click(menu.test_menu_center());
+  frame();
+  click(menu.test_load_center());
+  check(action && action->command == "project.recent.load",
+        "load history uses shared form");
+  action.reset();
+  click(menu.test_menu_center());
+  frame();
+  click(menu.test_save_center());
+  check(action && action->command == "project.recent.save",
+        "save history uses shared form");
   click(menu.test_menu_center());
   frame();
   if (argc == 2) {

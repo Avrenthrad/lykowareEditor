@@ -37,6 +37,10 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 return std::visit([&](const auto& edit)->std::optional<Error>{
                     using P=std::decay_t<decltype(edit)>;
                     if constexpr(std::is_same_v<P,ClearRecentProjects>){candidate.project.recent.clear();return {};}
+                    else if constexpr(std::is_same_v<P,ReplaceRecentProjects>){
+                        if(auto issue=recent_projects_issue(edit.recent)){return Error{"invalid_project_recents",issue->field,issue->message};}
+                        candidate.project.recent=edit.recent;return {};
+                    }
                     else {
                         if constexpr(std::is_same_v<P,OpenProject>){
                             if(auto issue=project_session_issue(edit.project)){return Error{"invalid_project",issue->field,issue->message};}
