@@ -11,7 +11,8 @@ a real game runtime are future work.
 - [Command protocol](docs/COMMAND_PROTOCOL.md)
 - [Status and limitations](docs/STATUS.md)
 - [Private review stack](docs/REVIEW_STACK.md)
-- [Roadmap](docs/ROADMAP.md)
+- [Work board](docs/WORK_BOARD.md)
+- [Roadmap and milestone acceptance](docs/ROADMAP.md)
 - [Architecture](docs/adr/0001-editor-architecture.md)
 
 No engine repository, headers or libraries are required or integrated.

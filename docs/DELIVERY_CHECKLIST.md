@@ -11,10 +11,11 @@ Last updated: 2026-11-06. Owner/reviewer: Joshua, Lykoleon Studios.
   catalogue/source validation and full desktop audit reports.
 - Latest code checkpoint: `2bfbccd`; 34 desktop test groups and 26 ASan/UBSan
   headless groups passed. See [STATUS](STATUS.md) for evidence and limitations.
-- **Remaining checklist: 0/93 complete.** This counts the remaining delivery steps,
+- **Remaining checklist: 1/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
-- Step 2 is partial: this checklist provides the ordered delivery plan; detailed
-  milestone acceptance criteria and a maintained work board still need completion.
+- Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
+  the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
+  Review/merge remains with Joshua; the wider foundation milestone is incomplete.
 - Recommended next feature: step 8, project manifest, after review-stack
   consolidation. Windows/CI validation should progress as infrastructure permits.
 - Steps 56–65 require Joshua's integration decision. This plan does not authorize
@@ -40,8 +41,8 @@ public release without approval. See [review stack](REVIEW_STACK.md).
 ## A. Consolidate the foundation — steps 1–7
 
 - [ ] 1. Review the existing branch stack and ADRs; resolve issues before building further on them. Joshua reviews and merges.
-- [ ] 2. Replace the short roadmap with milestones, acceptance criteria and a maintained work board.
-  Progress: ordered delivery checklist saved and prominently linked; acceptance criteria and work board remain.
+- [x] 2. Replace the short roadmap with milestones, acceptance criteria and a maintained work board.
+  Evidence: ROADMAP.md covers milestones A–J with observable exit criteria and dependencies; WORK_BOARD.md defines the queue, task states and next slices. Documentation links, stable IDs and milestone coverage checked. Implemented locally on codex/standalone-editor-delivery-milestones; awaiting Joshua review/merge.
 - [ ] 3. Establish representative test projects: small, large, malformed and migration fixtures.
 - [ ] 4. Verify Windows builds and fix platform-specific problems.
 - [ ] 5. Run Linux/Windows CI on approved infrastructure, including sanitizers and clang-tidy.
@@ -174,3 +175,7 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-06: Saved the agreed 93-step remaining-delivery plan, established progress
   rules and linked it prominently for quick reference. Step 2 is partial; no full
   remaining step is claimed complete by this documentation task.
+
+- 2026-11-06: Completed step 2 locally: milestone acceptance criteria, dependency
+  gates and an active work board. Count is now 1/93; this is not an effort-weighted
+  project percentage. Review-stack consolidation remains open.

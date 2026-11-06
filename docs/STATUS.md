@@ -499,6 +499,19 @@
   consolidation. Engine integration remains gated on Joshua's separate decision.
 - Documentation-only task; checked numbered IDs, progress count and local links.
 
+## Delivery milestones and active work board
+
+- Completed checklist step 2 locally: ROADMAP now defines all ten milestone ranges,
+  observable exit criteria and dependency/access gates. WORK_BOARD records bounded
+  tasks, states, evidence requirements and project-manifest/lifecycle slices.
+- Checklist now records 1/93 remaining steps complete, with Joshua's review/merge
+  status separate. This is a count of remaining-plan items, not overall progress.
+- Next feature: manifest contract/ADR (8a), after foundation review consolidation.
+  Ready planning/review tasks remain actionable; Windows and CI lack required
+  environments/runners. No engine work or paid infrastructure was initiated.
+- Documentation-only validation checked local links, stable IDs, completion count,
+  milestone coverage and diff whitespace. Runtime code/tests are unchanged.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -522,6 +535,7 @@
 Use only this repository and the existing isolated checkout; no worktree unless
 explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
-needed. See editor/README.md for desktop/MCP/headless commands. Continue with
-broader object schemas, further usability polish and
-Windows verification. Keep docs/STATUS.md current. Joshua merges.
+needed. See editor/README.md for desktop/MCP/headless commands. Read
+docs/WORK_BOARD.md for active tasks and docs/ROADMAP.md for milestone acceptance.
+Consolidate the review stack before project manifest/lifecycle feature work. Keep
+docs/STATUS.md and docs/DELIVERY_CHECKLIST.md current. Joshua merges.
