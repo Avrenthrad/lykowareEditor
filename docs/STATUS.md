@@ -404,6 +404,24 @@
 - ADR 0019 records scope/bounds. No project root resolution, real import, GUIDs,
   dependencies, hashes, file watching or runtime resource loading is implemented.
 
+## Registered scene/prefab source validation
+
+- Added read-only asset.validate with an explicit absolute project-root argument.
+  Canonical component checks reject observed escapes; regular-file checks precede
+  bounded reads and existing scene/prefab parsers validate the content.
+- Added prefilled Validate actions in the Assets browser; unsupported kinds are
+  disabled with an explanation. CLI/MCP return structured unsupported-kind errors.
+- Results expose logical path, kind, byte/entity counts. Queries do not import,
+  persist a project root, cache data, touch history or write source files.
+- Tests cover read-only state/parity, Unicode, root/path failures, malformed and
+  oversized content, nonregular sources and observed symlink escapes.
+- All 28 desktop checks and all 21 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The browser smoke passed in X11 and the updated action layout was inspected.
+  Browser columns now scale with text and can scroll horizontally.
+- ADR 0020 records scope. Canonical resolution/read is not a race-proof sandbox;
+  source fingerprints, rooted handle APIs and actual import remain deferred.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

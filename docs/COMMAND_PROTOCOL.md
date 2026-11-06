@@ -373,3 +373,20 @@ only catalogue state undoably. Maximum 4096 entries; file I/O remains capped at
 1 MiB, so large in-memory catalogues may need shorter paths to export. Saving is
 an external effect excluded from transactions. Scene/workspace/prefab formats do
 not embed catalogue state. editor.snapshot includes assets with the same payload.
+
+## Registered source validation
+
+asset.validate takes id and root (an explicit absolute existing project directory).
+It resolves the registered relative path, checks canonical containment component by
+component, requires a regular file, and validates scene/prefab contents through the
+existing authoring parsers. Results include id/path/kind, valid=true, byte count and
+entity count. Failures return not_found/id, unsupported_asset_kind/kind, or
+invalid_asset_source with root/path context. Other kinds are not read or decoded.
+
+Validation is read-only: no imports, cache entries, catalogue changes, history or
+source writes. The 1 MiB UTF-8/JSON bounds and all authoring graph/transform rules
+apply. Contained symlinks may resolve normally; observed escapes are rejected.
+Canonical checks and reads are separate standard-filesystem operations, not a
+race-proof handle sandbox. Results describe the bytes read, not future file state.
+Use normal project trees under the caller's control; stronger rooted filesystem
+handles, source fingerprints and import transactions remain future work.

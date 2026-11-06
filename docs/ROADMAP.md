@@ -62,6 +62,9 @@ copies through the shared bus. Linked prefab updates/overrides remain future wor
 Asset catalogue metadata now has stable project-scoped IDs, portable-style paths,
 independent persistence and a command-driven browser. Real file import is deferred.
 
+Registered scene/prefab files can now be validated read-only beneath an explicit
+project root, with structured diagnostics and browser/CLI/MCP access.
+
 Next: broader object schemas, further usability polish, Windows and target
 hardware validation. Linked prefabs, import/dependency schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

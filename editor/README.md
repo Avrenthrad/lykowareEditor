@@ -34,7 +34,7 @@ From the repository root, the verified fallback is:
 
 ```
 mkdir -p /tmp/lyko-build
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/tests/command_bus_tests.cpp -o /tmp/lyko-build/tests
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -Ieditor/src editor/tests/json_tests.cpp -o /tmp/lyko-build/json-tests
 /tmp/lyko-build/tests
@@ -120,7 +120,7 @@ them, but a measured frame-rate target has not yet been verified. See ADR 0004 f
 The deterministic queue test can also be built directly from the repository root:
 
 ```
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
 /tmp/lyko-build/queue-tests
 ```
 
@@ -300,3 +300,12 @@ need not exist, declared kinds are not decoded, and no sources are copied, moved
 or deleted. IDs are stable within the saved catalogue rather than global GUIDs.
 `--smoke-assets` opens the browser, forgets a row through its typed form, then
 undoes and verifies the row returns using native SDL input.
+
+Validate in the Assets browser opens asset.validate with the asset ID prefilled.
+Enter an absolute project directory; the command reads the registered scene or
+prefab file, checks observed canonical containment and its authoring format, then
+shows byte/entity counts through command feedback. Unsupported kinds are disabled
+in the browser and return unsupported_asset_kind through CLI/MCP. Missing, malformed,
+nonregular and oversized sources return structured errors without changing state.
+This is read-only validation, not import or a guarantee against concurrent hostile
+filesystem changes. The project root is explicit per call and is not persisted.

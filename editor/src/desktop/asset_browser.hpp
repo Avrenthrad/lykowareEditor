@@ -35,14 +35,20 @@ public:
       ImGui::InputTextWithHint("##filter", "Search paths or kinds...",
                                query_.data(), query_.size());
       const auto query = asset_fold(query_.data());
-      if (ImGui::BeginTable("assets", 4,
-                            ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY |
-                                ImGuiTableFlags_BordersInnerH)) {
-        ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 60);
+      const float scale = ImGui::GetFontSize() / 15.f;
+      if (ImGui::BeginTable(
+              "assets", 4,
+              ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY |
+                  ImGuiTableFlags_ScrollX | ImGuiTableFlags_BordersInnerH,
+              ImVec2(0, 0),
+              std::max(ImGui::GetContentRegionAvail().x, 720.f * scale))) {
+        ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed,
+                                60 * scale);
         ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableSetupColumn("Kind", ImGuiTableColumnFlags_WidthFixed, 70);
+        ImGui::TableSetupColumn("Kind", ImGuiTableColumnFlags_WidthFixed,
+                                70 * scale);
         ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed,
-                                150);
+                                230 * scale);
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableHeadersRow();
         std::vector<const Json *> filtered;
@@ -75,6 +81,18 @@ public:
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(kind.c_str());
             ImGui::TableNextColumn();
+            const bool can_validate = kind == "scene" || kind == "prefab";
+            ImGui::BeginDisabled(!can_validate);
+            if (ImGui::SmallButton("Validate")) {
+              action = AssetAction{"asset.validate", {{"id", id}}};
+            }
+            ImGui::EndDisabled();
+            if (!can_validate &&
+                ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+              ImGui::SetTooltip(
+                  "Content validation is available for scenes and prefabs.");
+            }
+            ImGui::SameLine();
             if (ImGui::SmallButton("Relocate")) {
               action =
                   AssetAction{"asset.relocate", {{"id", id}, {"path", path}}};
