@@ -64,8 +64,8 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 if(auto issue=hierarchy_error(candidate)){return Error{"invalid_hierarchy","parent",*issue};}
                 candidate.workspace.selection=ids.at(command.root);
             } else if constexpr (std::is_same_v<T, CreateEntity> || std::is_same_v<T, RenameEntity> || std::is_same_v<T, DuplicateEntity>) {
-                if (command.name.empty() || command.name.size() > 128) {
-                    return Error{"invalid_name", "name", "Name must contain 1 to 128 bytes."};
+                if (command.name.empty() || command.name.size() > 128 || !json_detail::valid_utf8(command.name)) {
+                    return Error{"invalid_name", "name", "Name must contain 1 to 128 UTF-8 bytes."};
                 }
                 if constexpr (std::is_same_v<T, CreateEntity>) {
                     if (candidate.next_id == std::numeric_limits<EntityId>::max()) {
@@ -115,7 +115,7 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 }
                 if (command.document.next_id == 0) { return Error{"invalid_scene", "next_id", "Next ID must be positive."}; }
                 for (const auto& [id, name] : command.document.entities) {
-                    if (id == 0 || id >= command.document.next_id || name.empty() || name.size() > 128) {
+                    if (id == 0 || id >= command.document.next_id || name.empty() || name.size() > 128 || !json_detail::valid_utf8(name)) {
                         return Error{"invalid_scene", "entities", "Invalid entity identifier or name."};
                     }
                 }

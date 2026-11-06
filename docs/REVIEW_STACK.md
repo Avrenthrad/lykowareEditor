@@ -31,6 +31,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-audit-reports | codex/standalone-editor-source-audit | Full searchable audit report table and guarded source form navigation |
 | codex/standalone-editor-delivery-checklist | codex/standalone-editor-audit-reports | Maintained 93-step delivery checklist, prominent links and handover instructions |
 | codex/standalone-editor-delivery-milestones | codex/standalone-editor-delivery-checklist | Checklist step 2: milestone acceptance criteria, dependencies and maintained work board |
+| codex/standalone-editor-core-utf8 | codex/standalone-editor-delivery-milestones | Targeted foundation review and typed-bus UTF-8 entity-name validation |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.

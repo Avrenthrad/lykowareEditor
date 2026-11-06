@@ -512,6 +512,18 @@
 - Documentation-only validation checked local links, stable IDs, completion count,
   milestone coverage and diff whitespace. Runtime code/tests are unchanged.
 
+## Targeted foundation review and direct-bus UTF-8 fix
+
+- Reviewed selected core/service/queue/persistence boundaries at 1b38fb2, with
+  findings and remaining scope in FOUNDATION_REVIEW.md. Step 1 stays unchecked.
+- Direct typed create/rename/duplicate and ReplaceScene now reject malformed UTF-8
+  entity names, preventing committed state that cannot serialize to JSON.
+- Regression checks cover direct calls, atomic rollback and unchanged history.
+  Four affected test groups pass under desktop and ASan/UBSan presets, with local
+  leak detection disabled as documented. Clang-tidy has no project findings.
+- Continuing independent standalone manifest slices on private branches follows
+  the user's request; this does not assert Joshua's approval or merge anything.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

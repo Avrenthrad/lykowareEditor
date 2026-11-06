@@ -65,6 +65,19 @@ int main() {
     auto bad_layout=layout_bus.execute("layout",{}, {lyko::CreateEntity{"Rollback"},lyko::ReplaceDockLayout{cycle}});
     check(!bad_layout&&bad_layout.error->code=="invalid_layout","typed layout mutation validates before commit");
     check(layout_bus.snapshot().first.entities.empty()&&layout_bus.revision()==0&&!layout_bus.history_snapshot().cursor,"typed layout failure rolls back batch and history");
+    lyko::CommandBus utf8("utf8", backend);
+    const std::string malformed(1, static_cast<char>(0xff));
+    check(!utf8.execute("utf8", {}, {lyko::CreateEntity{malformed}}), "direct create rejects invalid UTF-8");
+    check(static_cast<bool>(utf8.execute("utf8", {}, {lyko::CreateEntity{"Valid"}})), "valid baseline");
+    const auto utf8_before = utf8.snapshot();
+    const auto utf8_cursor = utf8.history_snapshot().cursor;
+    for (const auto& mutation : std::vector<lyko::Mutation>{lyko::RenameEntity{1,malformed}, lyko::DuplicateEntity{1,malformed}}) {
+        const auto rejected = utf8.execute("utf8", {}, {lyko::CreateEntity{"Rollback"},mutation});
+        check(!rejected && rejected.error->code == "invalid_name" && utf8.snapshot() == utf8_before && utf8.history_snapshot().cursor == utf8_cursor, "invalid direct name rolls back entire batch/history");
+    }
+    auto invalid_document = utf8_before.first;
+    invalid_document.entities.at(1) = malformed;
+    check(!utf8.execute("utf8", {}, {lyko::ReplaceScene{invalid_document}}) && utf8.snapshot() == utf8_before, "direct scene replacement rejects invalid UTF-8");
     FailingBridge failing;
     lyko::CommandBus broken("test", failing);
     auto failure = broken.execute("test", {}, {lyko::CreateEntity{"A"}, lyko::Play{}});

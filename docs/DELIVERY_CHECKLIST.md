@@ -41,6 +41,7 @@ public release without approval. See [review stack](REVIEW_STACK.md).
 ## A. Consolidate the foundation — steps 1–7
 
 - [ ] 1. Review the existing branch stack and ADRs; resolve issues before building further on them. Joshua reviews and merges.
+  Progress: targeted core pass against 1b38fb2 recorded in FOUNDATION_REVIEW.md; direct-bus UTF-8 persistence defect fixed and regression-tested. Full stack/ADR review and Joshua decisions remain open.
 - [x] 2. Replace the short roadmap with milestones, acceptance criteria and a maintained work board.
   Evidence: ROADMAP.md covers milestones A–J with observable exit criteria and dependencies; WORK_BOARD.md defines the queue, task states and next slices. Documentation links, stable IDs and milestone coverage checked. Implemented locally on codex/standalone-editor-delivery-milestones; awaiting Joshua review/merge.
 - [ ] 3. Establish representative test projects: small, large, malformed and migration fixtures.
