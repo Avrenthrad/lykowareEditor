@@ -390,3 +390,12 @@ parity, invalid-candidate rollback, scene promotion and workspace migration.
 An offline generator provides a 1000-entity scene and a full 4096-entry catalogue
 in a fresh temporary directory. These are correctness workloads, not hardware
 performance results. No engine files or runtime resource import are involved.
+
+
+### Performance targets and local measurements
+
+See [performance budgets](../docs/PERFORMANCE_BUDGETS.md) for proposed numerical
+acceptance targets, hardware procedures and the local Release/mock baseline.
+`tools/benchmark-headless.py` is opt-in and writes a JSON report to stdout; it does
+not upload artifacts or turn noisy timing measurements into required CI gates.
+Desktop/handheld acceptance requires actual measurements on the target devices.

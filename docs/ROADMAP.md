@@ -112,7 +112,11 @@ and source command navigation beyond the bounded generic preview.
 Project manifest v1 and shared validation/no-overwrite export commands are now
 implemented locally (step 8).
 
-Next: continue foundation review and fixture coverage, then project lifecycle and
+Reusable format/migration fixtures (3) and proposed numerical performance budgets
+with local headless measurement tooling (7) are implemented locally. Actual hardware
+verification is still open.
+
+Next: continue foundation review, then project lifecycle and
 active-root resolution (steps 9–10). See WORK_BOARD.md for bounded tasks and completion evidence. Windows
 and target hardware validation remain outstanding. CI is manual/self-hosted and
 has not been run.

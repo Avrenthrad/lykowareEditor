@@ -557,6 +557,22 @@
 - Checklist is 3/93 complete locally. New formats/migrations must extend fixtures;
   correctness workloads are not performance or real runtime validation claims.
 
+## Numerical performance budgets and local baseline
+
+- Completed checklist step 7 locally: PERFORMANCE_BUDGETS defines proposed
+  startup, frame pacing, command/feedback latency, residency and growth targets,
+  fixed workloads and repeatable measurement procedures for Joshua's review.
+- Added opt-in benchmark-headless.py: temporary original fixtures, successful
+  response checks, warmups, bounded waits, timing quantiles and optional Linux RSS.
+  Prints local JSON only; no network, paid service, artifact upload or flaky CI gate.
+- Debug and separate Release builds ran the harness. Release/mock p95: startup
+  3.10 ms, scene tree 5.96 ms, asset list 14.61 ms, rename/undo 8.00 ms. Workloads
+  were 1000 entities/4096 metadata assets, 20 launches and 100 operation samples.
+- These are cloud headless observations; desktop frame traces, RTX 4070/MSI Claw,
+  actual resource residency, accessibility and hardware acceptance remain unverified.
+- Checklist is 4/93 complete locally (2, 3, 7, 8). Next feature is project lifecycle;
+  foundation review step 1 remains partial and Joshua has not merged these changes.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and
@@ -582,5 +598,6 @@ explicitly requested and no external engine access. Activate cloud tools with
 `source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
 needed. See editor/README.md for desktop/MCP/headless commands. Read
 docs/WORK_BOARD.md for active tasks and docs/ROADMAP.md for milestone acceptance.
-Consolidate the review stack before project manifest/lifecycle feature work. Keep
+Continue project lifecycle in private slices and continue the partial foundation
+review; do not treat local review as Joshua's merge approval. Keep
 docs/STATUS.md and docs/DELIVERY_CHECKLIST.md current. Joshua merges.

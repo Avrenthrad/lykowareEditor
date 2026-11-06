@@ -9,15 +9,17 @@ Last updated: 2026-11-06. Owner/reviewer: Joshua, Lykoleon Studios.
 - Foundation already implemented: shared command bus, atomic history, headless CLI,
   instance-targeted MCP, desktop shell, hierarchy/transforms, detached prefabs,
   catalogue/source validation and full desktop audit reports.
-- Latest code checkpoints: `98b9732` plus the project-manifest slice; 36 desktop test groups and 28 ASan/UBSan
-  headless groups passed. See [STATUS](STATUS.md) for evidence and limitations.
-- **Remaining checklist: 3/93 complete.** This counts the remaining delivery steps,
+- Latest runtime checkpoint: `770f17e`; full runs of 36 desktop test groups and 28 ASan/UBSan
+  headless groups passed; the new fixture group also passes in both builds
+  (37/29 groups now registered). See [STATUS](STATUS.md) for evidence/limitations.
+- **Remaining checklist: 4/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
   Review/merge remains with Joshua; the wider foundation milestone is incomplete.
-- Step 8 is implemented locally; reusable fixture coverage (3) and project
-  lifecycle (9) are next. Full foundation review and Joshua decisions remain open.
+- Steps 3 (fixtures), 7 (performance budgets) and 8 (manifest) are implemented
+  locally. Next feature: project lifecycle (9). Full foundation review and
+  Joshua decisions remain open.
   Windows/CI validation should progress as infrastructure permits.
 - Steps 56–65 require Joshua's integration decision. This plan does not authorize
   engine repository access. Steps 83–93 are the later content-suite finish line.
@@ -50,7 +52,8 @@ public release without approval. See [review stack](REVIEW_STACK.md).
 - [ ] 4. Verify Windows builds and fix platform-specific problems.
 - [ ] 5. Run Linux/Windows CI on approved infrastructure, including sanitizers and clang-tidy.
 - [ ] 6. Validate compatibility with actual MCP clients and multiple editor instances.
-- [ ] 7. Define measurable performance budgets for startup, frame time, memory and command latency.
+- [x] 7. Define measurable performance budgets for startup, frame time, memory and command latency.
+  Evidence: PERFORMANCE_BUDGETS.md defines numerical targets, fixed workloads and repeatable startup/frame/memory/latency procedures; benchmark-headless.py ran successfully in Debug and Release with local mock measurements. Targets await Joshua review; hardware acceptance remains unchecked (76–77). Branch codex/standalone-editor-performance-budgets.
 
 ## B. Make projects safe and practical — steps 8–16
 
@@ -191,3 +194,7 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-06: Step 3 implemented locally with reusable fixture bundles and migration/
   failure/large-workload checks. Count is 3/93; future formats must add fixtures.
   Generated Python bytecode is excluded from version control.
+
+- 2026-11-06: Step 7 defined locally with numerical budgets and reproducible
+  procedures/tooling; Release cloud/mock baseline recorded. Count is 4/93.
+  Windows, real hardware and production release gates remain unverified.

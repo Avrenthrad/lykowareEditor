@@ -28,7 +28,7 @@ near-term queue, not a second copy of all 93 steps.
 | Milestones, acceptance criteria and maintained board | 2 | Implemented (awaiting review) | ROADMAP defines all ten milestone ranges, observable exit criteria and dependencies; this board defines states, completion policy and bounded next slices. Checklist/links/coverage checked. Private branch: codex/standalone-editor-delivery-milestones. |
 | Review foundation stack and proposed ADRs | 1 | Ready | Start at REVIEW_STACK in base order; record findings and fixes against immutable commits; Joshua records review/merge decisions. Do not merge. GitHub API policy currently prevents automated PR creation; private branches and the local review index remain available. |
 | Representative fixture projects | 3 | Implemented (awaiting review) | editor/tests/fixtures covers all current format versions, malformed candidates and generated 1000-entity/4096-asset workloads; fixture_projects passes on desktop and ASan/UBSan. Branch codex/standalone-editor-project-fixtures. Extend for future formats. |
-| Numerical performance budgets | 7 | Ready | Specify representative workloads, agreed numerical targets and repeatable measurement methods. Distinguish local software/mock measurements from RTX 4070/MSI Claw results. |
+| Numerical performance budgets | 7 | Implemented (awaiting review) | PERFORMANCE_BUDGETS defines numerical proposed targets and workload/measurement boundaries; opt-in benchmark-headless.py ran successfully in Debug/Release. Hardware acceptance remains steps 76–77. Branch codex/standalone-editor-performance-budgets. |
 | Windows compilation and runtime validation | 4 | Blocked | Requires a Windows environment; no successful Windows result is recorded. Do not infer success from Linux or CMake portability. |
 | Approved cross-platform CI execution | 5 | Blocked | Requires approved available runners. Existing manual CI configuration is not evidence of a run. No paid jobs or artifact storage without Joshua's approval. |
 | Real MCP client interoperability | 6 | Ready | Select available actual clients; record versions and results for negotiation/tools/errors, shared-instance concurrency and instance isolation. Existing transport tests alone do not complete this task. |
@@ -39,8 +39,8 @@ near-term queue, not a second copy of all 93 steps.
 | Active-project asset root resolution | 10 | Blocked | Requires 9. Resolve source operations against the active project; preserve validation, revision and fingerprint guards; document explicit-root compatibility; verify frontend parity and no active-project error behavior. |
 
 Core review R001 fixed on 98b9732; the full review and Joshua's decisions remain
-open. Manifest slice 8 is implemented locally; next independent work is reusable
-fixture projects (3), followed by project lifecycle (9). Private stacked work
+open. Manifest (8), fixture projects (3) and numerical budgets (7) are implemented
+locally. The next feature is project lifecycle (9). Private stacked work
 continues at the user's request without asserting review approval or merging.
 Step 2's completion does not imply milestone A is complete or that code is merged.
 
@@ -57,3 +57,6 @@ Step 2's completion does not imply milestone A is complete or that code is merge
 - 2026-11-06: Established milestone exit criteria and this active queue. Checklist
   step 2 implemented locally; review/merge remains with Joshua. Existing tests are
   the prior code checkpoint, not new validation of unimplemented feature tasks.
+
+- 2026-11-06: Manifest and fixture slices implemented; defined numerical budgets
+  with a measured local Release/mock baseline. No target hardware pass is claimed.

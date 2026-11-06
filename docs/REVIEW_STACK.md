@@ -34,6 +34,7 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-core-utf8 | codex/standalone-editor-delivery-milestones | Targeted foundation review and typed-bus UTF-8 entity-name validation |
 | codex/standalone-editor-project-manifest | codex/standalone-editor-core-utf8 | Checklist step 8: versioned TOML project metadata, validated export/read commands and contract tests |
 | codex/standalone-editor-project-fixtures | codex/standalone-editor-project-manifest | Checklist step 3: reusable project/legacy/malformed fixtures and deterministic large workloads |
+| codex/standalone-editor-performance-budgets | codex/standalone-editor-project-fixtures | Checklist step 7: numerical performance targets, repeatable procedures and opt-in headless baseline harness |
 
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
