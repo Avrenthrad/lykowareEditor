@@ -65,6 +65,9 @@ independent persistence and a command-driven browser. Real file import is deferr
 Registered scene/prefab files can now be validated read-only beneath an explicit
 project root, with structured diagnostics and browser/CLI/MCP access.
 
+Registered prefabs can now instantiate by catalogue ID through validated source
+resolution, with atomic history and explicit staged-catalogue guards.
+
 Next: broader object schemas, further usability polish, Windows and target
 hardware validation. Linked prefabs, import/dependency schemas, procedural graphs, glTF import and binary
 cooking remain later milestones. CI is manual/self-hosted and has not been run.

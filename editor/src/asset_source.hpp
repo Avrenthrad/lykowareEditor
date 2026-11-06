@@ -11,6 +11,12 @@ public:
 private:
   std::string field_;
 };
+struct AssetSource {
+  Json json;
+  std::uint64_t bytes;
+};
+AssetSource read_asset_source(const Asset &asset,
+                              const std::filesystem::path &root);
 Json validate_asset_source(std::uint64_t id, const Asset &asset,
                            const std::filesystem::path &root);
 } // namespace lyko

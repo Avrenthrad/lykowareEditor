@@ -18,7 +18,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -59,6 +59,7 @@ const std::vector<Entry>& registry() {
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"prefab.export", "Export an authoring subtree to a NEW JSON prefab path; local placement is retained and export is not undoable.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string"}}, {}, Action::prefab_export},
         {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
+        {"asset.instantiate", "Instantiate a registered prefab beneath an explicit project root as an undoable detached copy; catalogue edits must commit first.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory used for this source read."}}},{"parent","integer",{{"default",std::uint64_t{0}}}}}, {}, Action::asset_instantiate},
         {"asset.validate", "Read and validate a registered scene/prefab beneath an explicit absolute project root; no import or writes.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"root","string",{{"title","Project root directory"},{"description","Absolute existing project directory, used only for this validation call."}}}}, {}, Action::asset_validate},
         {"asset.register", "Register metadata for a portable project-relative path without reading or importing the file.", {{"path","string",{{"description","Portable project-relative metadata path; does not read or move a file."},{"maxLength",std::uint64_t{512}},{"x-maxBytes",std::uint64_t{512}}}},{"kind","string",{{"enum",A{"scene","prefab","mesh","texture","script","graph"}},{"default","prefab"}}}}, [](const Json& a)->Mutation{return AssetMutation{RegisterAsset{a.at("path").as<std::string>(),a.at("kind").as<std::string>()}};}},
         {"asset.relocate", "Change a catalog path while preserving its stable ID; does not move a file.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string",{{"description","Portable project-relative metadata path; does not read or move a file."},{"maxLength",std::uint64_t{512}},{"x-maxBytes",std::uint64_t{512}}}}}, [](const Json& a)->Mutation{return AssetMutation{RelocateAsset{a.at("id").as<std::uint64_t>(),a.at("path").as<std::string>()}};}},
@@ -89,6 +90,22 @@ const Entry& lookup(const std::string& name) {
     auto entry = std::find_if(entries.begin(), entries.end(), [&](const auto& e) { return e.name == name; });
     if (entry == entries.end()) { throw std::invalid_argument("Unknown command: " + name); }
     return *entry;
+}
+bool is_mutation(const Entry& entry){return static_cast<bool>(entry.decode)||entry.action==Action::asset_instantiate;}
+struct DecodeError : std::runtime_error {std::string code,field;DecodeError(std::string c,std::string f,std::string message):std::runtime_error(std::move(message)),code(std::move(c)),field(std::move(f)){} };
+Mutation decode_mutation(const Entry& entry,const Json& args,CommandBus& bus){
+    if(entry.action!=Action::asset_instantiate){return entry.decode(args);}
+    const auto catalog=bus.snapshot().first.assets;const auto id=args.at("id").as<std::uint64_t>();const auto found=catalog.entries.find(id);
+    if(found==catalog.entries.end()){throw DecodeError("not_found","id","Asset does not exist in the committed catalogue; commit registration before instantiating.");}
+    const auto asset=found->second;
+    if(asset.kind!="prefab"){throw DecodeError("unsupported_asset_kind","kind","Only registered prefabs can be instantiated.");}
+    std::filesystem::path root;
+    try{root=path_from_utf8(args.at("root").as<std::string>());}catch(const std::invalid_argument& error){throw AssetSourceError("root",error.what());}
+    const auto source=read_asset_source(asset,root);
+    try{
+        auto prefab=parse_prefab(source.json);
+        return InstantiatePrefab{std::move(prefab.scene),prefab.root,args.at("parent").as<std::uint64_t>(),std::pair{id,asset}};
+    }catch(const std::invalid_argument& error){throw AssetSourceError("path",error.what());}
 }
 void keys(const Json& j, const std::vector<std::string>& allowed) {
     for (const auto& [key, value] : j.as<O>()) {
@@ -150,9 +167,9 @@ Json CommandService::descriptors() const {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
                             {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save) ? "filesystem_export" :
-                                (entry.decode || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
-                            {"undoable", static_cast<bool>(entry.decode) || entry.action == Action::transaction},
-                            {"mutation", static_cast<bool>(entry.decode) || entry.action == Action::transaction}});
+                                (is_mutation(entry) || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
+                            {"undoable", is_mutation(entry) || entry.action == Action::transaction},
+                            {"mutation", is_mutation(entry) || entry.action == Action::transaction}});
     }
     return list;
 }
@@ -172,16 +189,16 @@ Json CommandService::call(const Json& request) {
         validate(entry, args);
         Result result{revision, {}};
         Json data = O{};
-        if (entry.decode) { result = bus_.execute(instance_, expected, {entry.decode(args)}, {entry.name}); }
+        if (is_mutation(entry)) { result = bus_.execute(instance_, expected, {decode_mutation(entry,args,bus_)}, {entry.name}); }
         else if (entry.action == Action::transaction) {
             std::vector<Mutation> mutations;
             std::vector<std::string> command_names;
             for (const auto& item : args.at("commands").as<A>()) {
                 keys(item, {"command", "arguments"});
                 const auto& mutation = lookup(item.at("command").as<std::string>());
-                if (!mutation.decode) { throw std::invalid_argument("Only mutations are allowed in transactions"); }
+                if (!is_mutation(mutation)) { throw std::invalid_argument("Only mutations are allowed in transactions"); }
                 const Json a = item.contains("arguments") ? item.at("arguments") : Json(O{});
-                validate(mutation, a); mutations.push_back(mutation.decode(a)); command_names.push_back(mutation.name);
+                validate(mutation, a); mutations.push_back(decode_mutation(mutation,a,bus_)); command_names.push_back(mutation.name);
             }
             result = bus_.execute(instance_, expected, mutations, std::move(command_names));
         } else if (entry.action == Action::undo) { result = bus_.undo(instance_, expected); }
@@ -271,6 +288,8 @@ Json CommandService::call(const Json& request) {
         }
         else if (entry.action == Action::scene) { data = document_json(bus_.snapshot().first); }
         return response(result, std::move(data));
+    } catch(const DecodeError& e){return error_json(revision,e.code,e.field,e.what());
+    } catch(const AssetSourceError& e){return error_json(revision,"invalid_asset_source",e.field(),e.what());
     } catch (const std::invalid_argument& e) {
         return error_json(revision, "invalid_request", "request", e.what());
     } catch (const std::exception& e) {

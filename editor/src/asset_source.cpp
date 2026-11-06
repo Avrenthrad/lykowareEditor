@@ -2,8 +2,8 @@
 #include "prefab.hpp"
 #include "text_file.hpp"
 namespace lyko {
-Json validate_asset_source(std::uint64_t id, const Asset &asset,
-                           const std::filesystem::path &root) {
+AssetSource read_asset_source(const Asset &asset,
+                              const std::filesystem::path &root) {
   if (auto issue = asset_path_error(asset.path)) {
     throw AssetSourceError("path", *issue);
   }
@@ -42,15 +42,25 @@ Json validate_asset_source(std::uint64_t id, const Asset &asset,
   }
   try {
     const auto text = read_text_file(source);
-    const auto json = Json::parse(text);
-    const auto document =
-        asset.kind == "scene" ? parse_scene(json) : parse_prefab(json).scene;
+    return AssetSource{Json::parse(text),
+                       static_cast<std::uint64_t>(text.size())};
+  } catch (const std::exception &error) {
+    throw AssetSourceError("path", error.what());
+  }
+}
+Json validate_asset_source(std::uint64_t id, const Asset &asset,
+                           const std::filesystem::path &root) {
+  const auto source = read_asset_source(asset, root);
+  try {
+    const auto document = asset.kind == "scene"
+                              ? parse_scene(source.json)
+                              : parse_prefab(source.json).scene;
     return Json::Object{
         {"id", id},
         {"path", asset.path},
         {"kind", asset.kind},
         {"valid", true},
-        {"bytes", static_cast<std::uint64_t>(text.size())},
+        {"bytes", source.bytes},
         {"entities", static_cast<std::uint64_t>(document.entities.size())}};
   } catch (const std::exception &error) {
     throw AssetSourceError("path", error.what());

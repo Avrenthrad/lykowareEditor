@@ -50,6 +50,9 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                 },command);
                 if(issue){return issue;}candidate.assets=std::move(assets);
             } else if constexpr (std::is_same_v<T, InstantiatePrefab>) {
+                if(command.asset_origin){const auto& [id,asset]=*command.asset_origin;const auto found=candidate.assets.entries.find(id);
+                    if(found==candidate.assets.entries.end()||found->second!=asset){return Error{"asset_reference_changed","id","Catalogue entry changed in this transaction; commit the catalogue edit before instantiating."};}
+                }
                 if(auto issue=prefab_error(command.source,command.root)){return Error{"invalid_prefab","path",*issue};}
                 if(command.parent&&!candidate.entities.contains(command.parent)){return Error{"not_found","parent","Parent entity does not exist."};}
                 if(command.source.entities.size()>std::numeric_limits<EntityId>::max()-candidate.next_id){return Error{"id_exhausted","id","No identifiers remain."};}

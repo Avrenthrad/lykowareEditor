@@ -44,7 +44,7 @@ inline std::optional<std::string> hierarchy_error(const Document& document) {
     }
     return {};
 }
-struct InstantiatePrefab { Document source; EntityId root; EntityId parent; };
+struct InstantiatePrefab { Document source; EntityId root; EntityId parent; std::optional<std::pair<std::uint64_t, Asset>> asset_origin = {}; };
 struct ReplaceDockLayout { DockLayout layout; };
 struct ResetDockLayout {};
 struct ReplaceWorkspace { Workspace workspace; };

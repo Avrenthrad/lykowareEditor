@@ -422,6 +422,24 @@
 - ADR 0020 records scope. Canonical resolution/read is not a race-proof sandbox;
   source fingerprints, rooted handle APIs and actual import remain deferred.
 
+## Registered prefab instantiation
+
+- Added asset.instantiate by catalogue ID, explicit project root and destination
+  parent. The source reader is shared with asset.validate; parsing/validation
+  occurs once per decoded row and feeds the existing atomic prefab mutation.
+- Captured catalogue metadata is checked against the transaction candidate before
+  commit. Earlier staged entry relocation/removal fails with asset_reference_changed;
+  registration must commit before ID resolution. Staged destination parents work.
+- Added prefab-only Instantiate browser actions using the same named form and
+  feedback. Actions use two table lines to remain readable at the current width.
+- Tests cover source/type failures, missing IDs, staged parents, catalogue guards,
+  full rollback/history, stale revisions, frozen redo and CLI/MCP parity.
+- All 29 desktop checks and all 22 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The browser smoke passed in X11 and its two-line action layout was inspected.
+- ADR 0021 records semantics. Instances remain detached; no source writes, runtime
+  resources, persistent provenance or new scene/catalogue format is introduced.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

@@ -81,6 +81,12 @@ public:
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(kind.c_str());
             ImGui::TableNextColumn();
+            ImGui::BeginDisabled(kind != "prefab");
+            if (ImGui::SmallButton("Instantiate")) {
+              action = AssetAction{"asset.instantiate", {{"id", id}}};
+            }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
             const bool can_validate = kind == "scene" || kind == "prefab";
             ImGui::BeginDisabled(!can_validate);
             if (ImGui::SmallButton("Validate")) {
@@ -92,7 +98,6 @@ public:
               ImGui::SetTooltip(
                   "Content validation is available for scenes and prefabs.");
             }
-            ImGui::SameLine();
             if (ImGui::SmallButton("Relocate")) {
               action =
                   AssetAction{"asset.relocate", {{"id", id}, {"path", path}}};

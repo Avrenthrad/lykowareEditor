@@ -309,3 +309,12 @@ in the browser and return unsupported_asset_kind through CLI/MCP. Missing, malfo
 nonregular and oversized sources return structured errors without changing state.
 This is read-only validation, not import or a guarantee against concurrent hostile
 filesystem changes. The project root is explicit per call and is not persisted.
+
+Instantiate in a prefab catalogue row opens asset.instantiate with the catalogue
+ID prefilled. Supply the explicit project directory and destination parent (0 for
+root). The validated source becomes a detached undoable authoring copy, exactly as
+with prefab.instantiate; source files and catalogue entries are unchanged.
+Registration/relocation must commit before instantiating by catalogue ID. A batch
+that changes that entry first is rejected instead of using stale path metadata.
+Redo works after the source file disappears because committed authoring data is
+captured. No linked definition, resource cache or engine object is created.

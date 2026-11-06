@@ -390,3 +390,23 @@ Canonical checks and reads are separate standard-filesystem operations, not a
 race-proof handle sandbox. Results describe the bytes read, not future file state.
 Use normal project trees under the caller's control; stronger rooted filesystem
 handles, source fingerprints and import transactions remain future work.
+
+## Instantiate by catalogue ID
+
+asset.instantiate takes id (a registered prefab), root (absolute project directory)
+and parent (entity ID, 0 for scene root). It uses the shared observed-containment,
+regular-file and bounded JSON reader, validates a prefab, then submits the existing
+typed instantiation mutation with captured source data and catalogue metadata.
+Fresh IDs, hierarchy, local transforms and root selection commit atomically.
+Undo/redo uses captured authoring state, never a source reread. Instances remain
+independent copies, with no persisted link to the catalogue or definition file.
+
+The source ID must exist in the committed catalogue at decode time. If earlier
+rows in the same batch remove/change its path or kind, the bus rejects with
+asset_reference_changed/id and rolls back the batch. Commit catalogue registration/
+relocation first, then submit by ID. Earlier rows may still create the destination
+parent. File-based prefab.instantiate remains available when a batch intentionally
+combines registration and an explicit-path copy. Stale revision guards precede
+source reading. Missing IDs return not_found/id; non-prefabs return
+unsupported_asset_kind/kind; source failures return invalid_asset_source/root/path.
+The source-reader containment/concurrent-filesystem limitations remain unchanged.
