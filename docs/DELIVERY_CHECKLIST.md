@@ -12,7 +12,7 @@ Last updated: 2026-11-07. Owner/reviewer: Joshua, Lykoleon Studios.
 - Latest runtime checkpoint: active-project source roots on private branch
   codex/standalone-editor-active-roots. Full desktop/sanitizer validation is
   recorded in [STATUS](STATUS.md), alongside hardware/platform limitations.
-- **Remaining checklist: 7/93 complete.** This counts the remaining delivery steps,
+- **Remaining checklist: 8/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
@@ -64,7 +64,8 @@ public release without approval. See [review stack](REVIEW_STACK.md).
   Evidence: ADR 0029; omitted/blank roots resolve committed active context across validate/check/audit/instantiate commands; explicit overrides remain. Registry/palette/CLI/MCP parity, concrete observed-root feedback, staged project/catalogue guards and rollback pass. Full desktop 42/42 and ASan/UBSan 33/33; private branch codex/standalone-editor-active-roots, not merged.
 - [x] 11. Add dirty-state tracking for scenes, project settings and other editable documents.
   Evidence: ADR 0030; document.status/snapshot baselines, successful load/save observations, project configure/revert and staged context guards. Full desktop 43/43 and ASan/UBSan 34/34 pass. Private branch codex/standalone-editor-dirty-state; not merged.
-- [ ] 12. Support safe saving to existing files, including external-change detection and conflict handling.
+- [x] 12. Support safe saving to existing files, including external-change detection and conflict handling.
+  Evidence: ADR 0031; single-read source digests, checked existing-file writers, explicit conflict review, preserved backups/modes and cooperating writer locks. Full desktop 44/44 and ASan/UBSan 35/35 pass. Ordinary external-writer/rename and metadata limits are documented; private branch codex/standalone-editor-checked-saves.
 - [ ] 13. Add autosave, recovery snapshots and crash-recovery workflows.
 - [ ] 14. Add schema migrations with backups and clear compatibility errors.
 - [ ] 15. Support opening multiple documents with clear active-document and history ownership.
@@ -219,3 +220,6 @@ These are release gates, not a reason to defer usability or validation until the
 
 - 2026-11-07: Step 11 implemented locally; 7/93 complete. User requested the full
   11–20 batch; ACTIVE_BATCH.md tracks continuation through step 20.
+
+- 2026-11-07: Step 12 complete locally; 8/93. Continue active batch with autosave/
+  recovery (13), migrations (14), document ownership/jobs (15–16), components (17–20).

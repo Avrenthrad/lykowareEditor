@@ -5,6 +5,7 @@ namespace lyko {
 struct DocumentObservation {
   std::string kind, path;
   Json value;
+  std::string sha256 = {};
 };
 // External persistence observations are not undone when authoring history
 // moves.
@@ -13,12 +14,14 @@ public:
   DocumentTracking();
   void observe(const DocumentObservation &observation);
   Json status(const Document &document) const;
+  std::optional<std::string> fingerprint(const std::string &kind,
+                                         const std::string &path) const;
   std::optional<Json> clean_project(const std::string &path) const;
 
 private:
   struct Record {
     Json clean;
-    std::string path;
+    std::string path, sha256;
   };
   std::map<std::string, Json> initial_;
   std::map<std::string, Record> records_;

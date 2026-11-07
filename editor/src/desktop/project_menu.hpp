@@ -35,6 +35,10 @@ public:
             {{"name", state.at("active").at("manifest").at("name")},
              {"directories", Json::Object{}}}};
       }
+      if (ImGui::MenuItem("Save project settings...", nullptr, false,
+                          state.at("active") != Json(nullptr))) {
+        action = ProjectMenuAction{"project.settings.save", {}};
+      }
       if (ImGui::MenuItem("Revert project settings...", nullptr, false,
                           state.at("active") != Json(nullptr))) {
         action = ProjectMenuAction{"project.settings.revert", {}};

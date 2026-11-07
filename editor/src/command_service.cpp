@@ -6,6 +6,7 @@
 #include "project_manifest.hpp"
 #include "project_creation.hpp"
 #include "project_recent.hpp"
+#include "document_io.hpp"
 #include "transform_json.hpp"
 #include "world_transform.hpp"
 #include "text_file.hpp"
@@ -22,7 +23,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; bool optional = false; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query, project_create, recent_save, document_status };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query, project_create, recent_save, document_status, checked_save, file_inspect };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -63,6 +64,12 @@ const std::vector<Entry>& registry() {
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"prefab.export", "Export an authoring subtree to a NEW JSON prefab path; local placement is retained and export is not undoable.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string"}}, {}, Action::prefab_export},
         {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
+        {"scene.save_checked", "Replace an existing document only if exact bytes match the expected/observed SHA-256; preserve a content-addressed backup. Export is not undoable.", {{"path","string"},{"sha256","string",{{"default",""},{"minLength",std::uint64_t{0}},{"description","Expected current digest; blank uses this document/path last successful load/save observation."}},true}}, {}, Action::checked_save},
+        {"asset.catalog.save_checked", "Replace an existing document only if exact bytes match the expected/observed SHA-256; preserve a content-addressed backup. Export is not undoable.", {{"path","string"},{"sha256","string",{{"default",""},{"minLength",std::uint64_t{0}},{"description","Expected current digest; blank uses this document/path last successful load/save observation."}},true}}, {}, Action::checked_save},
+        {"workspace.save_checked", "Replace an existing document only if exact bytes match the expected/observed SHA-256; preserve a content-addressed backup. Export is not undoable.", {{"path","string"},{"sha256","string",{{"default",""},{"minLength",std::uint64_t{0}},{"description","Expected current digest; blank uses this document/path last successful load/save observation."}},true}}, {}, Action::checked_save},
+        {"project.recent.save_checked", "Replace an existing document only if exact bytes match the expected/observed SHA-256; preserve a content-addressed backup. Export is not undoable.", {{"path","string"},{"sha256","string",{{"default",""},{"minLength",std::uint64_t{0}},{"description","Expected current digest; blank uses this document/path last successful load/save observation."}},true}}, {}, Action::checked_save},
+        {"project.settings.save", "Checked-save active project settings to their current manifest path, preserving a backup; not undoable.", {{"sha256","string",{{"default",""},{"minLength",std::uint64_t{0}}},true}}, {}, Action::checked_save},
+        {"file.inspect", "Read a regular bounded local file and report its canonical path, byte size and exact SHA-256 without changing authoring/baselines.", {{"path","string"}}, {}, Action::file_inspect},
         {"document.status", "Read persisted-document dirty state and last successful load/save paths; selection/runtime changes do not dirty scenes.", {}, {}, Action::document_status},
         {"project.configure", "Edit active project name/directory settings undoably; identity/root stay fixed and no files move.", {{"name","string"},{"directories","object",{{"default",O{}},{"description","Directory overrides; omitted roles keep current values."}}}}, [](const Json& a)->Mutation{std::map<std::string,std::string> dirs;for(const auto& [key,value]:a.at("directories").as<O>()){dirs.emplace(key,value.as<std::string>());}return ProjectMutation{ConfigureProject{a.at("name").as<std::string>(),std::move(dirs)}};}},
         {"project.settings.revert", "Restore project settings from their last successful load/save observation as an undoable change.", {}, [](const Json&)->Mutation{return ProjectMutation{ConfigureProject{}};}},
@@ -197,7 +204,7 @@ Json CommandService::descriptors() const {
     for (const auto& entry : registry()) {
         list.emplace_back(O{{"name", entry.name}, {"version", std::uint64_t{1}},
                             {"description", entry.description}, {"inputSchema", schema(entry)},
-                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save || entry.action == Action::manifest_write || entry.action == Action::project_create || entry.action == Action::recent_save) ? "filesystem_export" :
+                            {"effect", (entry.action == Action::save || entry.action == Action::workspace_save || entry.action == Action::prefab_export || entry.action == Action::catalog_save || entry.action == Action::manifest_write || entry.action == Action::project_create || entry.action == Action::recent_save || entry.action == Action::checked_save) ? "filesystem_export" :
                                 (is_mutation(entry) || entry.action == Action::transaction || entry.action == Action::undo || entry.action == Action::redo) ? "document" : "query"},
                             {"undoable", is_mutation(entry) || entry.action == Action::transaction},
                             {"mutation", is_mutation(entry) || entry.action == Action::transaction}});
@@ -222,7 +229,32 @@ Json CommandService::call(const Json& request) {
         Json data = O{};
         std::vector<DocumentObservation> observations;
         const auto decode=[&](const Entry& item,const Json& values){
-            auto mutation=decode_mutation(item,values,bus_);
+            std::optional<ObservedText> source;
+            auto mutation=[&]()->Mutation{
+                try{
+                    if(item.name=="scene.load"||item.name=="asset.catalog.load"||item.name=="workspace.load"||item.name=="project.open"||item.name=="project.recent.load"){
+                        try{source=read_observed_text(path_from_utf8(values.at("path").as<std::string>()));}
+                        catch(const std::exception& error){
+                            if(item.name=="project.recent.load"){throw ProjectRecentError("path",error.what());}
+                            if(item.name=="project.open"){throw ProjectManifestError("path",error.what());}
+                            throw;
+                        }
+                        if(item.name=="scene.load"){return ReplaceScene{parse_scene(Json::parse(source->text))};}
+                        if(item.name=="asset.catalog.load"){return AssetMutation{ReplaceCatalog{parse_catalog(Json::parse(source->text))}};}
+                        if(item.name=="workspace.load"){auto workspace=parse_workspace(source->text);for(const auto& [command,shortcut]:workspace.keymap){(void)shortcut;(void)lookup(command);}return ReplaceWorkspace{std::move(workspace)};}
+                        if(item.name=="project.recent.load"){return ProjectMutation{ReplaceRecentProjects{parse_recent_projects(Json::parse(source->text))}};}
+                        const auto parent=path_from_utf8(source->path).parent_path().generic_u8string();
+                        ProjectSession session{parse_project_manifest(source->text),source->path,std::string(parent.begin(),parent.end())};
+                        return ProjectMutation{OpenProject{std::move(session)}};
+                    }
+                    return decode_mutation(item,values,bus_);
+                }catch(const ProjectManifestError&){throw;}catch(const ProjectRecentError&){throw;}
+                catch(const std::exception& error){
+                    if(item.name=="project.open"){throw ProjectManifestError("path",error.what());}
+                    if(item.name=="project.recent.load"){throw ProjectRecentError("recent",error.what());}
+                    throw;
+                }
+            }();
             const auto active=bus_.snapshot().first.project.active;
             if(item.name=="project.settings.revert"){
                 if(!active){throw DecodeError("no_active_project","project","Open a project before reverting settings.");}
@@ -238,7 +270,7 @@ Json CommandService::call(const Json& request) {
                 if(auto* open=std::get_if<OpenProject>(&project)){open->clean_origin=clean;}
                 if(auto* close=std::get_if<CloseProject>(&project)){close->clean_origin=clean;}
             }
-            if(auto loaded=loaded_document(item.name,values,mutation)){observations.push_back(std::move(*loaded));}
+            if(auto loaded=loaded_document(item.name,values,mutation)){if(source){loaded->path=source->path;loaded->sha256=source->sha256;}observations.push_back(std::move(*loaded));}
             return mutation;
         };
         if (is_mutation(entry)) { result = bus_.execute(instance_, expected, {decode(entry,args)}, {entry.name}); }
@@ -255,15 +287,28 @@ Json CommandService::call(const Json& request) {
             result = bus_.execute(instance_, expected, mutations, std::move(command_names));
         } else if (entry.action == Action::undo) { result = bus_.undo(instance_, expected); }
         else if (entry.action == Action::redo) { result = bus_.redo(instance_, expected); }
-        else if (entry.action == Action::save) { save_scene(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first);observations.push_back(DocumentObservation{"scene",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("scene")}); data = O{{"saved", true}}; }
+        else if (entry.action == Action::save) { observations.push_back(DocumentObservation{"scene",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("scene"),content_sha256(serialize_document("scene",bus_.snapshot().first))});save_scene(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first); data = O{{"saved", true}}; }
+        else if(entry.action==Action::file_inspect){const auto source=read_observed_text(path_from_utf8(args.at("path").as<std::string>()));data=O{{"path",source.path},{"sha256",source.sha256},{"bytes",static_cast<std::uint64_t>(source.text.size())}};}
+        else if(entry.action==Action::checked_save){
+            const auto document=bus_.snapshot().first;
+            const std::string kind=entry.name=="project.settings.save"?"project":entry.name.starts_with("scene.")?"scene":entry.name.starts_with("workspace.")?"workspace":entry.name.starts_with("asset.")?"catalogue":"recents";
+            if(kind=="project"&&!document.project.active){throw DecodeError("no_active_project","project","Open a project before saving settings.");}
+            const auto path=observation_path(kind=="project"?document.project.active->path:args.at("path").as<std::string>());
+            auto expected_sha=args.contains("sha256")?args.at("sha256").as<std::string>():std::string{};
+            if(expected_sha.empty()){const auto fingerprint=tracking_.fingerprint(kind,path);if(!fingerprint){throw DecodeError("no_save_baseline","sha256","Load this document or inspect the file and explicitly supply its reviewed current digest.");}expected_sha=*fingerprint;}
+            const auto text=serialize_document(kind,document);
+            const auto backup=replace_text_file_checked(path_from_utf8(path),text,expected_sha).generic_u8string();
+            observations.push_back(DocumentObservation{kind,path,persisted_documents(document).at(kind),content_sha256(text)});
+            data=O{{"saved",true},{"path",path},{"sha256",content_sha256(text)},{"backup",std::string(backup.begin(),backup.end())}};
+        }
         else if (entry.action == Action::prefab_export) { export_prefab(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first,args.at("id").as<std::uint64_t>());data=O{{"saved",true}}; }
-        else if (entry.action == Action::workspace_save) { save_workspace(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first.workspace);observations.push_back(DocumentObservation{"workspace",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("workspace")}); data = O{{"saved", true}}; }
+        else if (entry.action == Action::workspace_save) { observations.push_back(DocumentObservation{"workspace",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("workspace"),content_sha256(serialize_document("workspace",bus_.snapshot().first))});save_workspace(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first.workspace); data = O{{"saved", true}}; }
         else if (entry.action == Action::discovery) { data = descriptors(); }
         else if (entry.action == Action::logs) { data = logs_json(bus_.snapshot().first.runtime); }
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
-        else if(entry.action==Action::recent_save){save_recent_projects(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.project.recent);observations.push_back(DocumentObservation{"recents",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("recents")});data=O{{"saved",true}};}
+        else if(entry.action==Action::recent_save){observations.push_back(DocumentObservation{"recents",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("recents"),content_sha256(serialize_document("recents",bus_.snapshot().first))});save_recent_projects(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.project.recent);data=O{{"saved",true}};}
         else if(entry.action==Action::document_status){data=tracking_.status(bus_.snapshot().first);}
         else if(entry.action==Action::project_query){data=project_state_json(bus_.snapshot().first.project);}
         else if(entry.action==Action::manifest_validate || entry.action==Action::manifest_write || entry.action==Action::project_create){
@@ -300,7 +345,7 @@ Json CommandService::call(const Json& request) {
             catch(const AssetSourceError& error){return error_json(revision,"invalid_asset_source",error.field(),error.what());}
             catch(const std::invalid_argument& error){return error_json(revision,"invalid_asset_source","root",error.what());}
         }
-        else if(entry.action==Action::catalog_save){save_catalog(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.assets);observations.push_back(DocumentObservation{"catalogue",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("catalogue")});data=O{{"saved",true}};}
+        else if(entry.action==Action::catalog_save){observations.push_back(DocumentObservation{"catalogue",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("catalogue"),content_sha256(serialize_document("catalogue",bus_.snapshot().first))});save_catalog(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.assets);data=O{{"saved",true}};}
         else if(entry.action==Action::asset_query){
             const auto catalog=bus_.snapshot().first.assets;const auto id=args.at("id").as<std::uint64_t>();
             if(!catalog.entries.contains(id)){return error_json(revision,"not_found","id","Asset does not exist.");}
@@ -369,6 +414,7 @@ Json CommandService::call(const Json& request) {
         else if (entry.action == Action::scene) { data = document_json(bus_.snapshot().first); }
         if(result){for(const auto& observation:observations){tracking_.observe(observation);}}
         return response(result, std::move(data));
+    } catch(const CheckedWriteError& e){return error_json(revision,e.code,e.field,e.what());
     } catch(const ProjectRecentError& e){return error_json(revision,"invalid_project_recents",e.field(),e.what());
     } catch(const ProjectCreationError& e){return error_json(revision,"project_creation_failed",e.field(),e.what());
     } catch(const ProjectManifestError& e){return error_json(revision,"invalid_project_manifest",e.field(),e.what());

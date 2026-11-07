@@ -42,6 +42,8 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 
 | codex/standalone-editor-dirty-state | codex/standalone-editor-active-roots | Step 11: persisted document observations, dirty status and project settings guards |
 
+| codex/standalone-editor-checked-saves | codex/standalone-editor-dirty-state | Step 12: exact source observations, checked replacement, backups and conflict handling |
+
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
 The required API hostname has been added to the environment configuration draft;

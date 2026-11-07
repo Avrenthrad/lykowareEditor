@@ -673,6 +673,22 @@
 - The user requested the full steps 11–20 batch; ACTIVE_BATCH.md tracks the pending
   work. Continue after this slice instead of treating it as the entire request.
 
+## Checked existing-file persistence (batch step 12)
+
+- Added single-read exact document observations and shared pure parsers/serializers.
+  Registry-level workspace keymap validation is retained and regression-tested.
+- Added checked writers for scene/catalogue/workspace/recent history, active project
+  settings saving and readonly file inspection. Source digests enter document status.
+- Checked saves coordinate editor writers, detect changed bytes, preserve complete
+  backups and basic permission bits, and publish a complete staged replacement.
+  Existing no-overwrite writers and undoable authoring semantics remain intact.
+- Tests cover external/cooperating races, backup contents/modes, locks, automatic
+  and reviewed tokens, failed-save isolation and project save/close. ADR 0031 records
+  advisory/race/metadata/crash limits. Full desktop 44/44 and ASan/UBSan 35/35
+  groups pass with the documented leak-check limitation. Clang-tidy has no project
+  findings. Checklist is 8/93; steps 11–12 complete within the active batch.
+- Continue the active 11–20 batch after this slice: autosave/recovery is next.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

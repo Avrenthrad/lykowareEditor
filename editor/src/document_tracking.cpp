@@ -17,17 +17,33 @@ std::map<std::string, Json> persisted_documents(const Document &document) {
       {"recents", project_state_json(document.project).at("recent")}};
 }
 std::string observation_path(const std::string &path) {
-  const auto text = std::filesystem::absolute(path_from_utf8(path))
-                        .lexically_normal()
+  const auto text = std::filesystem::weakly_canonical(
+                        std::filesystem::absolute(path_from_utf8(path)))
                         .generic_u8string();
-  return std::string(text.begin(), text.end());
+  std::string result(text.begin(), text.end());
+  if (!json_detail::valid_utf8(result)) {
+    throw std::invalid_argument("Observed document path must be UTF-8.");
+  }
+  return result;
 }
 DocumentTracking::DocumentTracking()
     : initial_(persisted_documents(Document{})) {}
 void DocumentTracking::observe(const DocumentObservation &observation) {
   const auto key = observation.kind == "project" ? "project@" + observation.path
                                                  : observation.kind;
-  records_.insert_or_assign(key, Record{observation.value, observation.path});
+  records_.insert_or_assign(
+      key, Record{observation.value, observation.path, observation.sha256});
+}
+std::optional<std::string>
+DocumentTracking::fingerprint(const std::string &kind,
+                              const std::string &path) const {
+  const auto key = kind == "project" ? "project@" + path : kind;
+  const auto found = records_.find(key);
+  if (found == records_.end() || found->second.path != path ||
+      found->second.sha256.empty()) {
+    return {};
+  }
+  return found->second.sha256;
 }
 std::optional<Json>
 DocumentTracking::clean_project(const std::string &path) const {
@@ -47,12 +63,17 @@ Json DocumentTracking::status(const Document &document) const {
     const auto &clean =
         saved == records_.end() ? initial_.at(kind) : saved->second.clean;
     result.emplace(
-        kind, Json::Object{{"available", available},
-                           {"dirty", available && value != clean},
-                           {"unsaved", available && saved == records_.end()},
-                           {"path", saved == records_.end()
-                                        ? Json(nullptr)
-                                        : Json(saved->second.path)}});
+        kind,
+        Json::Object{{"available", available},
+                     {"dirty", available && value != clean},
+                     {"unsaved", available && saved == records_.end()},
+                     {"source_sha256",
+                      saved == records_.end() || saved->second.sha256.empty()
+                          ? Json(nullptr)
+                          : Json(saved->second.sha256)},
+                     {"path", saved == records_.end()
+                                  ? Json(nullptr)
+                                  : Json(saved->second.path)}});
   }
   return Json::Object{{"documents", std::move(result)}};
 }

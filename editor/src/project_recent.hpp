@@ -11,6 +11,8 @@ public:
 private:
   std::string field_;
 };
+std::vector<ProjectSession> parse_recent_projects(const Json &value);
+std::string recent_projects_text(const std::vector<ProjectSession> &recent);
 std::vector<ProjectSession>
 load_recent_projects(const std::filesystem::path &path);
 void save_recent_projects(const std::filesystem::path &path,

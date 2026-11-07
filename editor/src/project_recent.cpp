@@ -26,7 +26,15 @@ load_recent_projects(const std::filesystem::path &path) {
     throw ProjectRecentError("path", error.what());
   }
   try {
-    const auto value = Json::parse(text);
+    return parse_recent_projects(Json::parse(text));
+  } catch (const ProjectRecentError &) {
+    throw;
+  } catch (const std::exception &error) {
+    throw ProjectRecentError("recent", error.what());
+  }
+}
+std::vector<ProjectSession> parse_recent_projects(const Json &value) {
+  try {
     fields(value, {"schema_version", "recent"});
     if (value.at("schema_version").as<std::uint64_t>() != 1) {
       throw std::invalid_argument("Unsupported recent-project store version.");
@@ -65,8 +73,7 @@ load_recent_projects(const std::filesystem::path &path) {
     throw ProjectRecentError("recent", error.what());
   }
 }
-void save_recent_projects(const std::filesystem::path &path,
-                          const std::vector<ProjectSession> &recent) {
+std::string recent_projects_text(const std::vector<ProjectSession> &recent) {
   if (auto issue = recent_projects_issue(recent)) {
     throw ProjectRecentError(issue->field, issue->message);
   }
@@ -82,8 +89,14 @@ void save_recent_projects(const std::filesystem::path &path,
     text += "\n    " + entry.dump();
   }
   text += "\n  ]\n}\n";
+  return text;
+}
+void save_recent_projects(const std::filesystem::path &path,
+                          const std::vector<ProjectSession> &recent) {
   try {
-    publish_text_file(path, text);
+    publish_text_file(path, recent_projects_text(recent));
+  } catch (const ProjectRecentError &) {
+    throw;
   } catch (const std::exception &error) {
     throw ProjectRecentError("path", error.what());
   }

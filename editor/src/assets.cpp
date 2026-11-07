@@ -1,8 +1,7 @@
 #include "assets.hpp"
 #include "text_file.hpp"
 namespace lyko {
-AssetCatalog load_catalog(const std::filesystem::path &path) {
-  const auto json = Json::parse(read_text_file(path));
+AssetCatalog parse_catalog(const Json &json) {
   if (json.as<Json::Object>().size() != 3 ||
       json.at("schema_version").as<std::uint64_t>() != 1) {
     throw std::invalid_argument("Unsupported catalog fields/version.");
@@ -30,8 +29,7 @@ AssetCatalog load_catalog(const std::filesystem::path &path) {
   }
   return catalog;
 }
-void save_catalog(const std::filesystem::path &path,
-                  const AssetCatalog &catalog) {
+std::string catalog_text(const AssetCatalog &catalog) {
   if (auto issue = catalog_error(catalog)) {
     throw std::invalid_argument(*issue);
   }
@@ -47,6 +45,13 @@ void save_catalog(const std::filesystem::path &path,
     text += "\n    " + item.dump();
   }
   text += "\n  ]\n}\n";
-  publish_text_file(path, text);
+  return text;
+}
+AssetCatalog load_catalog(const std::filesystem::path &path) {
+  return parse_catalog(Json::parse(read_text_file(path)));
+}
+void save_catalog(const std::filesystem::path &path,
+                  const AssetCatalog &catalog) {
+  publish_text_file(path, catalog_text(catalog));
 }
 } // namespace lyko

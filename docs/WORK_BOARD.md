@@ -79,3 +79,6 @@ Step 2's completion does not imply milestone A is complete or that code is merge
 
 Active request: implement checklist 11–20; see ACTIVE_BATCH.md. Step 11 is locally
 implemented with full 43/34 checks. Step 12 checked persistence is in progress.
+
+Step 12 checked saves are implemented locally: full 44/35 checks, ADR 0031, branch
+codex/standalone-editor-checked-saves. Continue batch with recovery/autosave (13).

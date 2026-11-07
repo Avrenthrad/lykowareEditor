@@ -600,3 +600,22 @@ identity/root and moving no files. Directory overrides retain other current role
 `project.settings.revert {}` restores the last observed settings undoably. Close/
 switch operations reject unsaved project settings, including staged changes.
 In-place persistence and exact-byte external conflict checks are the next slice.
+
+
+## Checked existing-file saves
+
+`scene.save_checked`, `asset.catalog.save_checked`, `workspace.save_checked` and
+`project.recent.save_checked` require path, with optional sha256. Empty/omitted
+sha256 uses the matching document/path's last successful exact load/save observation.
+Without one, no_save_baseline/sha256 rejects. `project.settings.save` uses the
+active manifest path and optional sha256. Tokens are 64 lowercase hex characters.
+`file.inspect {path}` reports canonical path/bytes/sha256, changes no baseline and
+can support an explicit reviewed digest after external modification.
+
+Checked writes preserve prior bytes in a content-addressed .lyko-backups file and
+return saved/path/sha256/backup. Changed bytes return external_change_conflict/path;
+a contended/leftover lock returns save_busy/path. Successful saves update dirty
+observations without an authoring revision. Failures preserve those observations.
+New-file save/export commands retain no-overwrite behavior. These are filesystem
+exports, not undoable or allowed as transaction rows. Ordinary filesystem/advisory
+lock, rename, backup and metadata limitations are detailed in ADR 0031.

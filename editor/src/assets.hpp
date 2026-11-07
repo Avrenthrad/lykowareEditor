@@ -105,6 +105,8 @@ inline Json catalog_json(const AssetCatalog &catalog) {
                       {"next_id", catalog.next_id},
                       {"assets", std::move(entries)}};
 }
+AssetCatalog parse_catalog(const Json &json);
+std::string catalog_text(const AssetCatalog &catalog);
 AssetCatalog load_catalog(const std::filesystem::path &path);
 void save_catalog(const std::filesystem::path &path,
                   const AssetCatalog &catalog);

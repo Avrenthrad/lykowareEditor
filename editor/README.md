@@ -34,7 +34,7 @@ From the repository root, the verified fallback is:
 
 ```
 mkdir -p /tmp/lyko-build
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/document_tracking.cpp editor/src/project_recent.cpp editor/src/project_creation.cpp editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/document_io.cpp editor/src/document_tracking.cpp editor/src/project_recent.cpp editor/src/project_creation.cpp editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/src/main.cpp -o /tmp/lyko-build/lyko
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src editor/src/command_bus.cpp editor/tests/command_bus_tests.cpp -o /tmp/lyko-build/tests
 g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -Ieditor/src editor/tests/json_tests.cpp -o /tmp/lyko-build/json-tests
 /tmp/lyko-build/tests
@@ -120,7 +120,7 @@ them, but a measured frame-rate target has not yet been verified. See ADR 0004 f
 The deterministic queue test can also be built directly from the repository root:
 
 ```
-g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/document_tracking.cpp editor/src/project_recent.cpp editor/src/project_creation.cpp editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
+g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread -Ieditor/src -Ithird_party/picosha2 editor/src/document_io.cpp editor/src/document_tracking.cpp editor/src/project_recent.cpp editor/src/project_creation.cpp editor/src/project_session.cpp editor/src/project_manifest.cpp editor/src/content_hash.cpp editor/src/asset_source.cpp editor/src/assets.cpp editor/src/prefab.cpp editor/src/command_bus.cpp editor/src/command_service.cpp editor/src/scene_io.cpp editor/src/mcp_server.cpp editor/src/text_file.cpp editor/src/ui/workspace_io.cpp editor/src/ui/command_queue.cpp editor/src/transport/mcp_stream.cpp editor/tests/command_queue_tests.cpp -o /tmp/lyko-build/queue-tests
 /tmp/lyko-build/queue-tests
 ```
 
@@ -499,3 +499,19 @@ undone, and failed saves do not clear dirty state.
 **Revert project settings...** restores the last successful observation as an
 undoable action. Unsaved settings block context changes. Safe in-place save support
 is the next persistence slice; Save As/export commands retain no-overwrite behavior.
+
+
+### Save an existing file safely
+
+Use the `*.save_checked` palette commands for scene/catalogue/workspace/recent
+history. Provide the path; leave SHA-256 blank to use that document/path's successful
+load/save observation. `document.status` exposes its source_sha256. Project settings
+have **Save project settings...** in the Project menu.
+
+An external modification returns a conflict and keeps your edits dirty. Inspect or
+reload the file, reconcile changes, then explicitly provide the reviewed digest if
+replacing it is intended. `file.inspect` reports bytes/digest without altering your
+work or granting an implicit baseline. Checked replacement retains previous bytes
+in .lyko-backups and returns the backup path. Existing plain save/export commands
+still require a new destination. File effects are not undone; authoring undo can
+make the document dirty again. See ADR 0031 for filesystem/race/platform limits.
