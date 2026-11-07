@@ -18,7 +18,8 @@ with tempfile.TemporaryDirectory() as temp:
  store=root/'recent-projects.json'
  base=[req('project.open',path=str(p)) for p in paths]
  commands=base+[req('editor.snapshot'),req('project.recent.save',path=str(store)),req('editor.snapshot'),req('project.recent.clear'),req('project.recent.load',path=str(store)),req('project.query'),req('history.undo'),req('project.query')]
- r=run(commands);assert all(x['ok'] for x in r) and r[2]==r[4],r
+ r=run(commands);assert all(x['ok'] for x in r) and r[2]['revision']==r[4]['revision'] and {k:v for k,v in r[2]['data'].items() if k!='documents'}=={k:v for k,v in r[4]['data'].items() if k!='documents'},r
+ assert r[2]['data']['documents']['recents']['dirty'] and not r[4]['data']['documents']['recents']['dirty']
  saved=json.loads(store.read_text());assert saved['schema_version']==1 and saved['recent']==r[7]['data']['recent'] and r[9]['data']['recent']==[]
  original=store.read_bytes();store.unlink();assert r==run(commands,True) and store.read_bytes()==original,'CLI/MCP persistence parity'
  assert not run([req('project.recent.save',path=str(store))])[-1]['ok'] and store.read_bytes()==original,'existing store preservation'

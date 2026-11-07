@@ -40,8 +40,8 @@ near-term queue, not a second copy of all 93 steps.
 | Complete project creation workflow | 9b (part of 9) | Implemented (awaiting review) | ADR 0027: supplied or generated identity, new-root reservation, configured folders, manifest-last publication and cleanup. Project menu/create-result navigation shares commands. Full 40/31 checks plus targeted generation tests; branch codex/standalone-editor-project-creation. |
 | Persistent user-local recent settings | 9c (part of 9) | Implemented (awaiting review) | ADR 0028: user-local versioned JSON session history, explicit no-overwrite export, undoable import, stale metadata without activation and no portable-format path leakage. Branch codex/standalone-editor-project-recents. |
 | Active-project asset root resolution | 10 | Implemented (awaiting review) | ADR 0029; optional/blank roots use committed active project, concrete result roots freeze follow-up forms, implicit prefab origins guard staged context/catalogue changes. Full 42/33 checks pass; branch codex/standalone-editor-active-roots. |
-| Dirty-state model and document baselines | 11a (part of 11) | Ready | Define document ownership, clean baselines, edit/save/load/undo/redo behavior and project-settings scope. Track actual persisted authoring data rather than every UI/runtime revision; failed operations never clear dirty state. |
-| Dirty-state commands and desktop feedback | 11b (part of 11) | Blocked | Requires 11a. Expose coherent document status through the shared bus and UI; validate scene/catalogue/project-settings workflows and retain lifecycle content protection until dirty-aware switching is explicitly designed. |
+| Dirty-state model and document baselines | 11a (part of 11) | Implemented (awaiting review) | Define document ownership, clean baselines, edit/save/load/undo/redo behavior and project-settings scope. Track actual persisted authoring data rather than every UI/runtime revision; failed operations never clear dirty state. |
+| Dirty-state commands and desktop feedback | 11b (part of 11) | Implemented (awaiting review) | Requires 11a. Expose coherent document status through the shared bus and UI; validate scene/catalogue/project-settings workflows and retain lifecycle content protection until dirty-aware switching is explicitly designed. |
 
 Core review R001 fixed on 98b9732; the full review and Joshua's decisions remain
 open. Manifest (8), fixture projects (3) and numerical budgets (7) are implemented
@@ -76,3 +76,6 @@ Step 2's completion does not imply milestone A is complete or that code is merge
 
 - 2026-11-07: Step 10 implemented with full 42 desktop / 33 sanitizer checks;
   checklist 6/93. Next active queue is dirty-state design and implementation.
+
+Active request: implement checklist 11–20; see ACTIVE_BATCH.md. Step 11 is locally
+implemented with full 43/34 checks. Step 12 checked persistence is in progress.

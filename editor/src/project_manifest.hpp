@@ -15,6 +15,7 @@ void validate_project_manifest(const ProjectManifest &manifest);
 ProjectManifest parse_project_manifest(const std::string &text);
 ProjectManifest load_project_manifest(const std::filesystem::path &path);
 std::string project_manifest_toml(const ProjectManifest &manifest);
+ProjectManifest project_manifest_from_json(const Json &value);
 Json project_manifest_json(const ProjectManifest &manifest);
 void save_project_manifest(const std::filesystem::path &path,
                            const ProjectManifest &manifest);

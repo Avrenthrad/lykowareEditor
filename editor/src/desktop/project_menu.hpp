@@ -28,6 +28,20 @@ public:
                           state.at("active") != Json(nullptr))) {
         action = ProjectMenuAction{"project.close", {}};
       }
+      if (ImGui::MenuItem("Project settings...", nullptr, false,
+                          state.at("active") != Json(nullptr))) {
+        action = ProjectMenuAction{
+            "project.configure",
+            {{"name", state.at("active").at("manifest").at("name")},
+             {"directories", Json::Object{}}}};
+      }
+      if (ImGui::MenuItem("Revert project settings...", nullptr, false,
+                          state.at("active") != Json(nullptr))) {
+        action = ProjectMenuAction{"project.settings.revert", {}};
+      }
+      if (ImGui::MenuItem("Document status...")) {
+        action = ProjectMenuAction{"document.status", {}};
+      }
       if (ImGui::MenuItem("Inspect project...")) {
         action = ProjectMenuAction{"project.query", {}};
       }

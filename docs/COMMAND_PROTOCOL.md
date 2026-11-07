@@ -581,3 +581,22 @@ identically. Staged opens do not supply an implicit root before commit. Explicit
 root overrides retain their prior independent-source behavior. Revision checks,
 content hashes, catalogue guards, source containment and no-reread redo remain.
 See ADR 0029 for scope and filesystem limitations.
+
+
+## Persisted document status
+
+`document.status {}` returns `documents` keyed by scene, catalogue, workspace,
+project and recents. Each has available/dirty/unsaved booleans and a last-successful
+load/save path (or null). Snapshot data includes the same document status. Dirty
+compares persisted values with their observed baseline, not editor revision.
+Runtime/selection changes do not dirty scene/workspace; consumed IDs do. An empty
+untitled document is clean but unsaved. Save success updates observations without
+advancing revision/history; disk observations are not undone. Failed operations
+preserve them. Load baselines apply only after whole-transaction success, even when
+later rows edit the loaded document.
+
+`project.configure {name,directories}` edits active settings undoably, preserving
+identity/root and moving no files. Directory overrides retain other current roles.
+`project.settings.revert {}` restores the last observed settings undoably. Close/
+switch operations reject unsaved project settings, including staged changes.
+In-place persistence and exact-byte external conflict checks are the next slice.

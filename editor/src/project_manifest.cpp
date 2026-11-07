@@ -200,6 +200,22 @@ std::string project_manifest_toml(const ProjectManifest &manifest) {
   }
   return text;
 }
+ProjectManifest project_manifest_from_json(const Json &value) {
+  if (value.as<Json::Object>().size() != 4 ||
+      value.at("schema_version").as<std::uint64_t>() != 1) {
+    throw ProjectManifestError("manifest",
+                               "Unsupported manifest metadata fields/version.");
+  }
+  ProjectManifest manifest;
+  manifest.project_id = value.at("project_id").as<std::string>();
+  manifest.name = value.at("name").as<std::string>();
+  manifest.directories.clear();
+  for (const auto &[key, path] : value.at("directories").as<Json::Object>()) {
+    manifest.directories.emplace(key, path.as<std::string>());
+  }
+  validate_project_manifest(manifest);
+  return manifest;
+}
 Json project_manifest_json(const ProjectManifest &manifest) {
   validate_project_manifest(manifest);
   Json::Object directories;

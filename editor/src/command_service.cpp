@@ -22,7 +22,7 @@ namespace {
 using O = Json::Object;
 using A = Json::Array;
 struct Field { std::string name; std::string type; O constraints = {}; bool optional = false; };
-enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query, project_create, recent_save };
+enum class Action { mutation, undo, redo, scene, save, discovery, transaction, logs, preview, workspace, tokens, palette, selection, workspace_save, history, snapshot, layout, tree, transform, world_transform, prefab_export, asset_list, asset_query, catalog_save, asset_validate, asset_instantiate, asset_check, asset_instantiate_checked, asset_audit, manifest_validate, manifest_write, project_query, project_create, recent_save, document_status };
 struct Entry {
     std::string name, description;
     std::vector<Field> fields;
@@ -63,6 +63,9 @@ const std::vector<Entry>& registry() {
         {"transform.query", "Read an entity's local authoring transform; default is identity.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}}}, {}, Action::transform},
         {"prefab.export", "Export an authoring subtree to a NEW JSON prefab path; local placement is retained and export is not undoable.", {{"id","integer",{{"minimum",std::uint64_t{1}},{"default",std::uint64_t{1}}}},{"path","string"}}, {}, Action::prefab_export},
         {"prefab.instantiate", "Instantiate a detached prefab copy with new IDs under parent (zero for root); select the new root atomically.", {{"path","string"},{"parent","integer",{{"default",std::uint64_t{0}}}}}, [](const Json& a)->Mutation {auto prefab=load_prefab(path_from_utf8(a.at("path").as<std::string>()));return InstantiatePrefab{std::move(prefab.scene),prefab.root,a.at("parent").as<std::uint64_t>()};}},
+        {"document.status", "Read persisted-document dirty state and last successful load/save paths; selection/runtime changes do not dirty scenes.", {}, {}, Action::document_status},
+        {"project.configure", "Edit active project name/directory settings undoably; identity/root stay fixed and no files move.", {{"name","string"},{"directories","object",{{"default",O{}},{"description","Directory overrides; omitted roles keep current values."}}}}, [](const Json& a)->Mutation{std::map<std::string,std::string> dirs;for(const auto& [key,value]:a.at("directories").as<O>()){dirs.emplace(key,value.as<std::string>());}return ProjectMutation{ConfigureProject{a.at("name").as<std::string>(),std::move(dirs)}};}},
+        {"project.settings.revert", "Restore project settings from their last successful load/save observation as an undoable change.", {}, [](const Json&)->Mutation{return ProjectMutation{ConfigureProject{}};}},
         {"project.open", "Validate a manifest and open its canonical project context undoably; context switches require empty/reset authoring state.", {{"path","string"}}, [](const Json& a)->Mutation {return ProjectMutation{OpenProject{load_project_session(path_from_utf8(a.at("path").as<std::string>()))}};}},
         {"project.close", "Close project context undoably, retaining session-local recent projects; nonempty authoring state blocks closing.", {}, [](const Json&)->Mutation {return ProjectMutation{CloseProject{}};}},
         {"project.recent.load", "Validate a user-local JSON recent-project history and replace recents undoably; never open or inspect its stored project paths.", {{"path","string"}}, [](const Json& a)->Mutation {return ProjectMutation{ReplaceRecentProjects{load_recent_projects(path_from_utf8(a.at("path").as<std::string>()))}};}},
@@ -217,7 +220,28 @@ Json CommandService::call(const Json& request) {
         validate(entry, args);
         Result result{revision, {}};
         Json data = O{};
-        if (is_mutation(entry)) { result = bus_.execute(instance_, expected, {decode_mutation(entry,args,bus_)}, {entry.name}); }
+        std::vector<DocumentObservation> observations;
+        const auto decode=[&](const Entry& item,const Json& values){
+            auto mutation=decode_mutation(item,values,bus_);
+            const auto active=bus_.snapshot().first.project.active;
+            if(item.name=="project.settings.revert"){
+                if(!active){throw DecodeError("no_active_project","project","Open a project before reverting settings.");}
+                const auto clean=tracking_.clean_project(active->path);
+                if(!clean){throw DecodeError("no_clean_baseline","project","No successful project load/save observation is available.");}
+                const auto manifest=project_manifest_from_json(*clean);
+                mutation=ProjectMutation{ConfigureProject{manifest.name,manifest.directories,active->path}};
+            }
+            if(active&&(item.name=="project.open"||item.name=="project.close")){
+                auto clean=active;
+                if(const auto value=tracking_.clean_project(active->path)){clean->manifest=project_manifest_from_json(*value);}
+                auto& project=std::get<ProjectMutation>(mutation);
+                if(auto* open=std::get_if<OpenProject>(&project)){open->clean_origin=clean;}
+                if(auto* close=std::get_if<CloseProject>(&project)){close->clean_origin=clean;}
+            }
+            if(auto loaded=loaded_document(item.name,values,mutation)){observations.push_back(std::move(*loaded));}
+            return mutation;
+        };
+        if (is_mutation(entry)) { result = bus_.execute(instance_, expected, {decode(entry,args)}, {entry.name}); }
         else if (entry.action == Action::transaction) {
             std::vector<Mutation> mutations;
             std::vector<std::string> command_names;
@@ -226,20 +250,21 @@ Json CommandService::call(const Json& request) {
                 const auto& mutation = lookup(item.at("command").as<std::string>());
                 if (!is_mutation(mutation)) { throw std::invalid_argument("Only mutations are allowed in transactions"); }
                 const Json a = item.contains("arguments") ? item.at("arguments") : Json(O{});
-                validate(mutation, a); mutations.push_back(decode_mutation(mutation,a,bus_)); command_names.push_back(mutation.name);
+                validate(mutation, a); mutations.push_back(decode(mutation,a)); command_names.push_back(mutation.name);
             }
             result = bus_.execute(instance_, expected, mutations, std::move(command_names));
         } else if (entry.action == Action::undo) { result = bus_.undo(instance_, expected); }
         else if (entry.action == Action::redo) { result = bus_.redo(instance_, expected); }
-        else if (entry.action == Action::save) { save_scene(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first); data = O{{"saved", true}}; }
+        else if (entry.action == Action::save) { save_scene(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first);observations.push_back(DocumentObservation{"scene",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("scene")}); data = O{{"saved", true}}; }
         else if (entry.action == Action::prefab_export) { export_prefab(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first,args.at("id").as<std::uint64_t>());data=O{{"saved",true}}; }
-        else if (entry.action == Action::workspace_save) { save_workspace(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first.workspace); data = O{{"saved", true}}; }
+        else if (entry.action == Action::workspace_save) { save_workspace(path_from_utf8(args.at("path").as<std::string>()), bus_.snapshot().first.workspace);observations.push_back(DocumentObservation{"workspace",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("workspace")}); data = O{{"saved", true}}; }
         else if (entry.action == Action::discovery) { data = descriptors(); }
         else if (entry.action == Action::logs) { data = logs_json(bus_.snapshot().first.runtime); }
         else if (entry.action == Action::preview) { data = software_preview(bus_.snapshot().first); }
         else if (entry.action == Action::workspace) { data = workspace_json(bus_.snapshot().first.workspace); }
         else if (entry.action == Action::layout) { data=dock_layout_json(effective_dock_layout(bus_.snapshot().first.workspace)); }
-        else if(entry.action==Action::recent_save){save_recent_projects(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.project.recent);data=O{{"saved",true}};}
+        else if(entry.action==Action::recent_save){save_recent_projects(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.project.recent);observations.push_back(DocumentObservation{"recents",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("recents")});data=O{{"saved",true}};}
+        else if(entry.action==Action::document_status){data=tracking_.status(bus_.snapshot().first);}
         else if(entry.action==Action::project_query){data=project_state_json(bus_.snapshot().first.project);}
         else if(entry.action==Action::manifest_validate || entry.action==Action::manifest_write || entry.action==Action::project_create){
             std::filesystem::path path;
@@ -275,7 +300,7 @@ Json CommandService::call(const Json& request) {
             catch(const AssetSourceError& error){return error_json(revision,"invalid_asset_source",error.field(),error.what());}
             catch(const std::invalid_argument& error){return error_json(revision,"invalid_asset_source","root",error.what());}
         }
-        else if(entry.action==Action::catalog_save){save_catalog(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.assets);data=O{{"saved",true}};}
+        else if(entry.action==Action::catalog_save){save_catalog(path_from_utf8(args.at("path").as<std::string>()),bus_.snapshot().first.assets);observations.push_back(DocumentObservation{"catalogue",observation_path(args.at("path").as<std::string>()),persisted_documents(bus_.snapshot().first).at("catalogue")});data=O{{"saved",true}};}
         else if(entry.action==Action::asset_query){
             const auto catalog=bus_.snapshot().first.assets;const auto id=args.at("id").as<std::uint64_t>();
             if(!catalog.entries.contains(id)){return error_json(revision,"not_found","id","Asset does not exist.");}
@@ -305,7 +330,7 @@ Json CommandService::call(const Json& request) {
             data = O{{"schema_version", std::uint64_t{1}}, {"mock", true}, {"scene", document_json(state.document)},
                      {"workspace", workspace_json(state.document.workspace)}, {"selection", selection_json(state.document)},
                      {"tokens", design_tokens(state.document.workspace)}, {"logs", logs_json(state.document.runtime)},
-                     {"project", project_state_json(state.document.project)}, {"transforms", transforms_json(state.document)}, {"assets", catalog_json(state.document.assets)}, {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
+                     {"documents", tracking_.status(state.document).at("documents")}, {"project", project_state_json(state.document.project)}, {"transforms", transforms_json(state.document)}, {"assets", catalog_json(state.document.assets)}, {"scene_tree", scene_tree_json(state.document)}, {"history", history_json(state.history)}};
             result.revision = state.revision;
         }
         else if (entry.action == Action::tokens) { data = design_tokens(bus_.snapshot().first.workspace); }
@@ -342,6 +367,7 @@ Json CommandService::call(const Json& request) {
             data = std::move(output);
         }
         else if (entry.action == Action::scene) { data = document_json(bus_.snapshot().first); }
+        if(result){for(const auto& observation:observations){tracking_.observe(observation);}}
         return response(result, std::move(data));
     } catch(const ProjectRecentError& e){return error_json(revision,"invalid_project_recents",e.field(),e.what());
     } catch(const ProjectCreationError& e){return error_json(revision,"project_creation_failed",e.field(),e.what());

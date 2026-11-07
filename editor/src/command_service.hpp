@@ -1,6 +1,7 @@
 #pragma once
 #include "command_bus.hpp"
 #include "json.hpp"
+#include "document_tracking.hpp"
 
 namespace lyko {
 // Sole named-command entry point for all frontends. Serializes a complete call,
@@ -13,6 +14,7 @@ public:
 private:
     std::string instance_;
     CommandBus bus_;
+    DocumentTracking tracking_;
     std::mutex mutex_;
 };
 Json document_json(const Document& document);

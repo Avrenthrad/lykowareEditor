@@ -658,6 +658,21 @@
 - Step 10 is implemented locally; checklist is 6/93. Windows and the new source
   root controls on a real display remain unverified. Next is dirty-state tracking.
 
+## Dirty-state tracking (active batch steps 11–20)
+
+- Added persisted-value baselines for scene/catalogue/workspace/project settings/
+  recent history. document.status and snapshot documents report dirty/unsaved/path.
+  Runtime/selection do not dirty authoring data; disk observations are not undone.
+- Successful decoded loads update baselines only after whole-transaction success;
+  later staged edits remain dirty. Failed writes/batches preserve observations.
+- Added project.configure/settings.revert and staged-safe unsaved-settings guards.
+  Main menu shows modified count; Project menu opens shared status/settings forms.
+- ADR 0030 records semantics. Full desktop 43/43 and ASan/UBSan 34/34 groups
+  pass with the documented leak-check limitation. Clang-tidy has no project-code
+  findings. Step 11 is complete locally; checklist 7/93. Continue step 12.
+- The user requested the full steps 11–20 batch; ACTIVE_BATCH.md tracks the pending
+  work. Continue after this slice instead of treating it as the entire request.
+
 ## Current limitations
 
 - Windows compilation/runtime, hardware performance, screen-reader behavior and

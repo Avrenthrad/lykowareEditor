@@ -388,6 +388,18 @@ int main(int argc, char **argv) {
                                 ? "/ Project open"
                                 : "/ No active project");
         if (ready) {
+          unsigned dirty = 0;
+          for (const auto &[kind, status] : frame.at("documents").as<O>()) {
+            (void)kind;
+            if (status.at("dirty").as<bool>()) {
+              ++dirty;
+            }
+          }
+          if (dirty) {
+            ImGui::TextDisabled("* %u modified", dirty);
+          }
+        }
+        if (ready) {
           if (const auto action = projects.draw(frame.at("project"))) {
             open_form(action->command, action->arguments);
           }

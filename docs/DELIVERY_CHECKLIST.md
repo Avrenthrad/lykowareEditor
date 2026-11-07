@@ -12,7 +12,7 @@ Last updated: 2026-11-07. Owner/reviewer: Joshua, Lykoleon Studios.
 - Latest runtime checkpoint: active-project source roots on private branch
   codex/standalone-editor-active-roots. Full desktop/sanitizer validation is
   recorded in [STATUS](STATUS.md), alongside hardware/platform limitations.
-- **Remaining checklist: 6/93 complete.** This counts the remaining delivery steps,
+- **Remaining checklist: 7/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
@@ -62,7 +62,8 @@ public release without approval. See [review stack](REVIEW_STACK.md).
   Evidence: ADRs 0026–0028; undoable context/open/close and recent replacement, explicit new-directory creation with supplied/generated identity, and user-local history save/load across sessions. Shared CLI/MCP/native menu workflows, content guards, cleanup and source validation pass. Full desktop 41/41 and ASan/UBSan 32/32; private review branches, not merged. Safe in-place saves and dirty-aware switching remain steps 11–12.
 - [x] 10. Resolve asset paths against the active project so users need not repeatedly enter its root.
   Evidence: ADR 0029; omitted/blank roots resolve committed active context across validate/check/audit/instantiate commands; explicit overrides remain. Registry/palette/CLI/MCP parity, concrete observed-root feedback, staged project/catalogue guards and rollback pass. Full desktop 42/42 and ASan/UBSan 33/33; private branch codex/standalone-editor-active-roots, not merged.
-- [ ] 11. Add dirty-state tracking for scenes, project settings and other editable documents.
+- [x] 11. Add dirty-state tracking for scenes, project settings and other editable documents.
+  Evidence: ADR 0030; document.status/snapshot baselines, successful load/save observations, project configure/revert and staged context guards. Full desktop 43/43 and ASan/UBSan 34/34 pass. Private branch codex/standalone-editor-dirty-state; not merged.
 - [ ] 12. Support safe saving to existing files, including external-change detection and conflict handling.
 - [ ] 13. Add autosave, recovery snapshots and crash-recovery workflows.
 - [ ] 14. Add schema migrations with backups and clear compatibility errors.
@@ -215,3 +216,6 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-07: Step 10 implemented locally with active-root resolution, concrete
   source observations and candidate project-origin guards. Checklist is 6/93;
   next is dirty-state tracking (11). Windows/hardware checks remain open.
+
+- 2026-11-07: Step 11 implemented locally; 7/93 complete. User requested the full
+  11–20 batch; ACTIVE_BATCH.md tracks continuation through step 20.

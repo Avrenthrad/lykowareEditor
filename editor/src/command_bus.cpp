@@ -41,21 +41,33 @@ Result CommandBus::execute(const std::string& instance, std::optional<std::uint6
                         if(auto issue=recent_projects_issue(edit.recent)){return Error{"invalid_project_recents",issue->field,issue->message};}
                         candidate.project.recent=edit.recent;return {};
                     }
+                    else if constexpr(std::is_same_v<P,ConfigureProject>){
+                        if(!candidate.project.active){return Error{"no_active_project","project","Open a project before editing its settings."};}
+                        if(edit.target&&candidate.project.active->path!=*edit.target){return Error{"project_context_changed","project","Commit the project context change before reverting settings."};}
+                        auto manifest=candidate.project.active->manifest;manifest.name=edit.name;
+                        for(const auto& [role,path]:edit.directories){manifest.directories.insert_or_assign(role,path);}
+                        if(auto issue=project_manifest_issue(manifest)){return Error{"invalid_project_manifest",issue->field,issue->message};}
+                        candidate.project.active->manifest=std::move(manifest);
+                        for(auto& recent:candidate.project.recent){if(recent.path==candidate.project.active->path){recent=*candidate.project.active;}}
+                        return {};
+                    }
                     else {
                         if constexpr(std::is_same_v<P,OpenProject>){
                             if(auto issue=project_session_issue(edit.project)){return Error{"invalid_project",issue->field,issue->message};}
                             if(candidate.project.active==edit.project){return {};}
                         } else {if(!candidate.project.active){return {};}}
+                        const auto clean=edit.clean_origin&&candidate.project.active&&edit.clean_origin->path==candidate.project.active->path?edit.clean_origin:candidate.project.opened_baseline;
+                        if(candidate.project.active&&clean&&candidate.project.active->manifest!=clean->manifest){return Error{"unsaved_project_settings","project","Save or explicitly revert project settings before closing or switching context."};}
                         if(!candidate.entities.empty()||candidate.next_id!=1||!candidate.assets.entries.empty()||candidate.assets.next_id!=1||candidate.runtime.playing||!candidate.runtime.inputs.empty()||!candidate.runtime.logs.empty()){
                             return Error{"project_has_content","project","Project context changes require an empty/reset scene, catalogue and mock runtime; save work before explicitly resetting them."};
                         }
                         if constexpr(std::is_same_v<P,OpenProject>){
-                            candidate.project.active=edit.project;
+                            candidate.project.active=edit.project;candidate.project.opened_baseline=edit.project;
                             auto& recent=candidate.project.recent;
                             std::erase_if(recent,[&](const auto& item){return item.path==edit.project.path;});
                             recent.insert(recent.begin(),edit.project);
                             if(recent.size()>16){recent.resize(16);}
-                        } else {candidate.project.active.reset();}
+                        } else {candidate.project.active.reset();candidate.project.opened_baseline.reset();}
                         return {};
                     }
                 },command);

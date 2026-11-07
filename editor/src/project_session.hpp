@@ -10,19 +10,28 @@ struct ProjectSession {
 struct ProjectState {
   std::optional<ProjectSession> active;
   std::vector<ProjectSession> recent; // Session-local MRU, most recent first.
+  std::optional<ProjectSession> opened_baseline = {};
   bool operator==(const ProjectState &) const = default;
 };
 struct OpenProject {
   ProjectSession project;
+  std::optional<ProjectSession> clean_origin = {};
 };
-struct CloseProject {};
+struct CloseProject {
+  std::optional<ProjectSession> clean_origin = {};
+};
+struct ConfigureProject {
+  std::string name;
+  std::map<std::string, std::string> directories;
+  std::optional<std::string> target = {};
+};
 struct ClearRecentProjects {};
 struct ReplaceRecentProjects {
   std::vector<ProjectSession> recent;
 };
 using ProjectMutation =
     std::variant<OpenProject, CloseProject, ClearRecentProjects,
-                 ReplaceRecentProjects>;
+                 ConfigureProject, ReplaceRecentProjects>;
 inline std::optional<ProjectIssue>
 project_session_issue(const ProjectSession &session) {
   if (auto issue = project_manifest_issue(session.manifest)) {

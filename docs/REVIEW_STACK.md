@@ -40,6 +40,8 @@ bottom; each branch includes its base. No hosted CI or artifact upload was run.
 | codex/standalone-editor-project-recents | codex/standalone-editor-project-creation | Step 9c: explicit user-local recent-history persistence, undoable replacement and native menu workflows |
 | codex/standalone-editor-active-roots | codex/standalone-editor-project-recents | Step 10: optional active source roots, explicit overrides, concrete observations and staged-context guards |
 
+| codex/standalone-editor-dirty-state | codex/standalone-editor-active-roots | Step 11: persisted document observations, dirty status and project settings guards |
+
 Draft PR creation is currently blocked by the environment policy for
 api.github.com (CONNECT 403). Git fetch/push works through the existing connection.
 The required API hostname has been added to the environment configuration draft;
