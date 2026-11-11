@@ -179,3 +179,12 @@ These are release gates, not a reason to defer usability or validation until the
 - 2026-11-06: Completed step 2 locally: milestone acceptance criteria, dependency
   gates and an active work board. Count is now 1/93; this is not an effort-weighted
   project percentage. Review-stack consolidation remains open.
+
+## 2026-11-12 remote validation checkpoint (non-executable)
+
+- Scope: GitHub repository/branch/tree inspection and CMake/CI configuration review. **No fresh compilation, CTest run, desktop interaction, sanitizer execution, Windows validation or hardware benchmark was performed.** The execution environment could not resolve github.com for a clone. Do not interpret this as a passing build.
+- Default `main` still contains only `README.md` at the initial commit. The working editor source is isolated on the `codex/standalone-editor-*` review branches; no open pull requests were found. The delivery-milestones branch includes the C++20 source, desktop adapter, tests and documentation.
+- The desktop and headless test targets are defined in `editor/CMakeLists.txt`; `.github/workflows/editor.yml` is manually dispatched on self-hosted Linux/Windows runners. Test definitions are not evidence that tests passed on this date.
+- Prior recorded checkpoint (2026-11-06): 34 desktop and 26 sanitizer/headless test groups passed locally on Linux, with leak detection limited. Those are historical claims from STATUS/REVIEW_STACK, not independently reproduced here.
+- Outstanding verification gates: review stack ancestry and integration (step 1), reusable fixtures (3), Windows build (4), approved CI execution (5), real MCP clients (6), numerical performance budgets (7). Do not mark any complete on the strength of this read-only inspection.
+- **Checklist remains 1/93 complete**, with step 2 implemented but awaiting owner review/merge. Next: obtain an executable checkout or approved runner, run `cmake --preset dev && cmake --build --preset dev && ctest --preset dev` and the desktop/sanitizer presets from `editor/`, record command output and environment, then resolve failures before integrating the stack. Do not merge or publish automatically.
