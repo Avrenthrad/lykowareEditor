@@ -539,3 +539,7 @@ needed. See editor/README.md for desktop/MCP/headless commands. Read
 docs/WORK_BOARD.md for active tasks and docs/ROADMAP.md for milestone acceptance.
 Consolidate the review stack before project manifest/lifecycle feature work. Keep
 docs/STATUS.md and docs/DELIVERY_CHECKLIST.md current. Joshua merges.
+
+## 2026-11-12 GitHub-only validation
+
+Read-only repository inspection confirmed that `main` has only the initial README while development branches hold the C++ editor, SDL3/ImGui desktop, tests and documentation. No open PRs were found. Reviewed CMake test definitions and the manual self-hosted Linux/Windows workflow. An attempted local Git connection failed DNS resolution for github.com; consequently no fresh build, CTest, sanitizer, UI smoke test or Windows test was run. Historical Linux test counts remain reported, not independently reproduced. Delivery checklist unchanged at 1/93. A separate validation documentation branch records this checkpoint without changing `main`. Next required evidence: executable checkout, captured test results, integration ancestry review, and Windows/CI verification.
