@@ -1,0 +1,38 @@
+name: Standalone editor checks
+# No automatic hosted runs or artifact uploads. Joshua can dispatch this against
+# existing, explicitly approved self-hosted runners; no paid runner is requested.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Linux, Windows]
+    runs-on: [self-hosted, '${{ matrix.os }}', X64]
+    defaults:
+      run:
+        working-directory: editor
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: cmake --preset dev
+      - run: cmake --build --preset dev --parallel 2
+      - run: ctest --preset dev
+      - run: cmake --preset desktop
+      - run: cmake --build --preset desktop --parallel 2
+      - run: ctest --preset desktop
+  sanitizers-and-tidy:
+    runs-on: [self-hosted, Linux, X64]
+    defaults:
+      run:
+        working-directory: editor
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: cmake --preset sanitizers -DLYKO_CLANG_TIDY=ON
+      - run: cmake --build --preset sanitizers --parallel 2
+      - run: ctest --preset sanitizers
+      - run: cmake --preset thread-sanitizer
+      - run: cmake --build --preset thread-sanitizer --target lyko_queue_tests lyko_tests --parallel 2
+      - run: ctest --preset thread-sanitizer -R "desktop_command_queue|command_bus"
