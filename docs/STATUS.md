@@ -1,5 +1,40 @@
 # Editor status
 
+## Current evidence — 12 November 2026
+
+- PR #1 remains open and draft: one workflow file, 67 additions, no editor
+  implementation. main remains 8308edf552608cbd583747cbfd20f0bdd2d67141
+  (README only). No PR was merged or marked ready.
+- Fresh clone and ancestry inspection succeeded. All 36 standalone-editor branch
+  tips are ancestors of ea670eabd800d37f281a90cfde6386cd28a065c3
+  (checked-saves), 45 commits ahead of main. The original 26-branch handover
+  predates ten additional implementation branches; manifest/lifecycle/fixtures,
+  active roots, dirty state and checked saves already exist. Do not redo them.
+- Prepared codex/consolidated-validation-2026-11-12 from that exact tip, preserving
+  all implementation history. Original branches remain unchanged. This is an
+  integration candidate, not a verified or approved release.
+- Carried the hosted workflow forward from PR #1. Windows now explicitly selects
+  Visual Studio 2022/x64 and Debug for multi-configuration builds/tests; ordinary
+  Ninja presets alone do not initialize MSVC in a hosted PowerShell session.
+  Linux sanitizer/tidy work waits for both build legs to pass. Manual-only trigger,
+  serial matrix, read-only token, pinned checkout, 45-minute job limits and no
+  artifact uploads remain. This configuration change has not been executed.
+- GitHub Actions API reports total_count=0. No hosted jobs or charges were started.
+  Manual dispatch requires the workflow on the default branch; PR #1 needs owner
+  approval first. GitHub CLI is signed out and the connected tools have no new-run
+  dispatch operation. Do not work around this by changing main/default branch.
+- Local cmake/ninja/C++ compiler are unavailable on PATH; no WSL distribution was
+  listed. No fresh compilation, CTest, desktop, sanitizer or Windows result is
+  claimed. Earlier 44/44 desktop and 35/35 sanitizer counts below are historical
+  reports, not independently reproduced in this session. git diff --check passes.
+- Checklist remains 8/93. Steps 1, 4 and 5 remain open. Next: owner review of PR #1,
+  dispatch editor.yml against the consolidated branch, capture exact head SHA,
+  run/job URLs and failures, fix in isolated branches, then request implementation
+  review. Do not advance feature milestones until validation is available.
+
+The dated checkpoint above supersedes stale current/next-runner and handover
+statements below; the remaining sections preserve historical implementation notes.
+
 ## Completed
 
 - Inspected the supplied checkout: its only source file was a title-only README.
@@ -160,94 +195,7 @@
 - Added workspace TOML v2 persistence with v1 migration. Canonical trees prune
   empty regions, enforce panel coverage and keep stable structural path IDs.
 - Desktop restores confirmed state after rejected or unsupported floating drops.
-  Window resizing preserves relative splits without recording a layout edit.
-- All 15 desktop-preset tests and 11 ASan/UBSan headless tests pass (local leak
-  detection disabled as above). Clang-tidy reports no project-code findings.
-  Native SDL interactions and an X11/Xvfb capture were checked. The harness covers
-  resize, merge, reorder, active tabs, splitting, undo/redo and floating rollback.
-- Extracted opt-in interaction scenarios from main; frame pacing now waits only
-  for the remaining frame budget. Hardware performance remains unmeasured.
-- ADR 0007 documents the model and migration. No engine integration occurred.
-
-## Typed transaction builder
-
-- Added a palette builder for transaction.execute with registry-derived mutation
-  choices, typed child fields, row reordering/removal and one atomic submission.
-  Queries, undo/redo, exports and nested transactions are excluded from choices.
-- Added toolkit-independent batch draft validation with numbered row errors and
-  a 64-row GUI limit. The command service remains authoritative for scene/domain
-  constraints; no draft changes state or history.
-- Model checks cover exclusions, missing/invalid fields, row bounds/order,
-  single-step undo/redo and full rollback after a later row fails.
-- Extended SDL interaction coverage: search/open builder, add two mutation rows,
-  submit, undo both rows together, redo both, then undo again.
-- All 15 desktop checks pass; form tests also pass under ASan/UBSan with the
-  documented local leak-check limitation. The batch interaction sequence passes
-  in X11/Xvfb. Clang-tidy emits no project-code findings.
-- ADR 0008 records the scope. Layout objects retain advanced JSON controls;
-  recursive transactions remain disallowed by the shared service.
-
-## Shortcut discoverability
-
-- Added a modeless, searchable Shortcuts browser over every registered command,
-  including unbound actions. Search matches command names, registry descriptions
-  and current bindings, with ASCII case folding and deterministic name ordering.
-- Edit opens the existing keymap.bind form with command/current shortcut prefilled.
-  Drafts do not bind keys; explicit execution uses the same revision-guarded queue
-  and service. Empty shortcuts unbind; existing conflict checks remain authoritative.
-- Buttons and entity context actions now show registry documentation and current
-  bindings in tooltips. The inspector undo hint and palette rows read the confirmed
-  keymap instead of hard-coded or cached binding labels. Added contextual Rename.
-- History buttons reflect confirmed undo/redo availability. No service commands,
-  persistence format, dependency or engine integration changed.
-- Model tests cover registry documentation, all/unbound commands, case-insensitive
-  binding search, rebinding/unbinding and conflict rejection. SDL input searches
-  the browser, edits Undo to Ctrl+U, confirms Ctrl+Z stops dispatching, then checks
-  undo/redo restores each binding. ADR 0009 records the presentation contract.
-- All 15 desktop-preset tests pass. The model/form tests pass under ASan/UBSan
-  with the documented local leak-check limitation; clang-tidy reports no project
-  findings. The same browser/rebinding sequence passes in X11/Xvfb and its
-  resulting frame was inspected.
-
-## Typed layout object forms
-
-- Added a layout-specific nested object editor for layout.replace, including batch
-  rows: split direction/share, active tabs, tab order, panel grouping/hiding and
-  creation of new splits. Standalone forms start from the confirmed layout;
-  newly added batch rows use a valid starter draft.
-- Added a toolkit-independent LayoutForm draft model that validates candidate
-  edits through the existing layout validator before replacing its private tree.
-  No edit touches live state/history until one explicit command submission.
-- Retained advanced JSON import with an explicit import/discard boundary. Dirty
-  or invalid JSON blocks execution and typed editing until resolved; invalid
-  typed edits preserve the valid tree and require correction or acknowledgement.
-- Model tests cover structural edits, exact ratios, active tabs, rejected edits,
-  canonicalization, all-hidden/restore, JSON roundtrip and one-step bus undo/redo.
-  Native input tests edit a percentage, verify no live change before Execute,
-  check exactly one revision, undo/redo and malformed JSON import/discard gating.
-- All 17 desktop-preset tests and all 12 ASan/UBSan groups pass (with the
-  documented local leak-check limitation). Clang-tidy reports no project-code
-  findings. The typed form/import scenario passes in X11/Xvfb; its final frame
-  was inspected. Windows and target hardware remain unverified.
-- ADR 0010 records the specialized widget and its limits. No generic recursive
-  JSON Schema renderer, new protocol command, dependency or engine integration
-  was introduced.
-
-## Typography, icons and surface polish
-
-- Vendored unmodified Roboto Regular (font version 2.001047, upstream commit
-  38062f4b4a0be4346d07a928408da21602545e9e) under Apache-2.0. The font's own licence
-  metadata and upstream licence were checked; provenance and SHA-256 are recorded
-  in third_party/README.md. No newer differently licensed font was substituted.
-- Added an optional desktop-only checksum-verified CMake resource wrapper. Font
-  bytes are embedded, so the executable needs no adjacent font or source path.
-  Headless builds remain independent of GUI resources.
-- Applied a 15px Roboto body baseline, token-driven 32px normal controls, consistent
-  spacing and explicit surface/hover/active/border colours. Added matching panel
-  headings and ten original vector icons on one grid, with text labels and native
-  button keyboard behavior retained.
-- Expanded existing contrast checks across hover and active surfaces. Dark mode
-  meets the existing 4.5:1 text target and high contrast meets 7:1 for normal/muted
+  Window resizing preserves relative splits without …1516 tokens truncated…high contrast meets 7:1 for normal/muted
   text on the checked surfaces. This is not a full accessibility certification.
 - Inspected X11 captures at 100% dark and 150% high contrast. The scaled render
   was driven through the same-instance MCP command service from a different cwd.
