@@ -36,3 +36,17 @@ These sampled comparisons support the documented stack structure but **do not pr
 ## Safety
 
 GitHub only. No automatic merges, hosted CI dispatch, paid services, engine repository access or release publication. Keep all implementation slices isolated. For each checklist item, require actual acceptance evidence before ticking.
+
+## CI authorisation and preflight (2026-11-13)
+
+Owner authorised **manual hosted CI within existing GitHub Actions usage limits**, **conditional on separately approving merge of CI PR #1**. This is not merge approval. No run has been dispatched.
+
+- Verified source branch `codex/standalone-editor-delivery-milestones` has `editor/CMakePresets.json` with `dev`, `desktop`, `sanitizers`, and `thread-sanitizer` configure/build/test presets. CI references these names.
+- Manual workflow in CI PR #1 should be reviewed for workflow syntax, Linux dependencies, Windows generator/toolchain and vendor downloads. Build/test success is **not** established by preset existence.
+- Before dispatch: confirm GitHub Actions enabled, billing/minute balance and repo permissions; obtain separate approval to merge PR #1; select a branch that actually contains both editor sources and workflow. Prefer `codex/validation-checklist-2026-11-12` after verifying its current contents.
+- In GitHub UI: Actions → Standalone editor checks → Run workflow → choose validated source branch → Run workflow. **Do not select `main`**, which lacks editor sources. Record run URL, job results, OS versions, CTest totals, sanitizers/tidy diagnostics and any billable-minute consumption.
+- Manual CI approval does not authorise agent-initiated merges or paid overage. Stop before dispatch if usage limits cannot be confirmed.
+
+### Audit limitation
+
+Attempted to batch all 26 adjacency comparisons, but the connector orchestration reached its tool-call limit before returning results. No comprehensive ancestry conclusion is claimed. The five earlier sampled comparisons remain the only recorded ancestry evidence in this report.
