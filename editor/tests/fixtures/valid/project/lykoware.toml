@@ -1,0 +1,11 @@
+# Lykoware project configuration v1
+schema_version = 1
+project_id = "0123456789abcdef0123456789abcdef"
+name = "Fixture Studio 🐺"
+
+[directories]
+assets = "assets"
+cache = ".lyko/cache"
+graphs = "graphs"
+scenes = "scenes"
+scripts = "scripts"

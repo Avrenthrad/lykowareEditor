@@ -1,0 +1,3 @@
+# Python fixture helpers must not add interpreter caches to source control.
+__pycache__/
+*.py[cod]

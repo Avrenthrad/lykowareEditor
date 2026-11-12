@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "next_id": 4,
+  "assets": [
+    {
+      "id": 1,
+      "path": "scenes/main.json",
+      "kind": "scene"
+    },
+    {
+      "id": 2,
+      "path": "prefabs/tree.json",
+      "kind": "prefab"
+    },
+    {
+      "id": 3,
+      "path": "scripts/future-script.txt",
+      "kind": "script"
+    }
+  ]
+}

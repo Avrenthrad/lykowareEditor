@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "next_id": 3,
+  "assets": [
+    {
+      "id": 1,
+      "path": "prefabs/Tree.json",
+      "kind": "prefab"
+    },
+    {
+      "id": 2,
+      "path": "prefabs/tree.json",
+      "kind": "prefab"
+    }
+  ]
+}

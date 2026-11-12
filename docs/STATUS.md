@@ -1,0 +1,754 @@
+# Editor status
+
+## Current evidence — 12 November 2026
+
+- PR #1 remains open and draft: one workflow file, 67 additions, no editor
+  implementation. main remains 8308edf552608cbd583747cbfd20f0bdd2d67141
+  (README only). No PR was merged or marked ready.
+- Fresh clone and ancestry inspection succeeded. All 36 standalone-editor branch
+  tips are ancestors of ea670eabd800d37f281a90cfde6386cd28a065c3
+  (checked-saves), 45 commits ahead of main. The original 26-branch handover
+  predates ten additional implementation branches; manifest/lifecycle/fixtures,
+  active roots, dirty state and checked saves already exist. Do not redo them.
+- Prepared codex/consolidated-validation-2026-11-12 from that exact tip, preserving
+  all implementation history. Original branches remain unchanged. This is an
+  integration candidate, not a verified or approved release.
+- Carried the hosted workflow forward from PR #1. Windows now explicitly selects
+  Visual Studio 2022/x64 and Debug for multi-configuration builds/tests; ordinary
+  Ninja presets alone do not initialize MSVC in a hosted PowerShell session.
+  Linux sanitizer/tidy work waits for both build legs to pass. Manual-only trigger,
+  serial matrix, read-only token, pinned checkout, 45-minute job limits and no
+  artifact uploads remain. This configuration change has not been executed.
+- GitHub Actions API reports total_count=0. No hosted jobs or charges were started.
+  Manual dispatch requires the workflow on the default branch; PR #1 needs owner
+  approval first. GitHub CLI is signed out and the connected tools have no new-run
+  dispatch operation. Do not work around this by changing main/default branch.
+- Local cmake/ninja/C++ compiler are unavailable on PATH; no WSL distribution was
+  listed. No fresh compilation, CTest, desktop, sanitizer or Windows result is
+  claimed. Earlier 44/44 desktop and 35/35 sanitizer counts below are historical
+  reports, not independently reproduced in this session. git diff --check passes.
+- Checklist remains 8/93. Steps 1, 4 and 5 remain open. Next: owner review of PR #1,
+  dispatch editor.yml against the consolidated branch, capture exact head SHA,
+  run/job URLs and failures, fix in isolated branches, then request implementation
+  review. Do not advance feature milestones until validation is available.
+
+The dated checkpoint above supersedes stale current/next-runner and handover
+statements below; the remaining sections preserve historical implementation notes.
+
+## Completed
+
+- Inspected the supplied checkout: its only source file was a title-only README.
+- Added proposed ADR 0001, staged roadmap and future engine requirements.
+- Established strict standalone scope; no engine integration or dependency.
+
+## Foundation slice
+
+- Added `editor/` C++20 core, CMake dev/sanitizer presets and a headless `lyko` CLI.
+- Typed mutations share a command bus with atomic batch validation, structured
+  errors, explicit instance targeting, optimistic revision checks and undo/redo.
+- Added pure-value EngineBridge and mock play/stop/input backend.
+- GCC strict-warning builds passed. Transaction/history/backend tests and the
+  CLI feedback loop plus five invalid-input cases passed.
+- ASan/UBSan tests passed with leak detection disabled: LeakSanitizer cannot run
+  under the environment's process tracing. Leak checking remains unverified.
+- No external libraries or engine dependencies were introduced.
+
+## JSON command contract slice
+
+- Replaced the prototype text CLI with bounded JSON-lines requests/results.
+- Centralized command names, schema discovery and typed decoding in CommandService;
+  the service serializes target/revision validation, execution and queries.
+- Added atomic transaction requests, strict unknown-field rejection and Unicode
+  handling. Entity IDs/revisions require exact unsigned 64-bit integers; signed
+  and fractional JSON numbers parse without being coerced into IDs.
+- Strict GCC builds and the core suite passed. The CLI suite passed discovery,
+  Unicode, feedback/undo/redo and 15 malformed/invalid-request rollback cases.
+
+## Scene persistence slice
+
+- Added versioned authoring JSON with one entity per line, stable IDs and next-ID
+  metadata; runtime state is deliberately excluded.
+- `scene.load` validates the entire document before an undoable replacement.
+- `scene.save` publishes a complete file atomically to a new path using a hard
+  link. Existing files are preserved. Filesystems without hard links fail safely;
+  overwrite support and power-loss durability are not implemented.
+- Filesystem tests passed round trips, load undo/redo, existing-file preservation,
+  malformed-scene rollback and staging cleanup. Input/output files are capped at
+  1 MiB for this initial implementation.
+
+## MCP transport slice
+
+- Added opt-in stdio MCP mode: `lyko --instance NAME --mcp`.
+- Implements initialization, tool discovery from command schemas, tool calls,
+  structured command results and explicit instance targeting. No network listener.
+- Black-box tests passed lifecycle, discovery, signed request IDs, target/revision
+  rejection, notification safety and equivalent CLI/MCP results.
+- Advertises protocol versions 2024-11-05 and 2025-06-18; external MCP-client
+  compatibility testing remains outstanding.
+
+## Mock feedback and build-check slice
+
+- Added bounded mock logs and deterministic 64x36 PPM software capture commands.
+  Tests verify play/input/log/query/capture plus visual and log undo/redo.
+- Added JSON number/Unicode/structure contract tests and a clang-tidy build option.
+- Added manual-only self-hosted Linux/Windows CI configuration with sanitizer and
+  clang-tidy checks. No workflow was dispatched and no artifact uploads exist.
+- Updated run instructions and documented the actual JSON/MCP/persistence protocol.
+- Added ADR 0002 covering protocol bounds, scene publication and manual CI.
+- Strict GCC, JSON contract, core, CLI, persistence, MCP and feedback checks pass.
+  Core tests include concurrent stale writes and bounded mock history/logs.
+
+## Toolkit-independent workspace slice
+
+- Added undoable selection, starter panel docking slots/splits, UI scaling,
+  dark/high-contrast themes, reduced motion and conflict-checked key bindings.
+- Added palette search across every registered command with current shortcuts and
+  schemas, inspector selection queries and centralized toolkit-independent tokens.
+- Added TOML workspace save/load with validated atomic replacement of in-memory
+  settings and no-overwrite file exports. Scene and config loads preserve their
+  respective boundaries; selection is excluded from config files.
+- Shared bounded UTF-8 file handling between scene and workspace persistence.
+- Strict GCC builds and workspace tests pass, including independent Python TOML
+  parsing, contrast thresholds, transaction/undo/redo behavior, bad-config rollback,
+  Unicode paths and CLI/MCP parity. ADR 0003 records scope and parser limitations.
+- All seven test groups passed under ASan/UBSan with leak detection disabled
+  because LeakSanitizer is incompatible with this environment tracing.
+- This checkpoint implemented the shell model; the actual window follows below.
+
+## Desktop execution and panel snapshot slice
+
+- Added CommandQueue worker execution over the existing service, FIFO tickets,
+  non-waiting submission/polling, count backpressure including unpolled replies,
+  and explicit shutdown cancellation of work not started.
+- Added editor.snapshot with coherent scene/workspace/selection/token/log/history
+  data, separate from preview capture and file I/O. Added history.query with named
+  transaction records, original revisions and applied/redo status.
+- Removed full-document copies from the service's initial revision check.
+- Strict GCC builds and deterministic tests pass for blocked-backend submission,
+  FIFO/bounds/errors/shutdown and snapshot/history/undo/redo/branch behavior.
+- ADR 0004 and the command protocol document adapter lifetime and retry rules.
+- Queue tests pass under ThreadSanitizer; queue/snapshot/workspace tests pass
+  under ASan/UBSan with the previously documented leak-check limitation.
+- Added a separate TSan preset and manual self-hosted CI step; CMake execution
+  remains pending until newly installed tools are activated.
+- Read-only Git access succeeds outside the default network sandbox. Earlier
+  proxy failures were a sandbox restriction, not a broken environment proxy.
+  Remote main remains at the original starting commit; GUI dependencies are now
+  being acquired through the approved network path.
+
+## Desktop shell and environment milestone
+
+- Added a real optional ImGui/SDL3 window, docked scene/inspector/viewport/console/
+  history panels, Ctrl+K palette, inspector rename, undo/redo, workspace menus and
+  mock preview texture. All committed editor changes use the command service.
+- Vendored pinned MIT ImGui and zlib SDL sources with provenance, licence records
+  and an offline checksum-verified CMake wrapper. Headless builds stay independent.
+- Added desktop --mcp against the same visible instance, safe EOF/disconnect
+  handling and periodic snapshot refresh. No network listener is opened.
+- CMake dev builds and all nine headless tests pass. All 12 desktop-preset checks
+  pass, including render,
+  shared-MCP/disconnect and synthetic SDL interaction checks pass. A real X11/Xvfb
+  window passed the same mouse/key/rename interaction sequence and was captured
+  for visual inspection. The interaction harness creates an
+  entity, undoes/redoes, opens Ctrl+K and renames through the inspector.
+- The actual sanitizer preset builds with clang-tidy enabled and passes all nine
+  tests with leak detection disabled for the environment tracing restriction.
+  Queue tests also pass under ThreadSanitizer. Clang-tidy reports no project-code
+  findings. Windows and remote CI have not run.
+- Added tested, repeatable rootless cloud setup under editor/tools/setup-cloud.sh.
+  The environment install_script and start_skill are saved as a review draft;
+  publication and restoration in a fresh task have not been verified.
+  Tools/system packages live outside the checkout in /workspace/.lyko-tools and
+  /workspace/.lyko-system. Network works with approved unsandboxed execution; prior
+  proxy-failure diagnoses were incorrect. No environment restart was needed.
+
+## Schema-driven palette forms
+
+- Added registry-owned defaults, titles, enum choices and numeric constraints,
+  published through both CLI discovery and MCP. UTF-8 byte limits are explicit.
+- Added a toolkit-independent draft form model plus desktop text, uint64, checkbox
+  and dropdown controls. Inline errors prevent invalid draft submission; the bus
+  remains authoritative for domain validation and atomic changes. Direct named
+  C++ service calls also reject malformed UTF-8 before writing.
+- Workspace/rename forms prefill current values. Parameterized shortcuts open
+  forms; Ctrl+K focuses search. Array transactions retain an advanced JSON editor.
+- All 13 desktop-preset tests pass. The SDL interaction harness searches, opens,
+  edits and submits workspace.configure through the generated controls.
+- All 10 headless/model tests pass under ASan/UBSan with the documented local leak
+  limitation. Clang-tidy reports no project-code findings. ADR 0006 records scope.
+
+## Review and environment handover
+
+- Prepared the private codex/standalone-editor-* review branches, including forms; see
+  docs/REVIEW_STACK.md for the intended PR bases. Main is untouched.
+- Draft PR creation is blocked by api.github.com network policy (CONNECT 403).
+  Added this domain to the environment configuration draft, preserving existing
+  rules/presets. It is not applied or published; API authentication is untested.
+- install_script/start_skill are saved in the same draft. Current-instance setup
+  and repeatability are verified; fresh-task restoration/publication are not.
+
+## Transaction-backed docking
+
+- Added validated split/tab trees and layout.query/replace/reset through the shared
+  command service, CLI and MCP. Native resize, merge, tab reorder/selection and
+  split gestures commit one undoable transaction with revision conflict checks.
+- Added workspace TOML v2 persistence with v1 migration. Canonical trees prune
+  empty regions, enforce panel coverage and keep stable structural path IDs.
+- Desktop restores confirmed state after rejected or unsupported floating drops.
+  Window resizing preserves relative splits without recording a layout edit.
+- All 15 desktop-preset tests and 11 ASan/UBSan headless tests pass (local leak
+  detection disabled as above). Clang-tidy reports no project-code findings.
+  Native SDL interactions and an X11/Xvfb capture were checked. The harness covers
+  resize, merge, reorder, active tabs, splitting, undo/redo and floating rollback.
+- Extracted opt-in interaction scenarios from main; frame pacing now waits only
+  for the remaining frame budget. Hardware performance remains unmeasured.
+- ADR 0007 documents the model and migration. No engine integration occurred.
+
+## Typed transaction builder
+
+- Added a palette builder for transaction.execute with registry-derived mutation
+  choices, typed child fields, row reordering/removal and one atomic submission.
+  Queries, undo/redo, exports and nested transactions are excluded from choices.
+- Added toolkit-independent batch draft validation with numbered row errors and
+  a 64-row GUI limit. The command service remains authoritative for scene/domain
+  constraints; no draft changes state or history.
+- Model checks cover exclusions, missing/invalid fields, row bounds/order,
+  single-step undo/redo and full rollback after a later row fails.
+- Extended SDL interaction coverage: search/open builder, add two mutation rows,
+  submit, undo both rows together, redo both, then undo again.
+- All 15 desktop checks pass; form tests also pass under ASan/UBSan with the
+  documented local leak-check limitation. The batch interaction sequence passes
+  in X11/Xvfb. Clang-tidy emits no project-code findings.
+- ADR 0008 records the scope. Layout objects retain advanced JSON controls;
+  recursive transactions remain disallowed by the shared service.
+
+## Shortcut discoverability
+
+- Added a modeless, searchable Shortcuts browser over every registered command,
+  including unbound actions. Search matches command names, registry descriptions
+  and current bindings, with ASCII case folding and deterministic name ordering.
+- Edit opens the existing keymap.bind form with command/current shortcut prefilled.
+  Drafts do not bind keys; explicit execution uses the same revision-guarded queue
+  and service. Empty shortcuts unbind; existing conflict checks remain authoritative.
+- Buttons and entity context actions now show registry documentation and current
+  bindings in tooltips. The inspector undo hint and palette rows read the confirmed
+  keymap instead of hard-coded or cached binding labels. Added contextual Rename.
+- History buttons reflect confirmed undo/redo availability. No service commands,
+  persistence format, dependency or engine integration changed.
+- Model tests cover registry documentation, all/unbound commands, case-insensitive
+  binding search, rebinding/unbinding and conflict rejection. SDL input searches
+  the browser, edits Undo to Ctrl+U, confirms Ctrl+Z stops dispatching, then checks
+  undo/redo restores each binding. ADR 0009 records the presentation contract.
+- All 15 desktop-preset tests pass. The model/form tests pass under ASan/UBSan
+  with the documented local leak-check limitation; clang-tidy reports no project
+  findings. The same browser/rebinding sequence passes in X11/Xvfb and its
+  resulting frame was inspected.
+
+## Typed layout object forms
+
+- Added a layout-specific nested object editor for layout.replace, including batch
+  rows: split direction/share, active tabs, tab order, panel grouping/hiding and
+  creation of new splits. Standalone forms start from the confirmed layout;
+  newly added batch rows use a valid starter draft.
+- Added a toolkit-independent LayoutForm draft model that validates candidate
+  edits through the existing layout validator before replacing its private tree.
+  No edit touches live state/history until one explicit command submission.
+- Retained advanced JSON import with an explicit import/discard boundary. Dirty
+  or invalid JSON blocks execution and typed editing until resolved; invalid
+  typed edits preserve the valid tree and require correction or acknowledgement.
+- Model tests cover structural edits, exact ratios, active tabs, rejected edits,
+  canonicalization, all-hidden/restore, JSON roundtrip and one-step bus undo/redo.
+  Native input tests edit a percentage, verify no live change before Execute,
+  check exactly one revision, undo/redo and malformed JSON import/discard gating.
+- All 17 desktop-preset tests and all 12 ASan/UBSan groups pass (with the
+  documented local leak-check limitation). Clang-tidy reports no project-code
+  findings. The typed form/import scenario passes in X11/Xvfb; its final frame
+  was inspected. Windows and target hardware remain unverified.
+- ADR 0010 records the specialized widget and its limits. No generic recursive
+  JSON Schema renderer, new protocol command, dependency or engine integration
+  was introduced.
+
+## Typography, icons and surface polish
+
+- Vendored unmodified Roboto Regular (font version 2.001047, upstream commit
+  38062f4b4a0be4346d07a928408da21602545e9e) under Apache-2.0. The font's own licence
+  metadata and upstream licence were checked; provenance and SHA-256 are recorded
+  in third_party/README.md. No newer differently licensed font was substituted.
+- Added an optional desktop-only checksum-verified CMake resource wrapper. Font
+  bytes are embedded, so the executable needs no adjacent font or source path.
+  Headless builds remain independent of GUI resources.
+- Applied a 15px Roboto body baseline, token-driven 32px normal controls, consistent
+  spacing and explicit surface/hover/active/border colours. Added matching panel
+  headings and ten original vector icons on one grid, with text labels and native
+  button keyboard behavior retained.
+- Expanded existing contrast checks across hover and active surfaces. Dark mode
+  meets the existing 4.5:1 text target and high contrast meets 7:1 for normal/muted
+  text on the checked surfaces. This is not a full accessibility certification.
+- Inspected X11 captures at 100% dark and 150% high contrast. The scaled render
+  was driven through the same-instance MCP command service from a different cwd.
+- All 17 desktop tests and all 12 ASan/UBSan groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+- ADR 0011 records the resource, design-token and icon decisions. No command,
+  persistence, engine or backend contract changed. Full glyph coverage, Windows,
+  hardware frame rate and screen-reader behavior remain unverified.
+
+## Inline command feedback
+
+- Added form-local waiting/completion/error feedback for normal and transaction
+  forms. Matching service field errors appear beside controls; structured code,
+  field and request details remain available without blocking dialogs.
+- Correlate results by both draft generation and queue ticket. Late replies from
+  an abandoned form cannot overwrite a new form, even for the same command.
+  Navigation does not cancel commands already submitted.
+- Disable form edits/Execute while that form is pending; retain Back/search
+  navigation. Queue admission failures are shown locally and permit explicit
+  retry. No mutation is automatically retried.
+- Preserve drafts on service errors and clear obsolete feedback when arguments
+  change. Successful queries expose a UTF-8-safe, bounded 4 KiB result preview;
+  truncation does not alter the original structured response.
+- Model tests cover generations/tickets, duplicate submission, local rejection,
+  draft invalidation, retries and Unicode preview bounds. Native SDL input triggers
+  a shortcut conflict, verifies the draft/revision are preserved, corrects the
+  draft and submits successfully, then confirms a second conflict stays visible.
+- All 19 desktop checks and all 13 ASan/UBSan groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The conflict/correction scenario passes in X11/Xvfb and was visually inspected.
+- ADR 0012 records the lifecycle and presentation rules. Queue metadata remains
+  local to the adapter; CLI/MCP/service contracts and persistence are unchanged.
+
+## Basic entity authoring actions
+
+- Added entity.duplicate (explicit source ID/name) and entity.delete through the
+  typed bus and registry, with palette forms, shortcuts, transaction-row discovery
+  and scene context-menu actions. Duplicate selects its new stable ID; deleting
+  the selected entity clears selection atomically. Undo/redo restores both.
+- Invalid sources/names and identifier exhaustion fail before commit. Deletion
+  never rewinds the allocator. Failed batches preserve scene, selection and history.
+- Existing JSON v1 persistence is unchanged. These entities currently contain only
+  names; duplication copies authoring data, not mock runtime state or resources.
+- New black-box tests cover selection, history, stable IDs, bad-input rollback,
+  stale revisions, failed batches, CLI/MCP parity and JSON save/load compatibility.
+- All 20 desktop checks and all 14 ASan/UBSan groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  Windows remains unverified.
+- ADR 0013 records behavior. No engine integration or dependency was introduced.
+
+## Authoring scene hierarchy
+
+- Added entity.reparent and deterministic scene.tree through the shared registry.
+  Candidate hierarchy validation rejects missing references, cycles and depth >64.
+- Snapshots include scene_tree; Scene uses parent-first indentation with horizontal
+  scrolling and contextual Reparent forms. Legacy flat scene.query is unchanged.
+- Duplicate preserves its source parent without descendants. Delete promotes
+  direct children to root. Undo/redo and batch rollback include all parent links.
+- Scene persistence reads v1/v2 and writes v2 only when parent links exist; flat
+  exports remain v1. Malformed hierarchy loads preserve scene/history.
+- All 21 desktop checks and all 15 ASan/UBSan groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  X11 hierarchy updates through same-instance MCP were captured and inspected.
+- Added hierarchy graph/history/persistence tests and ADR 0014. Spatial transforms,
+  component parenting and runtime integration remain future work.
+
+## Local authoring transforms
+
+- Added validated sparse local position/XYZ Euler-degree rotation/signed-scale
+  data, transform.set/query and snapshot transform metadata. Changes use atomic
+  candidate validation, optimistic revisions, batching and undo/redo.
+- Added finite signed/fractional number fields to shared form drafts and desktop
+  controls. Inspector opens a prefilled transform form for the selected entity.
+- Duplicate copies local values; Delete removes them; reparent preserves local
+  values. World composition and mock-preview/runtime interpretation are deferred.
+- Added scene JSON v3 for nonidentity transforms; v1/v2 load as identity. Export
+  retains earlier schemas when possible. Invalid loads preserve state/history.
+- All 22 desktop checks and all 16 sanitizer groups pass (the transform test
+  passed on rerun after correcting a test-file indentation error). Local leak
+  detection remains disabled as documented. Clang-tidy reports no project-code
+  findings. X11 Inspector updates through MCP were captured and inspected.
+- Added transform persistence/history/rollback/CLI-MCP parity and numeric draft
+  tests. ADR 0015 records authoring semantics and remaining integration decisions.
+
+## Read-only world composition
+
+- Added transform.world and an Inspector query launcher, using the same registry,
+  typed ID form and bounded result feedback as CLI/MCP.
+- Added finite affine matrix composition: right-handed Y-up/-Z-forward editor
+  coordinates, column vectors, row-major storage, T*Rx*Ry*Rz*S local order and
+  parent_world*local hierarchy composition. Shear and reflections are retained.
+- Reduce large angles before radians conversion; reject nonfinite intermediates
+  with structured transform_range errors. Queries preserve scene/history/revision.
+- Analytic tests cover nested rotation/scale/translation, noncommuting Euler order,
+  shear, reparent/undo, large angles, overflow rollback and CLI/MCP parity.
+- All 23 desktop checks and all 17 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+- ADR 0016 records conventions. Persistence is unchanged; world-space editing,
+  decomposition, world-preserving reparent and real rendering remain future work.
+
+## World-preserving reparent
+
+- Added entity.reparent_world with context/palette/CLI/MCP/batch parity. Existing
+  local-preserving reparent behavior is unchanged. The new command changes parent
+  and local TRS in one undoable transaction after validating the candidate forest.
+- Added inverse/decomposition with reflection and gimbal-angle handling. Verify
+  local recomposition, parent inverse residual and every affected subtree world
+  matrix. Reject local shear, unsafe scales/pivots and numerical failures without
+  committing. Same-parent calls are no-ops.
+- Subtree checks reuse the already validated forest and retain bounded ancestor
+  traversal, avoiding repeated whole-scene scans per descendant.
+- All 24 desktop checks and all 18 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+- Added analytic subtree/history/rejection/CLI-MCP tests and ADR 0017. Preservation
+  tolerance is component-wise 1e-9*max(1,abs(original)); this is conservative,
+  finite-precision behavior, not universal/exact TRS decomposition.
+
+## Detached prefab authoring
+
+- Added strict prefab JSON v1 wrapping a validated authoring scene subtree. Export
+  normalizes local IDs in parent-first order, retains root-local placement, and
+  excludes outside entities, runtime and workspace state.
+- Added prefab.export as a no-overwrite external effect and prefab.instantiate as
+  a typed atomic mutation with fresh IDs, remapped parents/transforms and root
+  selection. Undo/redo and failed batches include IDs, selection and copied data.
+- Added contextual export and shared palette/CLI/MCP/batch discovery. Instantiation
+  validates parent existence, allocation and combined hierarchy depth in the bus.
+- Tests cover export isolation, transforms, ID remapping, selection/history, file
+  preservation, malformed forests, exhaustion/depth rollback and CLI/MCP parity.
+- All 25 desktop checks and all 19 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The standalone bus-only compile/test command also passes. Redo survives source
+  file deletion, and staged-parent instantiation works within one transaction.
+- ADR 0018 records scope. Linked definitions/updates, overrides, GUIDs, recursive
+  references and runtime resource instantiation remain future work.
+
+## Asset catalogue foundation
+
+- Added project-scoped catalogue IDs, declared kinds and validated portable-style
+  relative paths. Register/relocate/forget are typed, atomic, undoable mutations;
+  query/list share discovery, CLI/MCP, keymaps and generated command forms.
+- Added independent JSON v1 catalogue save/load with strict validation and
+  no-overwrite exports. Scene/workspace/prefab persistence remains isolated;
+  catalogue load replaces metadata only and participates in history/batches.
+- Added a modeless Assets browser with path/kind filtering, clipped table rows and
+  prefilled action forms. It displays coherent snapshot metadata, without scanning
+  or touching source files. Native input tests forget/undo an entry through the UI.
+- New black-box tests cover persistent IDs, relocation/removal, path rules,
+  duplicates, rollback, manifest validation, persistence isolation and MCP parity.
+- All 27 desktop checks and all 20 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The standalone bus build passes; native forget/undo also passes in X11 and
+  the browser capture was inspected. Windows/handheld behavior remains unverified.
+- ADR 0019 records scope/bounds. No project root resolution, real import, GUIDs,
+  dependencies, hashes, file watching or runtime resource loading is implemented.
+
+## Registered scene/prefab source validation
+
+- Added read-only asset.validate with an explicit absolute project-root argument.
+  Canonical component checks reject observed escapes; regular-file checks precede
+  bounded reads and existing scene/prefab parsers validate the content.
+- Added prefilled Validate actions in the Assets browser; unsupported kinds are
+  disabled with an explanation. CLI/MCP return structured unsupported-kind errors.
+- Results expose logical path, kind, byte/entity counts. Queries do not import,
+  persist a project root, cache data, touch history or write source files.
+- Tests cover read-only state/parity, Unicode, root/path failures, malformed and
+  oversized content, nonregular sources and observed symlink escapes.
+- All 28 desktop checks and all 21 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The browser smoke passed in X11 and the updated action layout was inspected.
+  Browser columns now scale with text and can scroll horizontally.
+- ADR 0020 records scope. Canonical resolution/read is not a race-proof sandbox;
+  source fingerprints, rooted handle APIs and actual import remain deferred.
+
+## Registered prefab instantiation
+
+- Added asset.instantiate by catalogue ID, explicit project root and destination
+  parent. The source reader is shared with asset.validate; parsing/validation
+  occurs once per decoded row and feeds the existing atomic prefab mutation.
+- Captured catalogue metadata is checked against the transaction candidate before
+  commit. Earlier staged entry relocation/removal fails with asset_reference_changed;
+  registration must commit before ID resolution. Staged destination parents work.
+- Added prefab-only Instantiate browser actions using the same named form and
+  feedback. Actions use two table lines to remain readable at the current width.
+- Tests cover source/type failures, missing IDs, staged parents, catalogue guards,
+  full rollback/history, stale revisions, frozen redo and CLI/MCP parity.
+- All 29 desktop checks and all 22 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings.
+  The browser smoke passed in X11 and its two-line action layout was inspected.
+- ADR 0021 records semantics. Instances remain detached; no source writes, runtime
+  resources, persistent provenance or new scene/catalogue format is introduced.
+
+## Source fingerprints and checked instantiation
+
+- Vendored pinned MIT PicoSHA2 v1.0.1 behind a checksum-verified offline CMake/core
+  wrapper. Known SHA-256 vectors, binary inputs and million-byte data are tested.
+- Source reads return SHA-256 of the exact bytes parsed. asset.validate exposes
+  the token; asset.check compares against an explicit expected token read-only.
+- asset.instantiate_checked rejects a changed source before committing, retaining
+  existing catalogue guards, atomic copy/history and captured redo semantics.
+- Successful validation feedback exposes selectable digests and prefilled Recheck/
+  Instantiate-validated-bytes navigation through the same named command forms.
+- Tests compare file hashes to Python hashlib at padding boundaries and the 1 MiB
+  cap, and cover changed bytes, invalid tokens, checked mutations and rollback.
+- All 31 desktop checks and all 24 sanitizer groups pass with the documented
+  local leak-check limitation. Clang-tidy reports no project-code findings. The
+  hash wrapper also passes a standalone strict-warning compile and vector run.
+- ADR 0022 records scope. No persistent hash baseline, watcher/cache, signature,
+  file lock, hostile-filesystem guarantee or scene/catalogue schema change is added.
+
+## Catalogue source audit
+
+- Added read-only asset.audit with an explicit root, stable ID ordering, per-source
+  diagnostics, exact-byte hashes and valid/invalid/skipped summary counts.
+- Reuses existing scene/prefab validators; unsupported kinds are skipped without
+  source reads. Root failures remain top-level errors, even for empty catalogues.
+- Assets browser opens the common command form; feedback shows counts and bounded
+  details. CLI/MCP expose full reports. No persistence or undo/history changes.
+- ADR 0023 records sequential filesystem observation and serialized-worker limits.
+- All 32 desktop test groups and all 25 ASan/UBSan headless groups pass, with
+  the documented local leak-check limitation. Clang-tidy has no project findings.
+  Windows and the new audit controls on a real display remain unverified.
+
+## Full desktop audit reports
+
+- Added a searchable, status-filtered source audit table with clipped rows, full
+  diagnostic details and selectable fingerprints. All returned entries remain
+  reachable beyond the generic result preview's 4 KiB bound.
+- Selected-row actions prefill existing validate/checked-instantiate forms using
+  the report root, ID and observed digest. They never bypass the shared service.
+- Draft edits clear obsolete reports; form generations reset transient view state.
+  Replacement results re-resolve selected IDs and refresh action eligibility.
+- Added model/lifecycle and native SDL tests using 4096 rows. The same native
+  scenario passes under X11/Xvfb; its diagnostic view was visually inspected.
+- ADR 0024 records report navigation, transient lifetime and existing source guards.
+- All 34 desktop test groups and all 26 ASan/UBSan headless groups pass, with
+  the documented local leak-check limitation. The final table-width adjustment
+  also passes targeted model/native tests. Clang-tidy reports no project findings.
+
+## Delivery checklist reference
+
+- Saved the agreed 93 remaining steps in docs/DELIVERY_CHECKLIST.md and placed
+  prominent reference links in README.md and ROADMAP.md.
+- Recorded completed foundations separately from remaining work: 0/93 remaining
+  steps fully completed, with step 2 partial. This is not a project percentage.
+- Added AGENTS.md instructions to update the checklist and status after each task,
+  retain evidence and distinguish completed implementation from Joshua's merges.
+- Recommended next feature remains project manifest (step 8), after review-stack
+  consolidation. Engine integration remains gated on Joshua's separate decision.
+- Documentation-only task; checked numbered IDs, progress count and local links.
+
+## Delivery milestones and active work board
+
+- Completed checklist step 2 locally: ROADMAP now defines all ten milestone ranges,
+  observable exit criteria and dependency/access gates. WORK_BOARD records bounded
+  tasks, states, evidence requirements and project-manifest/lifecycle slices.
+- Checklist now records 1/93 remaining steps complete, with Joshua's review/merge
+  status separate. This is a count of remaining-plan items, not overall progress.
+- Next feature: manifest contract/ADR (8a), after foundation review consolidation.
+  Ready planning/review tasks remain actionable; Windows and CI lack required
+  environments/runners. No engine work or paid infrastructure was initiated.
+- Documentation-only validation checked local links, stable IDs, completion count,
+  milestone coverage and diff whitespace. Runtime code/tests are unchanged.
+
+## Targeted foundation review and direct-bus UTF-8 fix
+
+- Reviewed selected core/service/queue/persistence boundaries at 1b38fb2, with
+  findings and remaining scope in FOUNDATION_REVIEW.md. Step 1 stays unchecked.
+- Direct typed create/rename/duplicate and ReplaceScene now reject malformed UTF-8
+  entity names, preventing committed state that cannot serialize to JSON.
+- Regression checks cover direct calls, atomic rollback and unchanged history.
+  Four affected test groups pass under desktop and ASan/UBSan presets, with local
+  leak detection disabled as documented. Clang-tidy has no project findings.
+- Continuing independent standalone manifest slices on private branches follows
+  the user's request; this does not assert Joshua's approval or merge anything.
+
+## Project manifest v1
+
+- Added editor-owned ProjectManifest, narrow versioned TOML syntax, supplied stable
+  identity/name, default/override directory roles and cache/source separation.
+- Shared project.manifest.validate/write commands support palette/CLI/MCP without
+  activating a project. Writes preserve existing files and create no directories;
+  reads reject nonregular sources and are bounded. No dependency was added.
+- ADR 0025 and command/user documentation record syntax and external-file effects.
+- Tests cover Python tomllib compatibility, Unicode/escaping, typed-model errors,
+  defaults/nesting, malformed/duplicate/unknown content, size/path limits, unchanged
+  editor state/history, instance/revision checks and CLI/MCP parity.
+- All 36 desktop test groups and all 28 ASan/UBSan groups pass, with the
+  documented local leak-check limitation. Clang-tidy reports no project findings.
+- Step 8 is implemented locally; project lifecycle, active roots, ID generation and
+  dirty/recovery/save-overwrite behavior remain later tasks. Windows is unverified.
+
+## Reusable project fixtures
+
+- Completed checklist step 3 for all currently supported persisted formats: scene
+  v1/v2/v3, workspace v1/v2, prefab v1, catalogue v1 and project manifest v1.
+- Added original small project data and malformed inputs; deterministic offline
+  generator supplies a 1000-entity scene and full 4096-entry mesh catalogue without
+  real imported resources. Fixture expectations and use are documented.
+- The new fixture_projects group passes on desktop and ASan/UBSan (documented
+  local leak-check limitation). It checks source preservation, CLI/MCP parity,
+  invalid-input rollback, scene promotion, workspace migration and generated data.
+- Removed an inadvertently staged generated Python cache and added test-directory
+  ignore rules; fixture tests suppress bytecode generation when importing helpers.
+- Runtime code is unchanged since the full 36/28 test run. There are now 37 desktop
+  and 29 headless groups registered; the new group was run separately on both.
+- Checklist is 3/93 complete locally. New formats/migrations must extend fixtures;
+  correctness workloads are not performance or real runtime validation claims.
+
+## Numerical performance budgets and local baseline
+
+- Completed checklist step 7 locally: PERFORMANCE_BUDGETS defines proposed
+  startup, frame pacing, command/feedback latency, residency and growth targets,
+  fixed workloads and repeatable measurement procedures for Joshua's review.
+- Added opt-in benchmark-headless.py: temporary original fixtures, successful
+  response checks, warmups, bounded waits, timing quantiles and optional Linux RSS.
+  Prints local JSON only; no network, paid service, artifact upload or flaky CI gate.
+- Debug and separate Release builds ran the harness. Release/mock p95: startup
+  3.10 ms, scene tree 5.96 ms, asset list 14.61 ms, rename/undo 8.00 ms. Workloads
+  were 1000 entities/4096 metadata assets, 20 launches and 100 operation samples.
+- These are cloud headless observations; desktop frame traces, RTX 4070/MSI Claw,
+  actual resource residency, accessibility and hardware acceptance remain unverified.
+- Checklist is 4/93 complete locally (2, 3, 7, 8). Next feature is project lifecycle;
+  foundation review step 1 remains partial and Joshua has not merged these changes.
+
+## Project context lifecycle slice
+
+- Added pure ProjectState/session models and captured open/close/recent-clear
+  mutations with canonical manifest/root paths, coherent project queries and
+  snapshot metadata. Manifest validation moved into a reusable pure model.
+- Shared project.open/close/query/recent.clear commands support CLI/MCP and a
+  Project menu that opens the common forms. Recent navigation rereads manifests.
+- Context changes reject non-reset scene/catalogue/runtime content, leaving all
+  state/history unchanged. Exact current-context reopen is a no-op; intentional
+  transactions can open then create content atomically.
+- Undo/redo captures project metadata and session-local capped MRU entries without
+  rereading source files. Existing persistence formats exclude machine-local paths.
+- ADR 0026 records conservative guards and limitations. Step 9 stays unchecked:
+  full directory creation, persistent recents and remaining lifecycle work are open.
+- All 39 desktop and all 30 ASan/UBSan test groups pass, with the documented
+  local leak-check limitation. Expanded changed-manifest guard/redo cases pass on
+  both builds. The bus-only strict-warning compile/run passes without IO linkage;
+  clang-tidy reports no project findings. Native menu navigation also passes in
+  X11/Xvfb, and its layout was inspected. Windows/hardware remain unverified.
+
+## Project directory creation
+
+- Added project.create through the shared registry, CLI/MCP and Project menu. It
+  validates supplied identity/configuration, reserves a new root, creates configured
+  folders and publishes lykoware.toml last as the readiness marker.
+- Existing roots are never adopted or removed. Population failures attempt cleanup
+  only of the newly reserved root; cleanup failures are explicit. ADR 0027 records
+  normal-filesystem race/crash limits and the absence of whole-directory atomicity.
+- Creation is an explicit non-undoable export with unchanged active context/history.
+  Result feedback opens the common project.open form; content guards still apply.
+- Contract tests cover concurrent reservation, existing files/empty roots/symlinks,
+  namespace conflicts, real OS failure cleanup, Unicode folders, state isolation,
+  transaction exclusion and CLI/MCP parity. Native Create navigation passes.
+- Full desktop 40/40 and ASan/UBSan 31/31 groups pass, with the documented
+  leak-check limitation. The subsequent blank-identity generation option passes
+  targeted creation/native tests; final combined validation follows in slice 9c.
+- Step 9 stays partial until persistent recent-project storage is implemented.
+  Windows remains unverified.
+
+## Persistent recent-project history
+
+- Added explicit project.recent.save/load and Project-menu forms for versioned
+  user-local JSON session history. Stored absolute paths/observed metadata stay
+  separate from portable project/scene/prefab/workspace/catalogue formats.
+- Save preserves existing destinations and editor state/history. Load validates the
+  whole bounded store and commits an undoable recent-list replacement only; the
+  pure bus also validates direct typed replacements. Active/authored state is kept.
+- Missing/stale project paths are not opened or inspected while loading history;
+  actual Open navigation revalidates them. Undo/redo captures metadata without
+  rereading stores. There are no implicit startup reads or automatic saves.
+- ADR 0028 and generated recent-history fixtures record the new format. Tests
+  cover separate processes, malformed/duplicate/unknown records, bounds, captured
+  redo, state isolation, atomic imports, export safety and CLI/MCP/native parity.
+- All 41 desktop and all 32 ASan/UBSan groups pass, including creation identity
+  generation, expanded fixtures and lifecycle parity. The documented local
+  leak-check limitation remains. Clang-tidy reports no project-code findings;
+  the bus-only strict-warning compile/run also passes without IO linkage.
+- Expanded Project-menu interactions pass under X11/Xvfb and its layout was
+  inspected. Windows and target hardware remain unverified; safe replacement
+  and dirty-aware switching remain steps 11–12, independent of explicit lifecycle.
+- Checklist step 9 is implemented locally; count is now 5/93. Next is active-project
+  root resolution (10). Joshua's review/merge and the full foundation review remain open.
+
+## Active-project source root resolution
+
+- Source validate/check/audit/instantiate commands now accept omitted/blank roots
+  using the committed active project. Explicit nonempty roots retain independent
+  behavior; invalid roots never fall back. No-active errors identify the root field.
+- Registry optional-field metadata matches CLI/MCP behavior and default palette
+  controls. Other argument requirements remain unchanged. Catalogue paths remain
+  relative to the project root rather than an implicit assets-folder prefix.
+- Implicit prefab reads capture project origin; the bus checks candidate context
+  before allocation, including transactions recreating identical catalogue origins.
+- Validation/check and audit results report their captured canonical root. Desktop
+  feedback and follow-up forms retain that concrete observation. ADR 0029 records
+  source guards, transaction ordering and normal filesystem limitations.
+- New tests cover overrides, omitted/blank fields, no-active errors, source metadata,
+  context/catalogue guards, staged-open behavior, rollback and CLI/MCP parity.
+- Full desktop 42/42 and ASan/UBSan 33/33 groups pass, with the documented
+  leak-check limitation. Clang-tidy reports no project-code findings, and the
+  bus-only strict-warning compile/run passes without IO linkage. The final
+  shorter root label is checked with targeted form/render/feedback tests.
+- Step 10 is implemented locally; checklist is 6/93. Windows and the new source
+  root controls on a real display remain unverified. Next is dirty-state tracking.
+
+## Dirty-state tracking (active batch steps 11–20)
+
+- Added persisted-value baselines for scene/catalogue/workspace/project settings/
+  recent history. document.status and snapshot documents report dirty/unsaved/path.
+  Runtime/selection do not dirty authoring data; disk observations are not undone.
+- Successful decoded loads update baselines only after whole-transaction success;
+  later staged edits remain dirty. Failed writes/batches preserve observations.
+- Added project.configure/settings.revert and staged-safe unsaved-settings guards.
+  Main menu shows modified count; Project menu opens shared status/settings forms.
+- ADR 0030 records semantics. Full desktop 43/43 and ASan/UBSan 34/34 groups
+  pass with the documented leak-check limitation. Clang-tidy has no project-code
+  findings. Step 11 is complete locally; checklist 7/93. Continue step 12.
+- The user requested the full steps 11–20 batch; ACTIVE_BATCH.md tracks the pending
+  work. Continue after this slice instead of treating it as the entire request.
+
+## Checked existing-file persistence (batch step 12)
+
+- Added single-read exact document observations and shared pure parsers/serializers.
+  Registry-level workspace keymap validation is retained and regression-tested.
+- Added checked writers for scene/catalogue/workspace/recent history, active project
+  settings saving and readonly file inspection. Source digests enter document status.
+- Checked saves coordinate editor writers, detect changed bytes, preserve complete
+  backups and basic permission bits, and publish a complete staged replacement.
+  Existing no-overwrite writers and undoable authoring semantics remain intact.
+- Tests cover external/cooperating races, backup contents/modes, locks, automatic
+  and reviewed tokens, failed-save isolation and project save/close. ADR 0031 records
+  advisory/race/metadata/crash limits. Full desktop 44/44 and ASan/UBSan 35/35
+  groups pass with the documented leak-check limitation. Clang-tidy has no project
+  findings. Checklist is 8/93; steps 11–12 complete within the active batch.
+- Continue the active 11–20 batch after this slice: autosave/recovery is next.
+
+## Current limitations
+
+- Windows compilation/runtime, hardware performance, screen-reader behavior and
+  handheld input remain unverified. CI is manual-only and requires approved
+  self-hosted runners; no paid jobs or artifact uploads have been invoked.
+- This is a starter shell. Dockspace split/tab layouts are supported; floating
+  windows are rejected and restored. Legacy panel.dock/layout.resize commands
+  explicitly reset custom layouts to starter presets.
+  Primitive palette parameters and batch rows use generated controls. Layout
+  objects have typed controls plus JSON import; generic nested schema widgets
+  remain future work.
+- This is the first typography/icon pass. Further polish, prefab/asset schemas,
+  glTF import and binary
+  cooking remain outstanding. The software preview is explicitly simulated.
+- Scene/workspace exports preserve existing files; in-place replacement and
+  power-loss durability remain future work. JSON/TOML limits remain documented.
+- ADRs are proposed/implemented locally for Joshua's review, not merged decisions.
+
+## Next handover
+
+Use only this repository and the existing isolated checkout; no worktree unless
+explicitly requested and no external engine access. Activate cloud tools with
+`source /workspace/.lyko-tools/activate.sh`; rerun editor/tools/setup-cloud.sh if
+needed. See editor/README.md for desktop/MCP/headless commands. Read
+docs/WORK_BOARD.md for active tasks and docs/ROADMAP.md for milestone acceptance.
+Continue with dirty-state tracking (step 11) and the partial
+foundation review; do not treat local review as Joshua's merge approval. Keep
+docs/STATUS.md and docs/DELIVERY_CHECKLIST.md current. Joshua merges.

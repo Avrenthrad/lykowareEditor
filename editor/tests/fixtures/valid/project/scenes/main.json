@@ -1,0 +1,38 @@
+{
+  "schema_version": 3,
+  "next_id": 3,
+  "entities": [
+    {
+      "id": 1,
+      "name": "World 🐺",
+      "parent": 0,
+      "transform": {
+        "px": 3.25,
+        "py": 0,
+        "pz": 0,
+        "rx": 0,
+        "ry": 0,
+        "rz": 0,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1
+      }
+    },
+    {
+      "id": 2,
+      "name": "Child",
+      "parent": 1,
+      "transform": {
+        "px": 0,
+        "py": 2,
+        "pz": 0,
+        "rx": 0,
+        "ry": 0,
+        "rz": 0,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1
+      }
+    }
+  ]
+}

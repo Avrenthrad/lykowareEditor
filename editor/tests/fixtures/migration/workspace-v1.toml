@@ -1,0 +1,24 @@
+# Lykoware workspace configuration v1
+schema_version = 1
+scale_percent = 100
+theme = "dark"
+reduced_motion = false
+
+[panels]
+"console" = "bottom"
+"history" = "bottom"
+"inspector" = "right"
+"scene" = "left"
+"viewport" = "center"
+
+[splits]
+"bottom" = 25
+"left" = 20
+"right" = 25
+
+[keymap]
+"history.redo" = "Ctrl+Shift+Z"
+"history.undo" = "Ctrl+Z"
+"palette.search" = "Ctrl+K"
+"play.start" = "F5"
+"play.stop" = "Shift+F5"

@@ -1,0 +1,69 @@
+# Lykoware workspace configuration v2
+schema_version = 2
+scale_percent = 100
+theme = "dark"
+reduced_motion = false
+
+[panels]
+"console" = "bottom"
+"history" = "bottom"
+"inspector" = "right"
+"scene" = "left"
+"viewport" = "center"
+
+[splits]
+"bottom" = 25
+"left" = 20
+"right" = 25
+
+[keymap]
+"history.redo" = "Ctrl+Shift+Z"
+"history.undo" = "Ctrl+Z"
+"palette.search" = "Ctrl+K"
+"play.start" = "F5"
+"play.stop" = "Shift+F5"
+
+[layout]
+root = "root"
+hidden = []
+
+[layout.nodes.root]
+axis = "horizontal"
+first = "root-0"
+kind = "split"
+ratio = 2000
+second = "root-1"
+
+[layout.nodes.root-0]
+active = "scene"
+kind = "tabs"
+panels = ["scene"]
+
+[layout.nodes.root-1]
+axis = "horizontal"
+first = "root-1-0"
+kind = "split"
+ratio = 6875
+second = "root-1-1"
+
+[layout.nodes.root-1-0]
+axis = "vertical"
+first = "root-1-0-0"
+kind = "split"
+ratio = 7500
+second = "root-1-0-1"
+
+[layout.nodes.root-1-0-0]
+active = "viewport"
+kind = "tabs"
+panels = ["viewport"]
+
+[layout.nodes.root-1-0-1]
+active = "console"
+kind = "tabs"
+panels = ["console","history"]
+
+[layout.nodes.root-1-1]
+active = "inspector"
+kind = "tabs"
+panels = ["inspector"]
