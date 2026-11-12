@@ -188,3 +188,10 @@ These are release gates, not a reason to defer usability or validation until the
 - Prior recorded checkpoint (2026-11-06): 34 desktop and 26 sanitizer/headless test groups passed locally on Linux, with leak detection limited. Those are historical claims from STATUS/REVIEW_STACK, not independently reproduced here.
 - Outstanding verification gates: review stack ancestry and integration (step 1), reusable fixtures (3), Windows build (4), approved CI execution (5), real MCP clients (6), numerical performance budgets (7). Do not mark any complete on the strength of this read-only inspection.
 - **Checklist remains 1/93 complete**, with step 2 implemented but awaiting owner review/merge. Next: obtain an executable checkout or approved runner, run `cmake --preset dev && cmake --build --preset dev && ctest --preset dev` and the desktop/sanitizer presets from `editor/`, record command output and environment, then resolve failures before integrating the stack. Do not merge or publish automatically.
+
+## 2026-11-12 hosted Actions preparation
+
+- Updated `.github/workflows/editor.yml` on this review branch to use standard `ubuntu-24.04` and `windows-2022` hosted runners, retaining **only** `workflow_dispatch`, read-only permissions, a single concurrent matrix leg, 45-minute per-job timeouts, and no artifact uploads. This is preparation, **not** a completed CI validation.
+- No workflow was dispatched and no GitHub-hosted usage was incurred by this change. GitHub-hosted runner minutes and billing depend on repository visibility and account allowances; verify Actions budget before running.
+- The default branch currently lacks this workflow. For the GitHub Actions UI/manual dispatch to be available, the workflow must first exist on the default branch (e.g. through an owner-approved integration); do not merge the editor stack automatically. Alternatively use a temporary, owner-approved default-branch workflow after reviewing the approach.
+- Step 5 remains open until real Ubuntu/Windows run URLs, job results, and logs are captured; steps 4 and 7 remain open pending Windows and performance evidence. **Total remains 1/93**.
