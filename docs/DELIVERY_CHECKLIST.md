@@ -2,23 +2,23 @@
 
 **Project reference — linked at the top of README and ROADMAP.**
 
-Last updated: 2026-11-07. Owner/reviewer: Joshua, Lykoleon Studios.
+Last updated: 2026-11-12. Owner/reviewer: Joshua, Lykoleon Studios.
 
 ## Current position
 
 - Foundation already implemented: shared command bus, atomic history, headless CLI,
   instance-targeted MCP, desktop shell, hierarchy/transforms, detached prefabs,
   catalogue/source validation and full desktop audit reports.
-- Latest runtime checkpoint: active-project source roots on private branch
-  codex/standalone-editor-active-roots. Full desktop/sanitizer validation is
-  recorded in [STATUS](STATUS.md), alongside hardware/platform limitations.
+- Latest implementation tip: codex/standalone-editor-checked-saves at ea670ea.
+  Historical desktop/sanitizer results are recorded in [STATUS](STATUS.md);
+  no fresh runtime validation was possible on 2026-11-12.
 - **Remaining checklist: 8/93 complete.** This counts the remaining delivery steps,
   not overall project completion. Existing foundations are not counted again.
 - Step 2 is implemented locally: [milestone acceptance criteria](ROADMAP.md) and
   the [active work board](WORK_BOARD.md) are maintained alongside this checklist.
   Review/merge remains with Joshua; the wider foundation milestone is incomplete.
-- Steps 2, 3, 7, 8, 9 and 10 are implemented locally. Next: dirty-state tracking
-  (11). Foundation review and Joshua decisions remain open.
+- Steps 2, 3, 7, 8, 9, 10, 11 and 12 have recorded implementation evidence.
+  Next: fresh platform/CI validation and foundation review before feature work.
   Windows/CI validation should progress as infrastructure permits.
 - Steps 56–65 require Joshua's integration decision. This plan does not authorize
   engine repository access. Steps 83–93 are the later content-suite finish line.
@@ -43,13 +43,16 @@ public release without approval. See [review stack](REVIEW_STACK.md).
 ## A. Consolidate the foundation — steps 1–7
 
 - [ ] 1. Review the existing branch stack and ADRs; resolve issues before building further on them. Joshua reviews and merges.
+  2026-11-12: all 36 implementation tips are ancestors of checked-saves ea670ea (45 commits ahead of main). Consolidated candidate preserves that history without branch deletion or rewriting. This verifies ancestry only; full code/ADR review, regression results and owner approval remain open.
   Progress: targeted core pass against 1b38fb2 recorded in FOUNDATION_REVIEW.md; direct-bus UTF-8 persistence defect fixed and regression-tested. Full stack/ADR review and Joshua decisions remain open.
 - [x] 2. Replace the short roadmap with milestones, acceptance criteria and a maintained work board.
   Evidence: ROADMAP.md covers milestones A–J with observable exit criteria and dependencies; WORK_BOARD.md defines the queue, task states and next slices. Documentation links, stable IDs and milestone coverage checked. Implemented locally on codex/standalone-editor-delivery-milestones; awaiting Joshua review/merge.
 - [x] 3. Establish representative test projects: small, large, malformed and migration fixtures.
   Evidence: editor/tests/fixtures covers scene 1/2/3, workspace 1/2, prefab/catalogue/project 1; deterministic generator supplies 1000 entities and 4096 catalogue entries. fixture_projects passes in desktop and ASan/UBSan builds; source fixtures stay unchanged. Private branch codex/standalone-editor-project-fixtures; not merged.
 - [ ] 4. Verify Windows builds and fix platform-specific problems.
+  2026-11-12: prepared explicit VS 2022/x64 configuration and Debug build/test selection in the hosted workflow. No Windows compilation ran; local build tools are unavailable.
 - [ ] 5. Run Linux/Windows CI on approved infrastructure, including sanitizers and clang-tidy.
+  2026-11-12: Actions API reports zero runs. PR #1 is draft/unmerged and main has no workflow. Hosted manual workflow is prepared on codex/consolidated-validation-2026-11-12; sanitizers wait for build jobs. Dispatch remains blocked pending owner-approved CI workflow on main and authenticated dispatch capability. No Actions usage started; no test pass inferred from configuration review.
 - [ ] 6. Validate compatibility with actual MCP clients and multiple editor instances.
 - [x] 7. Define measurable performance budgets for startup, frame time, memory and command latency.
   Evidence: PERFORMANCE_BUDGETS.md defines numerical targets, fixed workloads and repeatable startup/frame/memory/latency procedures; benchmark-headless.py ran successfully in Debug and Release with local mock measurements. Targets await Joshua review; hardware acceptance remains unchecked (76–77). Branch codex/standalone-editor-performance-budgets.
