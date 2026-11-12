@@ -1,38 +1,76 @@
 name: Standalone editor checks
-# No automatic hosted runs or artifact uploads. Joshua can dispatch this against
-# existing, explicitly approved self-hosted runners; no paid runner is requested.
+# Manual only. Standard GitHub-hosted runners; no artifact uploads.
+# Review Actions usage/billing before dispatching (especially for private repos).
 on:
   workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: editor-manual-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
+    name: Build and test (${{ matrix.os }})
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
-        os: [Linux, Windows]
-    runs-on: [self-hosted, '${{ matrix.os }}', X64]
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: editor
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - run: cmake --preset dev
-      - run: cmake --build --preset dev --parallel 2
-      - run: ctest --preset dev
-      - run: cmake --preset desktop
-      - run: cmake --build --preset desktop --parallel 2
-      - run: ctest --preset desktop
+      - name: Install Ubuntu build prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxkbcommon-dev libwayland-dev libegl1-mesa-dev libgl1-mesa-dev
+      - name: Configure headless
+        if: runner.os != 'Windows'
+        run: cmake --preset dev
+      - name: Configure headless (MSVC)
+        if: runner.os == 'Windows'
+        run: cmake --preset dev -G "Visual Studio 17 2022" -A x64
+      - name: Build headless
+        run: cmake --build --preset dev --config Debug --parallel 2
+      - name: Test headless
+        run: ctest --preset dev --build-config Debug --no-tests=error
+      - name: Configure desktop
+        if: runner.os != 'Windows'
+        run: cmake --preset desktop
+      - name: Configure desktop (MSVC)
+        if: runner.os == 'Windows'
+        run: cmake --preset desktop -G "Visual Studio 17 2022" -A x64
+      - name: Build desktop
+        run: cmake --build --preset desktop --config Debug --parallel 2
+      - name: Test desktop
+        run: ctest --preset desktop --build-config Debug --no-tests=error
+
   sanitizers-and-tidy:
-    runs-on: [self-hosted, Linux, X64]
+    name: Linux sanitizers
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: editor
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - run: cmake --preset sanitizers -DLYKO_CLANG_TIDY=ON
-      - run: cmake --build --preset sanitizers --parallel 2
-      - run: ctest --preset sanitizers
-      - run: cmake --preset thread-sanitizer
-      - run: cmake --build --preset thread-sanitizer --target lyko_queue_tests lyko_tests --parallel 2
-      - run: ctest --preset thread-sanitizer -R "desktop_command_queue|command_bus"
+      - name: Install build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang-tidy
+      - name: Configure address/undefined sanitizers
+        run: cmake --preset sanitizers -DLYKO_CLANG_TIDY=ON
+      - name: Build address/undefined sanitizers
+        run: cmake --build --preset sanitizers --parallel 2
+      - name: Test address/undefined sanitizers
+        run: ctest --preset sanitizers
+      - name: Configure thread sanitizer
+        run: cmake --preset thread-sanitizer
+      - name: Build thread sanitizer
+        run: cmake --build --preset thread-sanitizer --target lyko_queue_tests lyko_tests --parallel 2
+      - name: Test thread sanitizer
+        run: ctest --preset thread-sanitizer -R "desktop_command_queue|command_bus"
